@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import FirebaseStorage
+import UIKit
 
 class StorageManager {
     
@@ -27,7 +28,7 @@ class StorageManager {
             }
         }
     }
-
+    
     
     func getDownloadURL(for id: String) -> Future<URL, Error> {
         return Future { promise in
@@ -40,6 +41,13 @@ class StorageManager {
                 }
             }
         }
+    }
+    
+    func getImage(url: URL) async throws -> UIImage {
+        let request = URLRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        guard let image = UIImage(data: data) else { throw URLError(.badServerResponse) }
+        return image
     }
 }
 

@@ -13,6 +13,8 @@ class AuthManager: ObservableObject {
     
     static let shared = AuthManager()
     
+    var id: String? { Auth.auth().currentUser?.uid }
+    
     func loginUser(email: String, password: String) -> Future<AuthDataResult, Error>{
         return Future { promise in
             Auth.auth().signIn(withEmail: email, password: password) { result, error in
@@ -38,4 +40,7 @@ class AuthManager: ObservableObject {
         }
     }
     
+    func logoutUser() {
+        try? Auth.auth().signOut()
+    }
 }

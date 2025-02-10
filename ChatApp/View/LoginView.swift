@@ -9,73 +9,77 @@ import SwiftUI
 import PhotosUI
 
 struct LoginView: View {
-    @EnvironmentObject var model1: LoginViewModel
-    @StateObject var model = LoginViewModel()
+    @ObservedObject var viewModel: LoginViewModel
     @State private var selectedItem: PhotosPickerItem?
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    Picker(selection: $model.isLoginMode, label: Text("PickerHERE")) {
+                    Picker(selection: $viewModel.isLoginMode, label: Text("PickerHERE")) {
                         Text("로그인")
                             .tag(true)
                         Text("계정생성")
                             .tag(false)
                     }
                     .pickerStyle(.palette)
-                    .onChange(of: model.isLoginMode, { newValue, oldValue in
-                        model.email = ""
-                        model.password = ""
+                    .onChange(of: viewModel.isLoginMode, { newValue, oldValue in
+                        viewModel.email = ""
+                        viewModel.password = ""
                     })
                     
                     profileImageView()
                     
                     Group {
-                        TextField("이메일", text: $model.email)
+                        TextField("이메일", text: $viewModel.email)
                             .keyboardType(.emailAddress)
                             .textInputAutocapitalization(.none)
-                        SecureField("비밀번호", text: $model.password)
+                        SecureField("비밀번호", text: $viewModel.password)
                     }
                     .padding(12)
                     .background(Color.white)
                     
                     Button {
-                        model.loginButtonTap()
-                        
+                        viewModel.loginButtonTap()
+                        print(viewModel.isAuthenticated)
                     } label: {
-                        Text(model.isLoginMode ? "로그인" : "가입하기")
+                        Text(viewModel.isLoginMode ? "로그인" : "가입하기")
                             .frame(maxWidth: .infinity)
                             .font(.system(size: 18, weight: .none))
                             .foregroundStyle(.background)
                             .padding(13)
                             .background(.blue, in: RoundedRectangle(cornerRadius: 15))
                     }
-                    .alert("이메일 혹은 비밀번호를 입력해주세요.", isPresented: $model.showAlert, actions: {
+                    .alert("이메일 혹은 비밀번호를 입력해주세요.", isPresented: $viewModel.showAlert, actions: {
                         Button("확인", role: .cancel, action: {})
                     })
                     
-                    Text("\(model.statusMessage)")
+                    Text("\(viewModel.statusMessage)")
                         .foregroundStyle(.gray)
                 }
                 .padding()
             }
-            .navigationTitle(model.isLoginMode ? "로그인" : "가입하기")
+            .navigationTitle(viewModel.isLoginMode ? "로그인" : "가입하기")
             .navigationBarTitleDisplayMode(.inline)
             .background(Color(white: 0, opacity: 0.05))
+            NavigationLink(destination: {
+                RegistrationView(viewModel: viewModel)
+            }, label: {
+                Text("회원가입하기")
+            })
         }
     }
     
     @ViewBuilder
     func profileImageView() -> some View {
-        if !model.isLoginMode {
+        if !viewModel.isLoginMode {
             PhotosPicker(
                 selection:$selectedItem,
                 matching: .images,
                 photoLibrary: .shared()) {
                     VStack {
                         
-                        if let image = model.image {
+                        if let image = viewModel.image {
                             Image(uiImage: image)
                                 .resizable()
                                 .scaledToFit()
@@ -94,7 +98,7 @@ struct LoginView: View {
                     guard let newItem = newItem else { return }
                     Task {
                         if let image = try? await newItem.loadTransferable(type: Data.self){
-                            model.image = UIImage(data: image)
+                            viewModel.image = UIImage(data: image)
                         }
                     }
                 })
@@ -103,5 +107,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
+    LoginView(viewModel: .init())
 }

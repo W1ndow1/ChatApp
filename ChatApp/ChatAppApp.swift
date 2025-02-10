@@ -6,27 +6,20 @@
 //
 
 import SwiftUI
-import FirebaseCore
-import FirebaseStorage
-import FirebaseAuth
-
-class AppDelegate: NSObject, UIApplicationDelegate {
-    
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        FirebaseApp.configure()
-        return true
-    }
-}
+import Firebase
 
 @main
 struct ChatAppApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @StateObject var viewModel = LoginViewModel()
+    
+    init() {
+        FirebaseApp.configure()
+    }
     
     var body: some Scene {
         WindowGroup {
-            LoginView()
-                .environmentObject(LoginViewModel())
+            HomeTabView()
+                .environmentObject(viewModel)
         }
     }
 }

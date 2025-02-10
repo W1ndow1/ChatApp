@@ -8,19 +8,28 @@
 import Foundation
 import FirebaseAuth
 import FirebaseStorage
+import FirebaseFirestore
 import Combine
 import UIKit
+import SwiftUI
 
 class LoginViewModel: ObservableObject {
     @Published var email = ""
     @Published var password = ""
+    @Published var passwordCheck = ""
+    @Published var displayName = ""
+    @Published var userName = ""
     @Published var isLoginMode = false
     @Published var showAlert = false
     @Published var statusMessage = ""
-    @Published var user: User?
     @Published var image: UIImage?
+    @Published var isAuthenticated = false
     
     private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        self.isAuthenticated = AuthManager.shared.id != nil
+    }
     
     func loginButtonTap() {
         if validateInputFields(email: email, password: password) {
@@ -28,7 +37,6 @@ class LoginViewModel: ObservableObject {
                 login()
             } else {
                 createAccount()
-                
             }
         }
     }
@@ -42,11 +50,7 @@ class LoginViewModel: ObservableObject {
         showAlert = false
         return true
     }
-    
-    func profileButtonTap() {
-        
-    }
-    
+
     /// 계정생성(Combine)
     func createAccount() {
         AuthManager.shared.registerUser(email: email, password: password)
@@ -61,6 +65,7 @@ class LoginViewModel: ObservableObject {
             } receiveValue: { authResult in
                 self.statusMessage = authResult.user.uid
                 self.uploadImage(uid: authResult.user.uid)
+                self.isAuthenticated = true
                 
             }
             .store(in: &cancellables)
@@ -77,7 +82,10 @@ class LoginViewModel: ObservableObject {
                     break;
                 }
             }, receiveValue: { [weak self] authDataResult in
-                self?.statusMessage = authDataResult.user.uid
+                self?.statusMessage = "User Uid : \(authDataResult.user.uid)"
+                self?.isAuthenticated = true
+                
+                
             })
             .store(in: &cancellables)
     }
@@ -100,38 +108,32 @@ class LoginViewModel: ObservableObject {
                 
             }, receiveValue: { url in
                 print("imagePath = \(url.absoluteString))")
+                self.storeUserInfomation(imageProfileURL: url)
             })
             .store(in: &cancellables)
     }
     
-    
-    func loginUser() {
-        Auth.auth().signIn(withEmail: email, password: password) {
-            result, error in
-            if let error = error {
-                print("Failed to login user:", error)
-                self.statusMessage = "Failed to login user: \(self.errorMessage(error: error.localizedDescription))"
-                return
-            }
-            print("Successfully logged user: \(result?.user.uid ?? "")")
-            self.statusMessage = "Successfully logged in as user:\(result?.user.uid ?? "")"
-            
-        }
-    }
-    
-    func createNewAccount() {
-        Auth.auth().createUser(withEmail: email, password: password) {
-            result, error in
-            if let error = error {
-                print("Failed to create user:", error)
-                self.statusMessage = "Failed to Create user: \(self.errorMessage(error: error.localizedDescription))"
-                return
-            }
-            print("Success created user: \(result?.user.uid ?? "")")
-            self.statusMessage = "Successfully created user: \(result?.user.uid ?? "")"
-            guard let uid = result?.user.uid else { return }
-            self.uploadImageToStorage(uid: uid)
-        }
+    func storeUserInfo(url: URL) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let userData = [
+            "email": self.email,
+            "uid": uid,
+            "profileImageURL": url.absoluteString
+        ]
+        let userData2 = ChatUser(uid: uid, email: self.email, profileImageURL: url.absoluteString)
+        DatabaseManager.shared.storeUserInformation(userData: userData2, uid: uid)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    self.statusMessage = error.localizedDescription
+                case .finished:
+                    self.statusMessage = "Success upload userData"
+                }
+                
+            }, receiveValue: {_ in
+                
+            })
+            .store(in: &cancellables)
     }
     
     /// 에러메시지 추출하기
@@ -145,26 +147,22 @@ class LoginViewModel: ObservableObject {
         return String(error[range])
     }
     
-    /// 이미지 업로드
-    func uploadImageToStorage(uid: String) {
-        let ref = Storage.storage().reference(withPath: "images/\(uid)/profile.jpg")
-        guard let imageData = self.image?.jpegData(compressionQuality: 0.2) else { return }
-        ref.putData(imageData, metadata: nil) { metadata, error in
-            if let error = error {
-                self.statusMessage = "Failed to push image to Storage: \(error)"
-                print(error)
-                return
-            }
-            ref.downloadURL { url, error in
+    
+    func storeUserInfomation(imageProfileURL: URL) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let userData = [
+            "email": self.email,
+            "uid": uid,
+            "profileImageURL": imageProfileURL.absoluteString
+        ]
+        Firestore.firestore().collection("users")
+            .document(uid).setData(userData) { error in
                 if let error = error {
-                    self.statusMessage = "Failed to retrieve downloadURL: \(error)"
                     print(error)
+                    self.statusMessage = error.localizedDescription
                     return
                 }
-                self.statusMessage = "Successfully stored image with url: \(url?.absoluteString ?? "")"
-                print(url?.absoluteString ?? "")
+                print("Success upload userData")
             }
-            
-        }
     }
 }

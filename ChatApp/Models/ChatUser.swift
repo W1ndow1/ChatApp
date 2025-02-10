@@ -7,11 +7,12 @@
 
 import Foundation
 
-struct ChatUser: Identifiable {
-    var id: String
+struct ChatUser: Codable, Identifiable {
+    var id: String { uid }
+    
+    var uid: String
     var email: String = ""
-    var displayName: String = ""
-    var userName: String = ""
-    var profileImagePath: String = ""
-    var createOn:Date = Date()
+    var profileImageURL: String = ""
+    //var displayName: String = ""
+    //var createOn:Date = Date()
 }
