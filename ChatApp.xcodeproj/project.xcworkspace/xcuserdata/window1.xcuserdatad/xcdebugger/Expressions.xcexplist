@@ -3,10 +3,24 @@
    version = "1.0">
    <ContextStates>
       <ContextState
+         contextName = "closure #2 in MessageViewModel.fetchCurrentUser():MessageViewModel.swift">
+      </ContextState>
+      <ContextState
          contextName = "closure #2 in LoginViewModel.login():LoginViewModel.swift">
          <PersistentStrings>
             <PersistentString
                value = "isAuthenticated">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "MessageViewModel.fetchCurrentUser():MessageViewModel.swift">
+      </ContextState>
+      <ContextState
+         contextName = "closure #2 in closure #2 in closure #1 in NewMessageView.body.getter:NewMessageView.swift">
+         <PersistentStrings>
+            <PersistentString
+               value = "viewmodel">
             </PersistentString>
          </PersistentStrings>
       </ContextState>

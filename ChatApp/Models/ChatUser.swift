@@ -7,12 +7,11 @@
 
 import Foundation
 
-struct ChatUser: Codable, Identifiable {
+struct ChatUser: Identifiable, Codable, Hashable {
     var id: String { uid }
-    
     var uid: String
     var email: String = ""
     var profileImageURL: String = ""
-    //var displayName: String = ""
-    //var createOn:Date = Date()
+    var displayName: String = ""
+    var lastChattingDate: Date?
 }

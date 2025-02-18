@@ -10,11 +10,12 @@ import Combine
 import UIKit
 
 class NewMessageViewModel: ObservableObject {
-    @Published var users = [ChatUser]()
+    @Published var users: [ChatUser] = []
     @Published var errerMessage = ""
     @Published var profileImage: UIImage?
     
     private var cancellables = Set<AnyCancellable>()
+    
     init() {
         fetchAllUsers()
     }
@@ -26,9 +27,9 @@ class NewMessageViewModel: ObservableObject {
                     self.errerMessage = "Error fetching users: \(error)"
                     print("Error fetching users: \(error)")
                 }
-            }, receiveValue: { users in
-                self.users = users
-                self.errerMessage = "Fetched users Successfully"
+            }, receiveValue: { [weak self] users in
+                self?.users = users
+                self?.errerMessage = "Fetched users Successfully"
             })
             .store(in: &cancellables)
     }

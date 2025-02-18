@@ -9,20 +9,33 @@ import SwiftUI
 import PhotosUI
 
 struct RegistrationView: View {
+    @Environment(\.dismiss) var dismiss
     @ObservedObject var viewModel: LoginViewModel
     @State private var selectedItem: PhotosPickerItem?
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 18) {
-                    profileImageView()
-                    inputFiledView()
-                    signUpButtonView()
-                    Text("\(viewModel.statusMessage)")
+            VStack(spacing: 15) {
+                profileImageView()
+                inputFiledView()
+                registrationButtonView()
+                   
+                Text("\(viewModel.statusMessage)")
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.systemPink))
+                Spacer()
+                Button {
+                    dismiss()
+                }label: {
+                    HStack {
+                        Text("이미 계정이 있으신가요?")
+                        Text("로그인하기")
+                            .bold()
+                    }
+                    .font(.subheadline)
                 }
-                .padding()
             }
+            .padding()
             .navigationTitle("회원가입")
             .navigationBarTitleDisplayMode(.inline)
             .background(Color(white: 0, opacity: 0.05))
@@ -67,14 +80,9 @@ struct RegistrationView: View {
             TextField("이메일" ,text: $viewModel.email)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.none)
-            HStack {
-                TextField(text: $viewModel.displayName, label: {
-                    Text("닉네임")
-                })
-                TextField(text: $viewModel.userName, label: {
-                    Text("성명")
-                })
-            }
+            TextField(text: $viewModel.displayName, label: {
+                Text("닉네임")
+            })
             SecureField(text: $viewModel.password, label: {
                 Text("비밀번호")
             })
@@ -82,13 +90,17 @@ struct RegistrationView: View {
                 Text("비밀번호 확인")
             })
         }
+        .onTapGesture {
+            viewModel.statusMessage = ""
+        }
         .padding(12)
         .background(Color.white)
     }
     @ViewBuilder
-    func signUpButtonView() -> some View {
+    func registrationButtonView() -> some View {
         Button{
-            
+            viewModel.isLoginMode = false
+            viewModel.registrationButtonTap()
         } label: {
             Text("확인")
                 .frame(maxWidth: .infinity)

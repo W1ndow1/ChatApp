@@ -1,5 +1,5 @@
 //
-//  MessageViewModel.swift
+//  MessageListViewModel.swift
 //  ChatApp
 //
 //  Created by window1 on 2/5/25.
@@ -9,18 +9,20 @@ import Foundation
 import Combine
 import UIKit
 
-class MessageViewModel: ObservableObject {
+class MessageListViewModel: ObservableObject {
     @Published var errorMessage = ""
     @Published var currentUser: ChatUser?
     @Published var profileImage: UIImage?
+    @Published var chatRooms: [ChatRooms]?
     
     private var cancellables = Set<AnyCancellable>()
     
     init() {
         fetchCurrentUser()
+        fetchChatRooms()
     }
     
-    private func fetchCurrentUser() {
+    func fetchCurrentUser() {
         guard let uid = AuthManager.shared.id else { return }
         DatabaseManager.shared.collectionUsers(uid: uid)
             .handleEvents(receiveOutput:  { user in
@@ -51,6 +53,19 @@ class MessageViewModel: ObservableObject {
         } catch {
             print("Failed to load Image", error)
         }
+    }
+    
+    func fetchChatRooms() {
+        guard let uid = AuthManager.shared.id else { return }
+        DatabaseManager.shared.collectionChatRooms(uid: uid)
+            .sink(receiveCompletion: { [weak self] completion in
+                if case .failure(let failure) = completion {
+                    self?.errorMessage = failure.localizedDescription
+                }
+            }, receiveValue: { chatRooms in
+                self.chatRooms = chatRooms
+            })
+            .store(in: &cancellables)
     }
 }
 

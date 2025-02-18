@@ -22,7 +22,7 @@ class LoginViewModel: ObservableObject {
     @Published var isLoginMode = false
     @Published var showAlert = false
     @Published var statusMessage = ""
-    @Published var image: UIImage?
+    @Published var image = UIImage(systemName: "globe")
     @Published var isAuthenticated = false
     
     private var cancellables = Set<AnyCancellable>()
@@ -32,25 +32,54 @@ class LoginViewModel: ObservableObject {
     }
     
     func loginButtonTap() {
-        if validateInputFields(email: email, password: password) {
-            if isLoginMode {
-                login()
-            } else {
-                createAccount()
-            }
+        if validateInputFields(email: email,
+                               password: password) {
+            login()
+        } else {
+            statusMessage = "비어 있는 정보가 있습니다."
         }
+    }
+    
+    func registrationButtonTap() {
+        guard passwardCheck(password: password, passwordcCheck: passwordCheck) else {
+            return statusMessage = "비밀번호가 일치하지 않습니다."
+        }
+        if validateInputFields(email: email, 
+                               password: password,
+                               displayName: displayName) {
+            createAccount()
+        } else{
+            statusMessage = "비어 있는 정보가 있습니다."
+        }
+    }
+    
+    private func passwardCheck(password: String, passwordcCheck: String) -> Bool {
+        return password == passwordcCheck
     }
     
     private func validateInputFields(email: String?, password: String?) -> Bool{
         guard let email = email, !email.isEmpty,
-              let password = password, !password.isEmpty else {
+              let password = password, !password.isEmpty
+        else {
             showAlert = true
             return false
         }
         showAlert = false
         return true
     }
-
+    
+    private func validateInputFields(email: String?, password: String?, displayName: String?) -> Bool{
+        guard let email = email, !email.isEmpty,
+              let password = password, !password.isEmpty,
+              let displayName = displayName, !displayName.isEmpty
+        else {
+            showAlert = true
+            return false
+        }
+        showAlert = false
+        return true
+    }
+    
     /// 계정생성(Combine)
     func createAccount() {
         AuthManager.shared.registerUser(email: email, password: password)
@@ -108,20 +137,18 @@ class LoginViewModel: ObservableObject {
                 
             }, receiveValue: { url in
                 print("imagePath = \(url.absoluteString))")
-                self.storeUserInfomation(imageProfileURL: url)
+                self.storeUserInfo(url: url)
             })
             .store(in: &cancellables)
     }
     
     func storeUserInfo(url: URL) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        let userData = [
-            "email": self.email,
-            "uid": uid,
-            "profileImageURL": url.absoluteString
-        ]
-        let userData2 = ChatUser(uid: uid, email: self.email, profileImageURL: url.absoluteString)
-        DatabaseManager.shared.storeUserInformation(userData: userData2, uid: uid)
+        let userData = ChatUser(uid: uid, 
+                                email: self.email,
+                                profileImageURL: url.absoluteString,
+                                displayName: displayName)
+        DatabaseManager.shared.storeUserInformation(userData: userData, uid: uid)
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .failure(let error):
