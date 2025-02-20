@@ -185,7 +185,6 @@ class LoginViewModel: ObservableObject {
         Firestore.firestore().collection("users")
             .document(uid).setData(userData) { error in
                 if let error = error {
-                    print(error)
                     self.statusMessage = error.localizedDescription
                     return
                 }

@@ -39,6 +39,8 @@
 		A8E60A902D5BCC0B0030A203 /* ChatLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A8F2D5BCC0B0030A203 /* ChatLogView.swift */; };
 		A8E60A922D5FA0CA0030A203 /* ChatLogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A912D5FA0CA0030A203 /* ChatLogViewModel.swift */; };
 		A8E60A942D60C0930030A203 /* ChatMessages.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A932D60C0930030A203 /* ChatMessages.swift */; };
+		A8E60A972D651E260030A203 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A962D651E260030A203 /* FirebaseFunctions */; };
+		A8E60A992D651E260030A203 /* FirebaseFunctionsCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A982D651E260030A203 /* FirebaseFunctionsCombine-Community */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -81,7 +83,9 @@
 				A80AA1A42D36540F00402AE6 /* FirebaseStorage in Frameworks */,
 				A80AA1B52D43F62F00402AE6 /* FirebaseFirestoreCombine-Community in Frameworks */,
 				A80AA1B32D43F62F00402AE6 /* FirebaseFirestore in Frameworks */,
+				A8E60A972D651E260030A203 /* FirebaseFunctions in Frameworks */,
 				A80AA1B12D43F62F00402AE6 /* FirebaseAuthCombine-Community in Frameworks */,
+				A8E60A992D651E260030A203 /* FirebaseFunctionsCombine-Community in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,6 +212,8 @@
 				A8E60A862D58F42A0030A203 /* SDWebImage */,
 				A8E60A882D58F42A0030A203 /* SDWebImageMapKit */,
 				A8E60A8D2D5B9B380030A203 /* SDWebImageSwiftUI */,
+				A8E60A962D651E260030A203 /* FirebaseFunctions */,
+				A8E60A982D651E260030A203 /* FirebaseFunctionsCombine-Community */,
 			);
 			productName = ChatApp;
 			productReference = A80AA1882D32740300402AE6 /* ChatApp.app */;
@@ -571,6 +577,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A8E60A8C2D5B9B380030A203 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */;
 			productName = SDWebImageSwiftUI;
+		};
+		A8E60A962D651E260030A203 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A80AA19E2D36540F00402AE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		A8E60A982D651E260030A203 /* FirebaseFunctionsCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A80AA19E2D36540F00402AE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseFunctionsCombine-Community";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

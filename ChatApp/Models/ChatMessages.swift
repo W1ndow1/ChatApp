@@ -18,7 +18,8 @@ struct ChatMessages: Identifiable, Codable {
     var readBy: [String]
 }
 
-struct ChatRooms: Codable {
+struct ChatRooms: Identifiable, Codable {
+    var id: String { chatRoomId }
     var chatRoomId: String
     var participants: [String]
     var isGroup: Bool = false

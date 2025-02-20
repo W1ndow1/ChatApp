@@ -45,7 +45,6 @@ struct LoginView: View {
             SecureField("비밀번호", text: $viewModel.password)
         }
         .padding(12)
-        .background(Color.white)
         
         Button {
             viewModel.loginButtonTap()

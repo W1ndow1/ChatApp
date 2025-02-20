@@ -11,6 +11,8 @@ struct ChatLogView: View {
     @ObservedObject var viewModel: ChatLogViewModel
     @State var navigationTitle = ""
     @State var enterButtonText = "#"
+    @State var loginUserID = AuthManager().id
+    
     let userData: Set<ChatUser>?
     
     init(userData: Set<ChatUser>?) {
@@ -18,7 +20,7 @@ struct ChatLogView: View {
         self.viewModel = .init(userData: userData)
         
     }
-    
+
     var body: some View {
         ZStack {
             chatBubbleRow()
@@ -27,32 +29,60 @@ struct ChatLogView: View {
             .onAppear {
                 titleLengthCheck()
             }
+            .onDisappear {
+                viewModel.stopListening()
+            }
         }
     }
     
     @ViewBuilder
     private func chatBubbleRow() -> some View {
-        ScrollView {
-            ForEach(viewModel.chatMessages) { num in
-                HStack {
-                    Spacer()
+        ScrollViewReader { proxy in
+            ScrollView {
+                ForEach(viewModel.chatMessages) { num in
                     HStack {
-                        Text(num.text)
-                            .foregroundStyle(Color.white)
-                            .padding()
-                            .background(Color.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .frame(minWidth: 30 ,maxWidth: 230, alignment: .trailing)
-                            .lineLimit(nil)
-                            .multilineTextAlignment(.leading)
+                        if num.senderId != loginUserID {
+                            HStack {
+                                Text(num.text)
+                                    .padding(8)
+                                    .background(Color.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .frame(minWidth: 30 ,maxWidth: 250, alignment: .leading)
+                                    .lineLimit(nil)
+                                    .multilineTextAlignment(.leading)
+                                    .id(num.id)
+                            }
+                            Spacer()
+                        } else {
+                            Spacer()
+                            HStack {
+                                Text(num.text)
+                                    .padding(8)
+                                    .foregroundStyle(Color.white)
+                                    .background(Color.blue)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .frame(minWidth: 30 ,maxWidth: 250, alignment: .trailing)
+                                    .lineLimit(nil)
+                                    .multilineTextAlignment(.leading)
+                                    .id(num.id)
+                            }
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    HStack { Spacer() }
                 }
-                .padding([.top, .horizontal], 8)
             }
-            HStack { Spacer() }
+            .onTapGesture { hideKeyboard() }
+            .defaultScrollAnchor(.bottom)
+            .background(Color(white: 0.3, opacity: 0.1))
+            .safeAreaInset(edge: .bottom, content: viewBottom)
+            .onChange(of: viewModel.chatMessages.count) { _, _ in
+                withAnimation {
+                    proxy.scrollTo(viewModel.chatMessages.last?.id, anchor: .bottom)
+                }
+            }
         }
-        .background(Color(white: 0.3, opacity: 0.1))
-        .safeAreaInset(edge: .bottom, content: viewBottom)
     }
     
     @ViewBuilder
@@ -64,14 +94,15 @@ struct ChatLogView: View {
                 Image(systemName: "photo.on.rectangle.angled")
                     .foregroundStyle(Color.primary)
             }
-            TextField("메시지", text: $viewModel.chatText)
+            TextField("메시지", text: $viewModel.chatText, axis: .vertical)
                 .foregroundStyle(Color.primary)
                 .onChange(of: viewModel.chatText, { old, new in
                     enterButtonText = viewModel.chatText.count > 0 ? "⇧" : "#"
                 })
-               
             Button {
-                viewModel.sendMessage()
+                if !viewModel.chatText.isEmpty {
+                    viewModel.sendMessage()
+                }
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
@@ -104,8 +135,7 @@ extension ChatLogView {
         }
     }
     
-    func setToID() {
-        guard let userData = userData else { return }
-        
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }

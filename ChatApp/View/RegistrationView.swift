@@ -94,7 +94,6 @@ struct RegistrationView: View {
             viewModel.statusMessage = ""
         }
         .padding(12)
-        .background(Color.white)
     }
     @ViewBuilder
     func registrationButtonView() -> some View {
