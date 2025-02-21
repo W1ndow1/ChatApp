@@ -12,19 +12,30 @@ struct ChatLogView: View {
     @State var navigationTitle = ""
     @State var enterButtonText = "#"
     @State var loginUserID = AuthManager().id
+    @State var fromMessageListView = false
+    @State var chatRoom: ChatRooms?
     
     let userData: Set<ChatUser>?
     
+    //새 채팅방 생성시
     init(userData: Set<ChatUser>?) {
         self.userData = userData
         self.viewModel = .init(userData: userData)
-        
+        fromMessageListView = false
+    }
+    
+    //채팅방 목록으로 들어온 경우
+    init(chatRoomId roomId: String, chatRoom roomInfo: ChatRooms) {
+        self.userData = .none
+        chatRoom = roomInfo
+        viewModel = .init(chatRoomId: roomId)
+        fromMessageListView = true
     }
 
     var body: some View {
         ZStack {
             chatBubbleRow()
-            .navigationTitle("\(navigationTitle)")
+                .navigationTitle("\(navigationTitle)")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 titleLengthCheck()
@@ -51,6 +62,7 @@ struct ChatLogView: View {
                                     .lineLimit(nil)
                                     .multilineTextAlignment(.leading)
                                     .id(num.id)
+                                
                             }
                             Spacer()
                         } else {
@@ -101,7 +113,11 @@ struct ChatLogView: View {
                 })
             Button {
                 if !viewModel.chatText.isEmpty {
-                    viewModel.sendMessage()
+                    if fromMessageListView {
+                        viewModel.sendMessageByRoomId()
+                    }else {
+                        viewModel.sendMessage()
+                    }
                 }
             } label: {
                 ZStack {

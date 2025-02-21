@@ -39,7 +39,7 @@ struct MessageListView: View {
             ForEach(viewModel.chatRooms) { num in
                 VStack {
                     NavigationLink {
-                        ChatLogView(userData: .none)
+                        ChatLogView(chatRoomId: num.chatRoomId, chatRoom: num)
                     } label: {
                         HStack(spacing: 15) {
                             WebImage(url: URL(string: viewModel.profileURL ?? ""))
@@ -144,7 +144,7 @@ extension MessageListView {
         }
         
         // 2일 이상 차이
-        if let days = components.day, days > 2 {
+        if let days = components.day, days > 1 {
             formatter.dateFormat = "MM-dd"
             return formatter.string(from: serverDate)
         }

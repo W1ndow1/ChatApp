@@ -13,32 +13,41 @@ class ChatLogViewModel: ObservableObject {
     @Published var chatText = ""
     @Published var chatMessages = [ChatMessages]()
     @Published var chatRooms = [ChatRooms]()
+    @Published var chatRoomId: String?
     
     let userData: Set<ChatUser>?
     
     private var cancellables = Set<AnyCancellable>()
     private var listener: ListenerRegistration?
     
+    //새 채팅방 생성시
     init(userData: Set<ChatUser>?) {
         self.userData = userData
-
-        fetchMessages1()
+        fetchMessagesListener()
+    }
+    
+    //채팅방 목록으로 들어온 경우
+    init(chatRoomId roomId: String) {
+        self.userData = .init()
+        self.chatRoomId = roomId
+        fetchMessagesByRoomId()
+        
     }
     
     func sendMessage() {
         guard let fromId = AuthManager.shared.id else { return }
         guard let selectedUsersId = userData?.map({$0.uid}) else { return }
-        //guard let selectedUsersName = userData?.map({$0.displayName}) else { return }
         guard let chatName = userData?.map({$0.displayName}).joined(separator: ",") else { return }
         
         var participants = selectedUsersId
-        participants.insert(fromId, at: 0)
+        participants.append(fromId)
+        guard let receiverId = participants.count == 2 ? participants.first : "" else { return }
         
-        let chatRoomId = "\(participants.joined(separator: "_"))"
-        
+        let chatRoomId = participants.sorted(by: { $0 < $1 }).joined(separator: "_")
         let chatMessageData = ChatMessages(
             messageId: UUID().uuidString,
             senderId: fromId,
+            receiverId: receiverId,
             text: chatText,
             timeStamp: Timestamp(date: Date()),
             readBy: []
@@ -46,7 +55,7 @@ class ChatLogViewModel: ObservableObject {
         
         let chatRoomData = ChatRooms(
             chatRoomId: chatRoomId,
-            participants: participants,
+            participants: participants.sorted(),
             isGroup: (participants.count > 2),
             chatName: chatName,
             lastMessage: chatText,
@@ -81,6 +90,38 @@ class ChatLogViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    func sendMessageByRoomId() {
+        guard let chatRoomId = chatRoomId else { return }
+        guard let senderId = AuthManager.shared.id else { return }
+        let chatMessageData = ChatMessages(messageId: chatText,
+                                           senderId: senderId,
+                                           timeStamp: Timestamp(date: Date()),
+                                           readBy: [])
+        DatabaseManager.shared.db.collection("rooom").document(chatRoomId)
+            .collection("messages").addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("🔥Firebase Error:\(error)")
+                    return
+                }
+                snapshot?.documentChanges.forEach { change in
+                    switch change.type {
+                    case .added:
+                        if let data = try? change.document.data(as: ChatMessages.self) {
+                            self.chatMessages.append(data)
+                            self.chatMessages.sort(by: {$0.timeStamp.dateValue() < $1.timeStamp.dateValue()})
+                        }
+                    case .modified:
+                        break;
+                    case .removed:
+                        let removeChatMessageId = change.document.documentID
+                        self.chatMessages.removeAll(where: {$0.messageId == removeChatMessageId})
+                        break;
+                    }
+                }
+            }
+        
+    }
+    
     func fetchMessages() {
         guard let fromId = AuthManager.shared.id else { return }
         guard let selectedUsers = userData?.map({$0.uid}) else { return }
@@ -97,7 +138,7 @@ class ChatLogViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func fetchMessages1() {
+    func fetchMessagesListener() {
         listener?.remove()
         guard let fromId = AuthManager.shared.id else { return }
         guard let selectedUsers = userData?.map({$0.uid}) else { return }
@@ -143,6 +184,37 @@ class ChatLogViewModel: ObservableObject {
                 }
             }
     }
+    
+    func fetchMessagesByRoomId() {
+        listener?.remove()
+        guard let fromID = AuthManager.shared.id else { return }
+        guard let chatRoomId = chatRoomId else { return }
+        DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
+            .collection("messages")
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("🔥Firestore Error:\(error.localizedDescription)")
+                    return
+                }
+                snapshot?.documentChanges.forEach { change in
+                    switch change.type {
+                    case .added :
+                        if let data = try? change.document.data(as: ChatMessages.self) {
+                            self.chatMessages.append(data)
+                            self.chatMessages.sort(by: {$0.timeStamp.dateValue() < $1.timeStamp.dateValue()})
+                        }
+                    case .modified:
+                        break;
+                    case .removed:
+                        let removeChatMessageId = change.document.documentID
+                        self.chatMessages.removeAll(where: { $0.messageId == removeChatMessageId})
+                        break;
+                        
+                    }
+                }
+            }
+    }
+    
     
     func stopListening() {
         listener?.remove()

@@ -24,7 +24,6 @@ struct HomeTabView: View {
                         .tabItem { Label("메시지", systemImage: "message") }
                         .environmentObject(viewModel)
                         .tag(1)
-                        
                 }
             }
             .onAppear() {
