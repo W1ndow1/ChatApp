@@ -16,19 +16,19 @@ class MessageListViewModel: ObservableObject {
     @Published var profileURL: String?
     @Published var profileImage: UIImage?
     @Published var chatRooms: [ChatRooms] = []
+    @Published var usersInfo: [String : ChatUser] = [:]
     
     private var cancellables = Set<AnyCancellable>()
     private var listener: ListenerRegistration?
-    private var listenerIsActive = false
+    private var isPause = false
     
     init() {
-        fetchCurrentUser()
-        fetchChatRoomsListener()
+        //fetchCurrentUser()
     }
     
     func fetchCurrentUser() {
         guard let uid = AuthManager.shared.id else { return }
-        DatabaseManager.shared.collectionUsers(uid: uid)
+        DatabaseManager.shared.collectionUsers(userId: uid)
             .handleEvents(receiveOutput:  { user in
                 guard let imageURL = URL(string: user.profileImageURL) else { return }
                 Task {
@@ -45,6 +45,18 @@ class MessageListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    func fetchCurrentUser(uid: String) async throws -> ChatUser? {
+        let snapshot = try await DatabaseManager.shared.db.collection("users").document(uid).getDocument()
+        if let user = try? snapshot.data(as: ChatUser.self) {
+            DispatchQueue.main.async {
+                self.currentUser = user
+            }
+            return user
+        }
+        return nil
+    }
+    
+    
     private func fetchImage(url: URL) async {
         do {
             let request = URLRequest(url: url)
@@ -57,6 +69,17 @@ class MessageListViewModel: ObservableObject {
         } catch {
             print("Failed to load Image", error)
         }
+    }
+    func getUserImageURL(id: String) {
+        DatabaseManager.shared.collectionUsers(userId: id)
+            .sink(receiveCompletion: { [weak self] completion in
+                if case .failure(let failure) = completion {
+                    self?.errorMessage = failure.localizedDescription
+                }
+            }, receiveValue: { userData in
+                self.profileURL = userData.profileImageURL
+            })
+            .store(in: &cancellables)
     }
     
     func fetchChatRooms() {
@@ -79,6 +102,7 @@ class MessageListViewModel: ObservableObject {
                 .whereField("participants", arrayContains: uid)
                 .order(by: "lastMessageTimeStamp", descending: true)
                 .addSnapshotListener { querySnapshot, errer in
+                    //if self.isPause { return }
                     if let error = errer {
                         print("🔥 Firestore Error: \(error.localizedDescription)")
                         return
@@ -86,18 +110,22 @@ class MessageListViewModel: ObservableObject {
                     querySnapshot?.documentChanges.forEach { change in
                         switch change.type {
                         case .added:
-                            if let data = try? change.document.data(as:ChatRooms.self) {
+                            if let data = try? change.document.data(as:ChatRooms.self),
+                               !self.chatRooms.contains(where: {$0.chatRoomId == data.chatRoomId}){
                                 self.chatRooms.append(data)
+                                self.fetchUsersInfo(for: data)
                             }
                             
                         case .modified:
                             if let updatedChatRoom = try? change.document.data(as: ChatRooms.self),
                                let index = self.chatRooms.firstIndex(where: { $0.chatRoomId == updatedChatRoom.chatRoomId }) {
                                 self.chatRooms[index] = updatedChatRoom
+                                //self.fetchDisplayName(for: updatedChatRoom)
                             }
                         case .removed:
                             let removedChatRoomId = change.document.documentID
                             self.chatRooms.removeAll { $0.chatRoomId == removedChatRoomId }
+                            self.usersInfo.removeValue(forKey: removedChatRoomId)
                         }
                     }
                     self.chatRooms.sort(by: {
@@ -107,30 +135,38 @@ class MessageListViewModel: ObservableObject {
         }
     }
 
-    func getUserImageURL(id: String) {
-        DatabaseManager.shared.collectionUsers(uid: id)
-            .sink(receiveCompletion: { [weak self] completion in
-                if case .failure(let failure) = completion {
-                    self?.errorMessage = failure.localizedDescription
-                }
-            }, receiveValue: { userData in
-                self.profileURL = userData.profileImageURL
-            })
-            .store(in: &cancellables)
-    }
     
     func stopListening() {
         listener?.remove()
         listener = nil
+        isPause = false
     }
 
     func pauseListener() {
-        listenerIsActive = false
+        listener?.remove()
+        listener = nil
     }
     
     func resumeListener() {
-        listenerIsActive = true
-        //fetchChatRoomsListener()
+        fetchChatRoomsListener()
+    }
+    
+    
+    func fetchUsersInfo(for room: ChatRooms) {
+        guard let uid = AuthManager.shared.id else { return }
+        guard let opponentId = room.participants.first(where: { $0 != uid }) else {
+            usersInfo[room.chatRoomId] = currentUser
+            return }
+        
+        DatabaseManager.shared.collectionUsers(userId: opponentId)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("Error message:\(failure)")
+                }
+            }, receiveValue: { result in
+                self.usersInfo[room.chatRoomId] = result
+            })
+            .store(in: &cancellables)
     }
 }
 

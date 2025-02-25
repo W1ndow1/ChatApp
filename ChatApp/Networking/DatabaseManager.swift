@@ -22,6 +22,7 @@ class DatabaseManager: NSObject {
     let chatMesseagesPath: String = "messages"
     
     private var listener: ListenerRegistration?
+    private var chatMessagesSubject = PassthroughSubject<[ChatMessages], Error>()
     
     //MARK: - 저장
     func storeUserInformation(userData: [String: Any], uid: String) -> Future<Bool, Error>{
@@ -87,6 +88,25 @@ class DatabaseManager: NSObject {
             }
         }
     }
+    
+    func storeChatMessageData(chatRoomId: String, chatMessageData: ChatMessages) -> Future<Bool, Error> {
+        return Future<Bool, Error> { promise in
+            do {
+                try self.db.collection(self.chatRoomPath).document(chatRoomId)
+                    .collection(self.chatMesseagesPath).document(chatMessageData.messageId)
+                    .setData(from: chatMessageData) { error in
+                        if let error = error {
+                            promise(.failure(error))
+                        } else {
+                            promise(.success(true))
+                        }
+                    }
+            } catch {
+                promise(.failure(error))
+            }
+        }
+    }
+    
     //MARK: - 수정
     func updateChatRoom(chatRoomId: String, chatMessageData: ChatMessages) -> AnyPublisher<Bool, Error> {
         let chatRoomRef = db.collection(chatRoomPath).document(chatRoomId)
@@ -109,12 +129,11 @@ class DatabaseManager: NSObject {
     
     
     //MARK: - 조회
-    func collectionUsers(uid id: String) -> AnyPublisher<ChatUser, Error> {
+    func collectionUsers(userId id: String) -> AnyPublisher<ChatUser, Error> {
         Future<ChatUser, Error>{ promise in
             self.db.collection(self.usersPath).document(id).getDocument { snapshot, error in
                 if let error = error {
                     promise(.failure(error))
-                    print("Error fetching chats:\(error)")
                     return
                 }
                 do {
@@ -127,6 +146,28 @@ class DatabaseManager: NSObject {
                     promise(.failure(error))
                 }
             }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func collectionUsers(userIds ids: [String]) -> AnyPublisher<[ChatUser], Error> {
+        return Future { promise in
+            self.db.collection(self.usersPath).whereField("uid", in: ids)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        promise(.failure(error))
+                        return
+                    }
+                    do {
+                        if let document = snapshot?.documents {
+                            let userList = try document.map({try $0.data(as: ChatUser.self)})
+                            promise(.success(userList))
+                        }
+                    } catch {
+                        promise(.failure(error))
+                    }
+                    
+                }
         }
         .eraseToAnyPublisher()
     }
@@ -148,6 +189,33 @@ class DatabaseManager: NSObject {
             }
         }
         .eraseToAnyPublisher()
+    }
+   
+    
+    func collectionChatRooms(chatRoomId roomId: String) -> AnyPublisher<[ChatMessages], Error> {
+        let chatMessagesRef = self.db.collection(self.chatRoomPath).document(roomId).collection(self.chatMesseagesPath)
+        chatMessagesRef.addSnapshotListener { snapshot, error in
+            if let error = error {
+                print("Firebase Error:\(error)")
+                return
+            }
+            var messages = [ChatMessages]()
+            snapshot?.documentChanges.forEach { change in
+                switch change.type {
+                case .added:
+                    if let message = try? change.document.data(as: ChatMessages.self) {
+                        messages.append(message)
+                    }
+                case .modified:
+                    break;
+                case .removed:
+                    break;
+                }
+            }
+            messages.sort(by: {$0.timeStamp.dateValue() < $1.timeStamp.dateValue()})
+            self .chatMessagesSubject.send(messages)
+        }
+        return chatMessagesSubject.eraseToAnyPublisher()
     }
     
     

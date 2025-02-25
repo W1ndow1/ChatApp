@@ -6,13 +6,13 @@
 //
 
 import SwiftUI
+import SDWebImageSwiftUI
 
 struct ChatLogView: View {
     @ObservedObject var viewModel: ChatLogViewModel
     @State var navigationTitle = ""
     @State var enterButtonText = "#"
     @State var loginUserID = AuthManager().id
-    @State var fromMessageListView = false
     @State var chatRoom: ChatRooms?
     
     let userData: Set<ChatUser>?
@@ -21,28 +21,32 @@ struct ChatLogView: View {
     init(userData: Set<ChatUser>?) {
         self.userData = userData
         self.viewModel = .init(userData: userData)
-        fromMessageListView = false
     }
     
     //채팅방 목록으로 들어온 경우
-    init(chatRoomId roomId: String, chatRoom roomInfo: ChatRooms) {
+    init(chatRoom: ChatRooms) {
         self.userData = .none
-        chatRoom = roomInfo
-        viewModel = .init(chatRoomId: roomId)
-        fromMessageListView = true
+        self.chatRoom = chatRoom
+        viewModel = .init(chatRoom: chatRoom)
     }
-
+    
     var body: some View {
         ZStack {
             chatBubbleRow()
-                .navigationTitle("\(navigationTitle)")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                titleLengthCheck()
-            }
-            .onDisappear {
-                viewModel.stopListening()
-            }
+                .navigationTitle(navigationTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .onAppear {
+                    titleLengthCheck()
+                    if !viewModel.fromMessageListView {
+                        viewModel.fetchUserInfo()
+                        viewModel.fetchMessagesBySelectedUser()
+                    } else {
+                        viewModel.fetchMessagesByRoomId()
+                    }
+                }
+                .onDisappear {
+                    viewModel.stopListening()
+                }
         }
     }
     
@@ -50,38 +54,67 @@ struct ChatLogView: View {
     private func chatBubbleRow() -> some View {
         ScrollViewReader { proxy in
             ScrollView {
-                ForEach(viewModel.chatMessages) { num in
-                    HStack {
-                        if num.senderId != loginUserID {
-                            HStack {
-                                Text(num.text)
-                                    .padding(8)
-                                    .background(Color.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .frame(minWidth: 30 ,maxWidth: 250, alignment: .leading)
-                                    .lineLimit(nil)
-                                    .multilineTextAlignment(.leading)
-                                    .id(num.id)
-                                
-                            }
-                            Spacer()
-                        } else {
-                            Spacer()
-                            HStack {
-                                Text(num.text)
-                                    .padding(8)
-                                    .foregroundStyle(Color.white)
-                                    .background(Color.blue)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .frame(minWidth: 30 ,maxWidth: 250, alignment: .trailing)
-                                    .lineLimit(nil)
-                                    .multilineTextAlignment(.leading)
-                                    .id(num.id)
+                ForEach(viewModel.chatMessages) { msg in
+                    VStack {
+                        HStack {
+                            if msg.senderId != loginUserID {
+                                HStack(alignment: .top) {
+                                    if msg.isFirstInTimeGroup ?? false {
+                                        WebImage(url: URL(string: viewModel.usersInfo[msg.senderId]?.profileImageURL ?? ""))
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 35, height: 35)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Rectangle()
+                                            .foregroundStyle(Color.clear)
+                                            .frame(width:35)
+                                    }
+                                    VStack(alignment: .leading) {
+                                        if msg.isFirstInTimeGroup ?? false {
+                                            Text(viewModel.usersInfo[msg.senderId]?.displayName ?? "")
+                                                .font(.system(size: 10, weight: .ultraLight))
+                                        }
+                                        HStack(alignment: .bottom) {
+                                            Text(msg.text)
+                                                .padding(8)
+                                                .background(Color.white)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                .frame(minWidth: 30, alignment: .leading)
+                                                .lineLimit(nil)
+                                                .multilineTextAlignment(.leading)
+                                                .id(msg.id)
+                                            if msg.isFirstInTimeGroup ?? false {
+                                                Text(convertToTimeStamp(date: msg.timeStamp.dateValue()))
+                                                    .font(.system(size: 10, weight: .ultraLight))
+                                            }
+                                            Spacer()
+                                        }
+                                    }
+                                }
+                                Spacer()
+                            } else {
+                                Spacer()
+                                HStack(alignment: .bottom) {
+                                    Spacer()
+                                    if msg.isFirstInTimeGroup ?? false {
+                                        Text(convertToTimeStamp(date: msg.timeStamp.dateValue()))
+                                            .font(.system(size: 10, weight: .ultraLight))
+                                    }
+                                    Text(msg.text)
+                                        .padding(8)
+                                        .foregroundStyle(Color.white)
+                                        .background(.tint)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .frame(minWidth: 30, alignment: .trailing)
+                                        .lineLimit(nil)
+                                        .multilineTextAlignment(.leading)
+                                        .id(msg.id)
+                                }
                             }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
                     HStack { Spacer() }
                 }
             }
@@ -113,9 +146,9 @@ struct ChatLogView: View {
                 })
             Button {
                 if !viewModel.chatText.isEmpty {
-                    if fromMessageListView {
+                    if viewModel.fromMessageListView {
                         viewModel.sendMessageByRoomId()
-                    }else {
+                    } else {
                         viewModel.sendMessage()
                     }
                 }
@@ -138,16 +171,33 @@ struct ChatLogView: View {
 
 #Preview {
     ChatLogView(userData: .none)
-
+    
 }
 
 extension ChatLogView {
+    func formatData(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy년, MM월 dd일"
+        return formatter.string(from: date)
+    }
+    
+    func convertToTimeStamp(date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "a hh:mm"
+        return formatter.string(from: date)
+    }
+    
     func titleLengthCheck() {
-        guard let userData = userData else { return }
-        if userData.count < 4 {
-            navigationTitle = userData.map({ $0.displayName }).joined(separator: ", ")
+        if viewModel.fromMessageListView {
+            navigationTitle = chatRoom?.chatName ?? ""
         } else {
-            navigationTitle = userData.prefix(3).map({ $0.displayName }).joined(separator: ", ") + "..."
+            guard let userData = userData else { return }
+            if userData.count < 4 {
+                navigationTitle = userData.map({ $0.displayName }).joined(separator: ", ")
+            } else {
+                navigationTitle = userData.prefix(3).map({ $0.displayName }).joined(separator: ", ") + "..."
+            }
         }
     }
     

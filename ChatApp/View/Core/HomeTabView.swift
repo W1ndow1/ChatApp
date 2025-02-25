@@ -26,9 +26,6 @@ struct HomeTabView: View {
                         .tag(1)
                 }
             }
-            .onAppear() {
-                
-            }
         } else {
             LoginView(viewModel: viewModel)
         }

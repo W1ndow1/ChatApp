@@ -6,7 +6,7 @@ struct MessageListView: View {
     @EnvironmentObject var loginModel: LoginViewModel
     @StateObject var viewModel = MessageListViewModel()
     @State var showNewMessageView = false
-    @State var selectedUserData: Set<ChatUser> = []
+    @State var selectedUserData: Set<ChatUser>?
     @State var navigationChatLogview = false
 
     var body: some View {
@@ -14,18 +14,20 @@ struct MessageListView: View {
             VStack {
                 Text(viewModel.currentUser?.email ?? "")
                 messageList()
-                    .navigationDestination(isPresented: $navigationChatLogview, 
-                                           destination: { 
+                    .navigationDestination(isPresented: $navigationChatLogview) {
                         ChatLogView(userData: selectedUserData)
                             .environmentObject(loginModel)
-                    })
+                    }
             }
             .onAppear() {
-                viewModel.chatRooms.removeAll()
-                viewModel.fetchChatRoomsListener()
+                Task {
+                    guard let uid = AuthManager.shared.id else { return }
+                    _ = try await viewModel.fetchCurrentUser(uid: uid)
+                    viewModel.resumeListener()
+                }
             }
             .onDisappear {
-                viewModel.stopListening()
+                viewModel.pauseListener()
             }
             .toolbar {
                 navigationBarContent()
@@ -36,14 +38,13 @@ struct MessageListView: View {
     @ViewBuilder
     func messageList() -> some View {
         ScrollView {
-            ForEach(viewModel.chatRooms) { num in
+            ForEach(viewModel.chatRooms) { room in
                 VStack {
                     NavigationLink {
-                        ChatLogView(chatRoomId: num.chatRoomId, chatRoom: num)
+                        ChatLogView(chatRoom: room)
                     } label: {
                         HStack(spacing: 15) {
-                            WebImage(url: URL(string: viewModel.profileURL ?? ""))
-                            //Image(systemName: "globe")
+                            WebImage(url: URL(string: viewModel.usersInfo[room.chatRoomId]?.profileImageURL ?? ""))
                                 .resizable()
                                 .scaledToFill()
                                 .frame(width: 50, height: 50)
@@ -51,14 +52,16 @@ struct MessageListView: View {
                                 .font(.system(size: 50))
                                 .overlay(RoundedRectangle(cornerRadius: 44).stroke(.opacity(0.3), lineWidth: 1))
                             VStack(alignment:.leading) {
-                                Text(num.chatName)
-                                Text(num.lastMessage)
+                                Text(room.isGroup
+                                     ? room.chatName
+                                     : (viewModel.usersInfo[room.chatRoomId]?.displayName ?? ""))
+                                Text(room.lastMessage)
                                     .foregroundStyle(Color(.lightGray))
                                     .font(.system(size: 13, weight: .light))
                                     .multilineTextAlignment(.leading)
                             }
                             Spacer()
-                            Text(getLastMessageTime(lastTimeStamp: num.lastMessageTimeStamp))
+                            Text(getLastMessageTime(lastTimeStamp: room.lastMessageTimeStamp))
                                 .font(.system(size: 13))
                         }
                         .padding(.horizontal, 10)
@@ -66,11 +69,7 @@ struct MessageListView: View {
                         Divider()
                     }
                 }
-                
             }
-        }
-        .refreshable {
-            viewModel.fetchCurrentUser()
         }
     }
     

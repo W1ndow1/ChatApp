@@ -16,6 +16,8 @@ struct ChatMessages: Identifiable, Codable {
     var text: String = ""
     var timeStamp: Timestamp
     var readBy: [String]
+    var isFirstInDayGroup: Bool?
+    var isFirstInTimeGroup: Bool?
 }
 
 struct ChatRooms: Identifiable, Codable {

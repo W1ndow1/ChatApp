@@ -19,6 +19,7 @@ struct ChatAppApp: App {
     var body: some Scene {
         WindowGroup {
             HomeTabView()
+                .tint(.pink)
                 .environmentObject(viewModel)
         }
     }
