@@ -3,7 +3,6 @@ import SDWebImageSwiftUI
 import FirebaseCore
 
 struct MessageListView: View {
-    @EnvironmentObject var loginModel: LoginViewModel
     @StateObject var viewModel = MessageListViewModel()
     @State var showNewMessageView = false
     @State var selectedUserData: Set<ChatUser>?
@@ -12,11 +11,9 @@ struct MessageListView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                Text(viewModel.currentUser?.email ?? "")
                 messageList()
                     .navigationDestination(isPresented: $navigationChatLogview) {
                         ChatLogView(userData: selectedUserData)
-                            .environmentObject(loginModel)
                     }
             }
             .onAppear() {
@@ -79,12 +76,14 @@ struct MessageListView: View {
             HStack {
                 Text("메시지")
                     .font(.system(size: 22, weight: .light))
-                    .padding(.trailing, 10)
+                    .padding(.trailing, 5)
                 Circle()
                     .foregroundStyle(Color.green)
                     .frame(width: 13, height: 13)
-                Text("online")
-                    .font(.system(size: 15, weight: .light))
+                Text("\(viewModel.currentUser?.displayName ?? "")")
+                    .font(.system(size: 15, weight: .bold))
+                Text("\(viewModel.currentUser?.email ?? "")")
+                    .font(.system(size: 10, weight: .light))
             }
         }
         ToolbarItem(placement:.topBarTrailing) {
@@ -104,7 +103,6 @@ struct MessageListView: View {
                 
                 NavigationLink {
                     SettingView()
-                        .environmentObject(loginModel)
                 } label: {
                     Image(systemName: "gearshape")
                         .foregroundStyle(Color(.label))
@@ -116,7 +114,6 @@ struct MessageListView: View {
 
 #Preview {
     MessageListView()
-        .environmentObject(LoginViewModel())
 }
 
 extension MessageListView {
@@ -138,13 +135,13 @@ extension MessageListView {
         
         // 1년 이상 차이
         if let months = components.month, months >= 12 {
-            formatter.dateFormat = "yy-MM-dd"
+            formatter.dateFormat = "yy년MM월dd일"
             return formatter.string(from: serverDate)
         }
         
         // 2일 이상 차이
         if let days = components.day, days > 1 {
-            formatter.dateFormat = "MM-dd"
+            formatter.dateFormat = "M월dd일"
             return formatter.string(from: serverDate)
         }
         

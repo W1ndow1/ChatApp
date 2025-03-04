@@ -45,6 +45,10 @@ struct LoginView: View {
             SecureField("비밀번호", text: $viewModel.password)
         }
         .padding(12)
+        .overlay(content: {
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(style: StrokeStyle(lineWidth: 0.8))
+        })
         
         Button {
             viewModel.loginButtonTap()
@@ -55,48 +59,13 @@ struct LoginView: View {
                 .font(.system(size: 18, weight: .none))
                 .foregroundStyle(.background)
                 .padding(13)
-                .background(.blue, in: RoundedRectangle(cornerRadius: 15))
+                .background(.tint, in: RoundedRectangle(cornerRadius: 15))
         }
         .alert("이메일 혹은 비밀번호를 입력해주세요.", isPresented: $viewModel.showAlert, actions: {
             Button("확인", role: .cancel, action: {})
         })
         Text("\(viewModel.statusMessage)")
             .foregroundStyle(.gray)
-    }
-    
-    @ViewBuilder
-    func profileImageView() -> some View {
-        if !viewModel.isLoginMode {
-            PhotosPicker(
-                selection:$selectedItem,
-                matching: .images,
-                photoLibrary: .shared()) {
-                    VStack {
-                        
-                        if let image = viewModel.image {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 140)
-                                .clipShape(Circle())
-                        } else {
-                            Image(systemName: "globe")
-                                .font(.system(size: 70))
-                                .padding()
-                        }
-                    }
-                    .overlay(Circle().stroke(Color.blue, lineWidth: 4))
-                    
-                }
-                .onChange(of: selectedItem, { oldItem, newItem in
-                    guard let newItem = newItem else { return }
-                    Task {
-                        if let image = try? await newItem.loadTransferable(type: Data.self){
-                            viewModel.image = UIImage(data: image)
-                        }
-                    }
-                })
-        }
     }
 }
 

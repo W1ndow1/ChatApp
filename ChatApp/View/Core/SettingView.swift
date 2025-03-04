@@ -6,58 +6,86 @@
 //
 
 import SwiftUI
-
+import SDWebImageSwiftUI
 
 struct SettingView: View {
-    @EnvironmentObject var envirModel: LoginViewModel
-    @StateObject var setModel = SettingViewModel()
+    @EnvironmentObject var em: LoginViewModel
+    @StateObject var vm = SettingViewModel()
     @State private var showingAlert = false
     
     var body: some View {
         List {
-            Section {
-                HStack {
-                    Text("CG")
+            userInfoSection()
+            accountSection()
+        }
+        .onAppear(){
+            vm.fetchCurrentUser()
+        }
+        .fullScreenCover(isPresented: $vm.isUserCurrentlyLoggedOut, onDismiss: nil) {
+            HomeTabView()
+        }
+        .navigationTitle("설정")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    @ViewBuilder
+    func userInfoSection() -> some View {
+        Section {
+            HStack {
+                if (vm.currentUser?.profileImageURL != nil) {
+                    WebImage(url: URL(string: vm.currentUser?.profileImageURL ?? ""))
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 50, height: 50)
+                        .clipShape(Circle())
+                        .font(.system(size: 50))
+                        .overlay(RoundedRectangle(cornerRadius: 44).stroke(.opacity(0.3), lineWidth: 1))
+                } else {
+                    Text(vm.currentUser?.displayName.prefix(2) ?? "")
                         .font(.system(size: 35, weight: .bold))
                         .foregroundStyle(.white)
-                        .frame(width: 70, height: 70)
+                        .frame(width: 50, height: 50)
                         .background(Color.gray)
                         .clipShape(/*@START_MENU_TOKEN@*/Circle()/*@END_MENU_TOKEN@*/)
-                    VStack(alignment:.leading) {
-                        Text("Cookie Gokmul")
-                            .font(.system(size: 18, weight: .semibold))
-                        Text("gokmulCookie@gmail.com")
-                            .font(.system(size: 13))
-                    }
                 }
-            }
-            Section("계정") {
-                Button {
-                } label: {
-                    Text("사용자 정보 수정")
-                        .foregroundStyle(.black)
-                }
-                
-                Button {
-                    showingAlert = true
-                } label: {
-                    Text("로그아웃")
-                        .foregroundStyle(.black)
-                }
-                .confirmationDialog("로그아웃", isPresented: $showingAlert, titleVisibility: .visible) {
-                    Button("확인", role: .destructive) {
-                        setModel.handleSignOut()
-                        envirModel.isAuthenticated = false
-                    }
-                    Button("취소", role: .cancel) {
-                    }
-                } message: {
-                    Text("로그아웃하시겠습니까?")
+                VStack(alignment:.leading) {
+                    Text(vm.currentUser?.displayName ?? "")
+                        .font(.system(size: 18, weight: .semibold))
+                    Text(vm.currentUser?.email ?? "")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tint)
                 }
             }
         }
-        .fullScreenCover(isPresented: $setModel.isUserCurrentlyLoggedOut, onDismiss: nil) {
-            HomeTabView()
+    }
+    
+    @ViewBuilder
+    func accountSection() -> some View {
+        Section("계정") {
+            NavigationLink {
+                EditUserInfoView(svm: vm)
+            } label: {
+                Text("사용자 정보수정")
+            }
+            
+            Button {
+                showingAlert = true
+            } label: {
+                Text("로그아웃")
+                    .foregroundStyle(.black)
+            }
+            .confirmationDialog("로그아웃",
+                                isPresented: $showingAlert,
+                                titleVisibility: .visible) {
+                Button("확인", role: .destructive) {
+                    vm.handleSignOut()
+                    em.isAuthenticated = false
+                }
+                Button("취소", role: .cancel) {
+                }
+            } message: {
+                Text("로그아웃하시겠습니까?")
+            }
         }
     }
 }
@@ -66,3 +94,4 @@ struct SettingView: View {
     SettingView()
         .environmentObject(LoginViewModel())
 }
+

@@ -111,16 +111,15 @@ class MessageListViewModel: ObservableObject {
                         switch change.type {
                         case .added:
                             if let data = try? change.document.data(as:ChatRooms.self),
-                               !self.chatRooms.contains(where: {$0.chatRoomId == data.chatRoomId}){
+                               !self.chatRooms.contains(where: {$0.chatRoomId == data.chatRoomId}) {
                                 self.chatRooms.append(data)
                                 self.fetchUsersInfo(for: data)
                             }
-                            
                         case .modified:
                             if let updatedChatRoom = try? change.document.data(as: ChatRooms.self),
                                let index = self.chatRooms.firstIndex(where: { $0.chatRoomId == updatedChatRoom.chatRoomId }) {
                                 self.chatRooms[index] = updatedChatRoom
-                                //self.fetchDisplayName(for: updatedChatRoom)
+                                self.fetchUsersInfo(for: updatedChatRoom)
                             }
                         case .removed:
                             let removedChatRoomId = change.document.documentID

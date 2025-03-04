@@ -6,11 +6,16 @@
 //
 
 import Foundation
+import Combine
 
 class SettingViewModel: ObservableObject {
     @Published var isUserCurrentlyLoggedOut = false
+    @Published var currentUser: ChatUser?
+    
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
+        fetchCurrentUser()
         DispatchQueue.main.async {
            self.isUserCurrentlyLoggedOut = AuthManager.shared.id == nil
         }
@@ -19,5 +24,20 @@ class SettingViewModel: ObservableObject {
     func handleSignOut() {
         isUserCurrentlyLoggedOut.toggle()
         AuthManager.shared.logoutUser()
+    }
+    
+    func fetchCurrentUser() {
+        guard let uid = AuthManager.shared.id else { return }
+        DatabaseManager.shared.collectionUsers(userId: uid)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("Error fetching user:\(failure)")
+                    return
+                }
+            }, receiveValue: { [weak self] user in
+                self?.currentUser = user
+            })
+            .store(in: &cancellables)
+        
     }
 }

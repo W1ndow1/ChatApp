@@ -17,26 +17,27 @@ class NewMessageViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     init() {
-        fetchAllUsers()
-    }
-    
-    private func fetchAllUsers() {
-        DatabaseManager.shared.collectionAllUsers()
-            .sink(receiveCompletion: { completion in
-                if case .failure(let error) = completion {
-                    self.errerMessage = "Error fetching users: \(error)"
-                    print("Error fetching users: \(error)")
-                }
-            }, receiveValue: { [weak self] users in
-                self?.users = users
-                self?.errerMessage = "Fetched users Successfully"
-            })
-            .store(in: &cancellables)
+        fetchAllUsersExceptionOfUser()
     }
     
     private func fetchAllUsers() async throws -> [ChatUser] {
         let snapshot = try await DatabaseManager.shared.db.collection("users").getDocuments()
         return try snapshot.documents.map({ try $0.data(as: ChatUser.self)})
+    }
+    
+    private func fetchAllUsersExceptionOfUser() {
+        guard let uid = AuthManager.shared.id else { return }
+        DatabaseManager.shared.collectionUsersExceptionOfUser(exceptionId: uid)
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { [weak self] completion in
+                if case .failure(let failure) = completion {
+                    print("Error fetching users: \(failure)")
+                    self?.users = []
+                }
+            }, receiveValue: { [weak self] users in
+                self?.users = users
+            })
+            .store(in: &cancellables)
     }
     
     private func fetchImage(url: URL) async {

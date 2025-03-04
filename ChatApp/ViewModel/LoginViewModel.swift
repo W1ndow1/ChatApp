@@ -22,7 +22,7 @@ class LoginViewModel: ObservableObject {
     @Published var isLoginMode = false
     @Published var showAlert = false
     @Published var statusMessage = ""
-    @Published var image = UIImage(systemName: "globe")
+    @Published var image: UIImage?
     @Published var isAuthenticated = false
     
     private var cancellables = Set<AnyCancellable>()
@@ -191,4 +191,45 @@ class LoginViewModel: ObservableObject {
                 print("Success upload userData")
             }
     }
+    
+    
+    
+    func editUserInfoButtonTap() {
+        guard let userId = AuthManager.shared.id else { return }
+        guard !displayName.isEmpty else {
+            self.statusMessage = "변경할 닉네임 이름을 입력해주세요"
+            return }
+        DatabaseManager.shared.updateUserDisplayName(userId: userId, displayName: displayName)
+            //이미지 업로드
+            .flatMap { succss -> AnyPublisher<Bool, Error> in
+                guard succss else {
+                    return Just(false).setFailureType(to: Error.self).eraseToAnyPublisher()
+                }
+                if let image = self.image {
+                    return StorageManager.shared.uploadProfileImage(userId: userId, image: image)
+                        .flatMap { url in
+                            DatabaseManager.shared.updateUserProfileImageURL(userId: userId, imageURL: url)
+                        }
+                        .eraseToAnyPublisher()
+                } else {
+                    return Just(true).setFailureType(to: Error.self).eraseToAnyPublisher()
+                }
+            }
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    print("Error update displayName: \(error)")
+                    self.statusMessage = "수정에 실패 했습니다."
+                case .finished:
+                    break
+                }
+        
+            }, receiveValue: { result in
+                self.statusMessage = result ? "수정되었습니다." : "수정실패"
+            })
+            .store(in: &cancellables)
+    }
+    
+    
 }

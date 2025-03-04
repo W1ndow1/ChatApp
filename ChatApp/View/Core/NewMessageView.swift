@@ -14,12 +14,13 @@ struct NewMessageView: View {
     @State var searchText = ""
     @State var selectedItems: Set<ChatUser> = []
     
-    var didSelectNewUser: (Set<ChatUser>) -> ()
+    var didSelectNewUser: (Set<ChatUser>) -> ()?
     
     var body: some View {
         NavigationStack {
             Group {
-                TextField(" 🔎검색 ", text: $searchText)
+                TextField("🔎 검색", text: $searchText)
+                    .padding(.horizontal, 10)
                     .frame(height: 40)
                     .border(Color.gray, width: 0.5)
             }
@@ -30,7 +31,7 @@ struct NewMessageView: View {
                     searchText.isEmpty ||
                     user.displayName.contains(searchText) ||
                     user.email.contains(searchText)}) { data in
-                    NewMessagevViewRow(user: data, selectedItems: $selectedItems)
+                    NewMessagesViewRow(user: data, selectedItems: $selectedItems)
                 }
             }
             .navigationTitle("대화상대 선택")
@@ -44,7 +45,7 @@ struct NewMessageView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button{
+                    Button {
                         didSelectNewUser(selectedItems)
                         dismiss()
                     }label: {
@@ -67,7 +68,7 @@ struct NewMessageView: View {
 }
 
 
-struct NewMessagevViewRow: View {
+struct NewMessagesViewRow: View {
     @State var checkedRow = false
     let user: ChatUser
     @Binding var selectedItems: Set<ChatUser>
