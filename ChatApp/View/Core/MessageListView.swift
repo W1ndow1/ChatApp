@@ -16,16 +16,6 @@ struct MessageListView: View {
                         ChatLogView(userData: selectedUserData)
                     }
             }
-            .onAppear() {
-                Task {
-                    guard let uid = AuthManager.shared.id else { return }
-                    _ = try await viewModel.fetchCurrentUser(uid: uid)
-                    viewModel.resumeListener()
-                }
-            }
-            .onDisappear {
-                viewModel.pauseListener()
-            }
             .toolbar {
                 navigationBarContent()
             }
@@ -38,20 +28,26 @@ struct MessageListView: View {
             ForEach(viewModel.chatRooms) { room in
                 VStack {
                     NavigationLink {
-                        ChatLogView(chatRoom: room)
+                        ChatLogView(chatRoom: room, chatRoomName: dynamicRoomName(chatRoom: room))
                     } label: {
-                        HStack(spacing: 15) {
-                            WebImage(url: URL(string: viewModel.usersInfo[room.chatRoomId]?.profileImageURL ?? ""))
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                                .font(.system(size: 50))
-                                .overlay(RoundedRectangle(cornerRadius: 44).stroke(.opacity(0.3), lineWidth: 1))
+                        HStack(spacing: 10) {
+                            if !room.isGroup {
+                                WebImage(url: URL(string: viewModel.chatRoomIdInfo[room.chatRoomId]?.profileImageURL ?? ""))
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                                    .overlay(RoundedRectangle(cornerRadius: 44).stroke(.opacity(0.3), lineWidth: 1))
+                            } else {
+                                if let uid = AuthManager.shared.id {
+                                    let user = room.participants.filter({$0 != uid })
+                                    groupChatRoomImage(user: user)
+                                }
+                            }
                             VStack(alignment:.leading) {
                                 Text(room.isGroup
                                      ? room.chatName
-                                     : (viewModel.usersInfo[room.chatRoomId]?.displayName ?? ""))
+                                     : (viewModel.chatRoomIdInfo[room.chatRoomId]?.displayName ?? ""))
                                 Text(room.lastMessage)
                                     .foregroundStyle(Color(.lightGray))
                                     .font(.system(size: 13, weight: .light))
@@ -69,6 +65,23 @@ struct MessageListView: View {
             }
         }
     }
+    
+    @ViewBuilder
+    func groupChatRoomImage(user: [String]) -> some View {
+        let columns: [GridItem] = Array(repeating: .init(.flexible(minimum: 2, maximum: 4), spacing: 23), count: 2)
+        LazyVGrid(columns: columns, alignment:.leading, spacing: 3) {
+            ForEach(user, id: \.self) { item in
+                WebImage(url: URL(string: viewModel.userIdInfo[item]?.profileImageURL ?? ""))
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 25, height: 25)
+                    .clipShape(Circle())
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(.opacity(0.3), lineWidth: 1))
+            }
+        }
+        .frame(width: 50, height: 50)
+    }
+   
     
     @ToolbarContentBuilder
     func navigationBarContent() -> some ToolbarContent {
@@ -117,6 +130,10 @@ struct MessageListView: View {
 }
 
 extension MessageListView {
+    
+    func dynamicRoomName(chatRoom: ChatRooms) -> String{
+        return viewModel.chatRoomIdInfo[chatRoom.chatRoomId]?.displayName ?? ""
+    }
 
     func getLastMessageTime(lastTimeStamp: Timestamp) -> String {
         let serverDate = lastTimeStamp.dateValue() // 서버 시간 (UTC)

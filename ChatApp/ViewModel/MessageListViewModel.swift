@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import UIKit
 import FirebaseFirestore
 
 class MessageListViewModel: ObservableObject {
@@ -16,84 +15,35 @@ class MessageListViewModel: ObservableObject {
     @Published var profileURL: String?
     @Published var profileImage: UIImage?
     @Published var chatRooms: [ChatRooms] = []
-    @Published var usersInfo: [String : ChatUser] = [:]
+    @Published var chatRoomIdInfo: [String : ChatUser] = [:]
+    @Published var userIdInfo: [String: ChatUser] = [:]
     
     private var cancellables = Set<AnyCancellable>()
     private var listener: ListenerRegistration?
     private var isPause = false
     
     init() {
-        //fetchCurrentUser()
+        stopListening()
+        guard let uid = AuthManager.shared.id else { return }
+        fetchUserInfo()
+        fetchCurrentUser(uid: uid)
     }
     
-    func fetchCurrentUser() {
-        guard let uid = AuthManager.shared.id else { return }
+    func fetchCurrentUser(uid: String) {
         DatabaseManager.shared.collectionUsers(userId: uid)
-            .handleEvents(receiveOutput:  { user in
-                guard let imageURL = URL(string: user.profileImageURL) else { return }
-                Task {
-                    await self.fetchImage(url: imageURL)
-                }
-            })
             .sink(receiveCompletion: { [weak self] completion in
-                if case .failure(let failure) = completion {
-                    self?.errorMessage = failure.localizedDescription
+                switch completion {
+                case .failure(let error):
+                    print("Error fetchCurrent:\(error)")
+                case .finished:
+                    self?.fetchChatRoomsListener()
                 }
-            }, receiveValue: { user in
-                self.currentUser = user
+            }, receiveValue: { result in
+                self.currentUser = result
             })
             .store(in: &cancellables)
     }
     
-    func fetchCurrentUser(uid: String) async throws -> ChatUser? {
-        let snapshot = try await DatabaseManager.shared.db.collection("users").document(uid).getDocument()
-        if let user = try? snapshot.data(as: ChatUser.self) {
-            DispatchQueue.main.async {
-                self.currentUser = user
-            }
-            return user
-        }
-        return nil
-    }
-    
-    
-    private func fetchImage(url: URL) async {
-        do {
-            let request = URLRequest(url: url)
-            let (data, _) = try await URLSession.shared.data(for: request)
-            if let uiimage = UIImage(data: data) {
-                DispatchQueue.main.async {
-                    self.profileImage = uiimage
-                }
-            }
-        } catch {
-            print("Failed to load Image", error)
-        }
-    }
-    func getUserImageURL(id: String) {
-        DatabaseManager.shared.collectionUsers(userId: id)
-            .sink(receiveCompletion: { [weak self] completion in
-                if case .failure(let failure) = completion {
-                    self?.errorMessage = failure.localizedDescription
-                }
-            }, receiveValue: { userData in
-                self.profileURL = userData.profileImageURL
-            })
-            .store(in: &cancellables)
-    }
-    
-    func fetchChatRooms() {
-        guard let uid = AuthManager.shared.id else { return }
-        DatabaseManager.shared.collectionChatRooms(uid: uid)
-            .sink(receiveCompletion: { [weak self] completion in
-                if case .failure(let failure) = completion {
-                    self?.errorMessage = failure.localizedDescription
-                }
-            }, receiveValue: { chatRooms in
-                self.chatRooms = chatRooms
-            })
-            .store(in: &cancellables)
-    }
     
     func fetchChatRoomsListener() {
         guard let uid = AuthManager.shared.id else { return }
@@ -124,7 +74,6 @@ class MessageListViewModel: ObservableObject {
                         case .removed:
                             let removedChatRoomId = change.document.documentID
                             self.chatRooms.removeAll { $0.chatRoomId == removedChatRoomId }
-                            self.usersInfo.removeValue(forKey: removedChatRoomId)
                         }
                     }
                     self.chatRooms.sort(by: {
@@ -133,39 +82,40 @@ class MessageListViewModel: ObservableObject {
                 }
         }
     }
-
     
-    func stopListening() {
-        listener?.remove()
-        listener = nil
-        isPause = false
+    func fetchUserInfo() {
+        DatabaseManager.shared.collectionAllUsers()
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("🔥Firestore Error: \(failure.localizedDescription)")
+                }
+            }, receiveValue: { chatUsers in
+                self.userIdInfo = Dictionary(uniqueKeysWithValues: chatUsers.map{ ($0.uid, $0) })
+            })
+            .store(in: &cancellables)
     }
-
-    func pauseListener() {
-        listener?.remove()
-        listener = nil
-    }
-    
-    func resumeListener() {
-        fetchChatRoomsListener()
-    }
-    
     
     func fetchUsersInfo(for room: ChatRooms) {
         guard let uid = AuthManager.shared.id else { return }
         guard let opponentId = room.participants.first(where: { $0 != uid }) else {
-            usersInfo[room.chatRoomId] = currentUser
+            chatRoomIdInfo[room.chatRoomId] = currentUser
             return }
         
         DatabaseManager.shared.collectionUsers(userId: opponentId)
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {
-                    print("Error message:\(failure)")
+                    print("🔥Firestore Error: \(failure.localizedDescription)")
                 }
             }, receiveValue: { result in
-                self.usersInfo[room.chatRoomId] = result
+                self.chatRoomIdInfo[room.chatRoomId] = result
             })
             .store(in: &cancellables)
+    }
+    
+    func stopListening() {
+        listener?.remove()
+        listener = nil
+        isPause = false
     }
 }
 

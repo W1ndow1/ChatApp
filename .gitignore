@@ -21,4 +21,8 @@ xcuserdata/
 # Firebase & Google Services
 GoogleService-Info.plist
 
+# Info.plist
+Info.plist
+
+
 # End of https://www.toptal.com/developers/gitignore/api/xcode

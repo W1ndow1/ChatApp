@@ -49,7 +49,6 @@ struct RegistrationView: View {
             matching: .images,
             photoLibrary: .shared()) {
                 VStack {
-                    
                     if let image = viewModel.image {
                         Image(uiImage: image)
                             .resizable()
@@ -63,7 +62,6 @@ struct RegistrationView: View {
                     }
                 }
                 .overlay(Circle().stroke(Color.blue, lineWidth: 4))
-                
             }
             .onChange(of: selectedItem, { oldItem, newItem in
                 guard let newItem = newItem else { return }
@@ -90,11 +88,16 @@ struct RegistrationView: View {
                 Text("비밀번호 확인")
             })
         }
+        .padding(12)
+        .overlay(content: {
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(style: StrokeStyle(lineWidth: 0.8))
+        })
         .onTapGesture {
             viewModel.statusMessage = ""
         }
-        .padding(12)
     }
+    
     @ViewBuilder
     func registrationButtonView() -> some View {
         Button{
@@ -106,7 +109,7 @@ struct RegistrationView: View {
                 .font(.system(size: 18, weight: .none))
                 .foregroundStyle(.background)
                 .padding(15)
-                .background(.blue, in: RoundedRectangle(cornerRadius: 15))
+                .background(.blue, in: RoundedRectangle(cornerRadius: 20))
         }
     }
 }

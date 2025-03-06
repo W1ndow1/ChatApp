@@ -25,6 +25,7 @@ class ChatLogViewModel: ObservableObject {
     private let pageSize = 20
     private var chatRoomId: String?
     private var isInitialMessage: Bool = true
+    private let messageSubject = PassthroughSubject<ChatMessages, Error>()
     
     //새 채팅방 생성시
     init(userData: Set<ChatUser>?, fromMessageListView: Bool = false) {
@@ -38,7 +39,24 @@ class ChatLogViewModel: ObservableObject {
         self.chatRoom = room
         self.fromMessageListView = fromMessageListView
         fetchUserInfo(userIds: room.participants)
+        messageStream()
     }
+    
+    func messageStream() {
+        messageSubject
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    print("Message stream Error:\(error)")
+                }
+            }, receiveValue: { [weak self] message in
+                self?.addMessage(message)
+                
+            })
+            .store(in: &cancellables)
+    }
+    
+    
     
     //MARK: - 메시지 전송
     
@@ -70,7 +88,6 @@ class ChatLogViewModel: ObservableObject {
             lastMessageTimeStamp: chatMessageData.timeStamp
         )
         self.chatText = ""
-        
         DatabaseManager.shared.checkChatRoomExists(chatRoomId: chatRoomId)
             .flatMap({ exists -> AnyPublisher<Void, Error> in
                 if !exists {
@@ -111,8 +128,11 @@ class ChatLogViewModel: ObservableObject {
                 DatabaseManager.shared.updateChatRoom(chatRoomId: chatRoomId, chatMessageData: chatMessageData)
             })
             .sink(receiveCompletion: { completion in
-                if case .failure(let failure) = completion {
-                    print("Error send message: \(failure)")
+                switch completion {
+                case .failure(let error):
+                    print("Error send message: \(error)")
+                case .finished:
+                    print("작업완료")
                 }
             }, receiveValue: { _ in
                 
@@ -166,7 +186,6 @@ class ChatLogViewModel: ObservableObject {
     }
     
     func fetchMessagesByRoomId() {
-        listener?.remove()
         guard let chatRoomId = chatRoom?.chatRoomId else { return }
         DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
             .collection("messages")
@@ -290,7 +309,6 @@ class ChatLogViewModel: ObservableObject {
     }
     
     //MARK: - 메시지 동적 로드
-    
     func fetchRecentMessageByRoomId() {
         guard let roomId = chatRoom?.chatRoomId else { return }
         listener = DatabaseManager.shared.db.collection("rooms").document(roomId)
@@ -308,7 +326,9 @@ class ChatLogViewModel: ObservableObject {
                         if let msg = try? change.document.data(as: ChatMessages.self) {
                             self?.addMessage(msg)
                             if let isInitial = self?.isInitialMessage, !isInitial {
-                                self?.showLocalNotification(message: msg)
+                                if msg.senderId != AuthManager.shared.id {
+                                    self?.showLocalNotification(message: msg)
+                                }
                             }
                         }
                     case .modified:
@@ -367,7 +387,6 @@ class ChatLogViewModel: ObservableObject {
         })
         return true
     }
-    
     
     func fetchRecentMessagesBySelectedUser() {
         makeUserInfo()
@@ -441,17 +460,35 @@ class ChatLogViewModel: ObservableObject {
         return true
     }
     
-    private func startRealTimeListener(chatRoomId: String) {
+    func fetchInitialMessagesByRoomId() {
+        guard let chatRoomId = chatRoom?.chatRoomId else { return }
+        DatabaseManager.shared.collectionChatMessages(chatRoomId: chatRoomId)
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    print("Fetch initial Message Error :\(error)")
+                }
+            }, receiveValue: { [weak self] message in
+                self?.chatMessages = self?.processChatMessages(message) ?? []
+            })
+            .store(in: &cancellables)
+    }
+    
+    func startRealTimeListener() {
+        guard let chatRoomId = chatRoom?.chatRoomId else { return }
         listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
             .collection("messages")
             .order(by: "timeStamp", descending: true)
             .limit(to: 20)
             .addSnapshotListener { [weak self] snapshot, error in
-                guard let self = self else { return }
-                snapshot?.documentChanges.reversed().forEach { change in
+                if let error = error {
+                    self?.messageSubject.send(completion: .failure(error))
+                    return
+                }
+                guard let snapshot = snapshot else { return }
+                snapshot.documentChanges.reversed().forEach { change in
                     if change.type == .added, let msg = try? change.document.data(as: ChatMessages.self) {
-                        self.addMessage(msg)
-                        self.showLocalNotification(message: msg)
+                        self?.messageSubject.send(msg)
                     }
                 }
             }

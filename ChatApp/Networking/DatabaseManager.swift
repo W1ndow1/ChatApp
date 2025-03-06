@@ -25,6 +25,7 @@ class DatabaseManager: NSObject {
     let chatRoomPath: String = "rooms"
     let chatMesseagesPath: String = "messages"
     
+    var lastDocument: DocumentSnapshot?
     private var listener: ListenerRegistration?
     private var chatMessagesSubject = PassthroughSubject<[ChatMessages], Error>()
     
@@ -160,7 +161,7 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
-    //MARK: - 조회
+    //MARK: - 불러오기
     func collectionUsersExceptionOfUser(exceptionId id: String) -> AnyPublisher<[ChatUser], Error> {
         return Future { promise in
             self.db.collection(self.usersPath)
@@ -181,7 +182,6 @@ class DatabaseManager: NSObject {
         }
         .eraseToAnyPublisher()
     }
-    
     
     func collectionUsers(userId id: String) -> AnyPublisher<ChatUser, Error> {
         Future<ChatUser, Error> { promise in
@@ -242,7 +242,6 @@ class DatabaseManager: NSObject {
             }
         .eraseToAnyPublisher()
         }
-   
     
     func collectionChatRooms(chatRoomId roomId: String) -> AnyPublisher<[ChatMessages], Error> {
         let chatMessagesRef = self.db.collection(self.chatRoomPath).document(roomId)
@@ -271,7 +270,6 @@ class DatabaseManager: NSObject {
         return chatMessagesSubject.eraseToAnyPublisher()
     }
     
-    
     func collectionChatRooms(uid id: String) -> AnyPublisher<[ChatRooms], Error> {
         return Future { promise in
             self.db.collection(self.chatRoomPath)
@@ -296,8 +294,6 @@ class DatabaseManager: NSObject {
         }
         .eraseToAnyPublisher()
     }
-    
-    
     
     func collectionChatMessages(uid1: String, uid2: String) -> AnyPublisher<[ChatMessages], Error> {
         return Future { promise in
@@ -352,7 +348,58 @@ class DatabaseManager: NSObject {
         }
         .eraseToAnyPublisher()
     }
+
+    func collectionChatMessages(chatRoomId: String) -> AnyPublisher<[ChatMessages], Error> {
+        return Future { promise in
+            self.db.collection(self.chatRoomPath).document(chatRoomId)
+                .collection(self.chatMesseagesPath)
+                .order(by: "timeStamp", descending: true)
+                .limit(to: 20)
+                .getDocuments { snapshot, error in
+                    if let error {
+                        promise(.failure(error))
+                        return
+                    }
+                    self.lastDocument = snapshot?.documents.last
+                    let documents = snapshot?.documents ?? []
+                    do {
+                        let initialMessages = try documents.compactMap({try $0.data(as: ChatMessages.self)})
+                        promise(.success(initialMessages.reversed()))
+                    } catch {
+                        promise(.failure(error))
+                    }
+                }
+        }
+        .eraseToAnyPublisher()
+    }
     
+    func startCollectionChatMessagesRealTimeListener(chatRoomId: String) -> AnyPublisher<ChatMessages, Error> {
+        return Future { [weak self] promise in
+            self?.listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
+                .collection("messages")
+                .order(by: "timeStamp", descending: true)
+                .limit(to: 20)
+                .addSnapshotListener { snapshot, error in
+                    if let error = error {
+                        promise(.failure(error))
+                    }
+                    guard let snapshot = snapshot else { return }
+                    snapshot.documentChanges.forEach { change in
+                        switch change.type {
+                        case .added:
+                            if let msg = try? change.document.data(as: ChatMessages.self) {
+                                promise(.success(msg))
+                            }
+                        case .modified, .removed:
+                            break
+                        }
+                    }
+                }
+        }
+        .eraseToAnyPublisher()
+    }
+
+    //MARK: - 확인하기
     
     func checkChatRoomExists(chatRoomId: String) -> AnyPublisher<Bool, Error> {
         let chatRoomRef = db.collection(chatRoomPath).document(chatRoomId)

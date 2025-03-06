@@ -59,7 +59,7 @@ struct LoginView: View {
                 .font(.system(size: 18, weight: .none))
                 .foregroundStyle(.background)
                 .padding(13)
-                .background(.tint, in: RoundedRectangle(cornerRadius: 15))
+                .background(.tint, in: RoundedRectangle(cornerRadius: 20))
         }
         .alert("이메일 혹은 비밀번호를 입력해주세요.", isPresented: $viewModel.showAlert, actions: {
             Button("확인", role: .cancel, action: {})

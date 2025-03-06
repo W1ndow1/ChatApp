@@ -14,6 +14,7 @@ struct ChatLogView: View {
     @State var enterButtonText = "#"
     @State var loginUserID = AuthManager().id
     @State var chatRoom: ChatRooms?
+    @State var chatRoomName = ""
     @State private var isLoadingMore = false
     
     let userData: Set<ChatUser>?
@@ -25,9 +26,10 @@ struct ChatLogView: View {
     }
     
     //채팅방 목록으로 들어온 경우
-    init(chatRoom: ChatRooms) {
+    init(chatRoom: ChatRooms, chatRoomName: String) {
         self.userData = .none
         self.chatRoom = chatRoom
+        self.chatRoomName = chatRoomName
         viewModel = .init(chatRoom: chatRoom)
     }
     
@@ -38,11 +40,18 @@ struct ChatLogView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
                     if viewModel.fromMessageListView {
+                        viewModel.fetchInitialMessagesByRoomId()
+                        viewModel.startRealTimeListener()
+                    }
+                    navigationTitleLengthCheck()
+                    /*
+                    if viewModel.fromMessageListView {
                         viewModel.fetchRecentMessageByRoomId()
                     } else {
                         viewModel.fetchRecentMessagesBySelectedUser()
                     }
                     navigationTitleLengthCheck()
+                     */
                 }
                 .onDisappear {
                     viewModel.stopListening()
@@ -75,7 +84,7 @@ struct ChatLogView: View {
                     ProgressView()
                         .opacity(isLoadingMore ? 1 : 0)
                         .onAppear {
-                            loadMoreMessages(proxy)
+                            //loadMoreMessages(proxy)
                             /*
                             Task { @MainActor in
                                await loadMoreMessages2(proxy)
@@ -219,7 +228,7 @@ struct ChatLogView: View {
     ChatLogView(chatRoom: ChatRooms(
         chatRoomId: "UyZOQtY9occyvmxpP82jr7QdEP12_WDznGLHspLevJ0kgC9m783bUtWB3_Wv5HZZ3NMOQysA9VqEUdgdGQs713_uBzmBwnRmdbkCFoBls9DHa4uC8j2",
         participants: ["UyZOQtY9occyvmxpP82jr7QdEP12","WDznGLHspLevJ0kgC9m783bUtWB3","Wv5HZZ3NMOQysA9VqEUdgdGQs713","uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
-        lastMessageTimeStamp: .init(date: Date())))
+        lastMessageTimeStamp: .init(date: Date())), chatRoomName: "홍길동")
     
 }
 
@@ -265,7 +274,7 @@ extension ChatLogView {
     
     func formatDataToYear(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy년 M월 dd일"
+        formatter.dateFormat = "yyyy년 M월 d일"
         return formatter.string(from: date)
     }
     
@@ -285,7 +294,9 @@ extension ChatLogView {
     
     func navigationTitleLengthCheck() {
         if viewModel.fromMessageListView {
-            navigationTitle = chatRoom?.chatName ?? ""
+            navigationTitle = (chatRoom?.isGroup ?? false)
+            ? (chatRoom?.chatName ?? "")
+            : chatRoomName
         } else {
             guard let userData = userData else { return }
             if userData.count < 4 {
