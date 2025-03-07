@@ -23,7 +23,6 @@ class MessageListViewModel: ObservableObject {
     private var isPause = false
     
     init() {
-        stopListening()
         guard let uid = AuthManager.shared.id else { return }
         fetchUserInfo()
         fetchCurrentUser(uid: uid)
@@ -69,7 +68,7 @@ class MessageListViewModel: ObservableObject {
                             if let updatedChatRoom = try? change.document.data(as: ChatRooms.self),
                                let index = self.chatRooms.firstIndex(where: { $0.chatRoomId == updatedChatRoom.chatRoomId }) {
                                 self.chatRooms[index] = updatedChatRoom
-                                self.fetchUsersInfo(for: updatedChatRoom)
+                                //self.fetchUsersInfo(for: updatedChatRoom)
                             }
                         case .removed:
                             let removedChatRoomId = change.document.documentID
@@ -116,6 +115,15 @@ class MessageListViewModel: ObservableObject {
         listener?.remove()
         listener = nil
         isPause = false
+    }
+    
+    func messagesCount(roomId: String) async throws -> Int {
+        var msgCount = 0
+        let query = DatabaseManager.shared.db.collection("rooms").document(roomId)
+            .collection("messages").order(by: "timeStamp", descending: false)
+        let snapshot = try await query.getDocuments()
+        msgCount = snapshot.documents.count
+        return msgCount
     }
 }
 

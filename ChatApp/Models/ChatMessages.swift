@@ -8,7 +8,7 @@
 import Foundation
 import FirebaseCore
 
-struct ChatMessages: Identifiable, Codable {
+struct ChatMessages: Identifiable, Codable, Hashable {
     var id: String { messageId }
     var messageId: String
     var senderId: String

@@ -1,36 +1,28 @@
-//
-//  ChatLogView.swift
-//  ChatApp
-//
-//  Created by window1 on 2/12/25.
-//
-
 import SwiftUI
 import SDWebImageSwiftUI
 
 struct ChatLogView: View {
-    @ObservedObject var viewModel: ChatLogViewModel
+    @StateObject var viewModel: ChatLogViewModel
     @State var navigationTitle = ""
     @State var enterButtonText = "#"
-    @State var loginUserID = AuthManager().id
-    @State var chatRoom: ChatRooms?
     @State var chatRoomName = ""
+    @State var msgCount: Int = 0
     @State private var isLoadingMore = false
     
-    let userData: Set<ChatUser>?
+    private var userData: Set<ChatUser>?
     
     //새 채팅방 생성으로 들어온 경우
     init(userData: Set<ChatUser>?) {
         self.userData = userData
-        self.viewModel = .init(userData: userData)
+        self._viewModel = StateObject(wrappedValue: ChatLogViewModel(userData: userData))
     }
+     
     
     //채팅방 목록으로 들어온 경우
     init(chatRoom: ChatRooms, chatRoomName: String) {
         self.userData = .none
-        self.chatRoom = chatRoom
         self.chatRoomName = chatRoomName
-        viewModel = .init(chatRoom: chatRoom)
+        self._viewModel = StateObject(wrappedValue: ChatLogViewModel(chatRoom: chatRoom))
     }
     
     var body: some View {
@@ -39,23 +31,69 @@ struct ChatLogView: View {
                 .navigationTitle(navigationTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
-                    if viewModel.fromMessageListView {
-                        viewModel.fetchInitialMessagesByRoomId()
-                        viewModel.startRealTimeListener()
-                    }
                     navigationTitleLengthCheck()
-                    /*
-                    if viewModel.fromMessageListView {
-                        viewModel.fetchRecentMessageByRoomId()
-                    } else {
-                        viewModel.fetchRecentMessagesBySelectedUser()
-                    }
-                    navigationTitleLengthCheck()
-                     */
+                    viewModel.fetchInitialMessagesByRoomId()
                 }
                 .onDisappear {
                     viewModel.stopListening()
                 }
+        }
+    }
+    
+    @ViewBuilder
+    private func chatBubbleRow() -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                LazyVStack {
+                    ForEach(viewModel.chatMessages) { msg in
+                        Color.clear
+                            .frame(height: 1)
+                            .background(
+                                 GeometryReader { geo in
+                                     Color.clear.preference(key: ScrollOffsetPreferenceKey.self, 
+                                                            value: geo.frame(in: .named("scroll")).minY)
+                                 }
+                            )
+                        Section(header: chatSection(msg: msg)) {
+                            HStack {
+                                if msg.senderId != AuthManager.shared.id {
+                                    otherMessage(msg: msg)
+                                } else {
+                                    myMessage(msg: msg)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                        }
+                        .id(msg.id)
+                        .onAppear {
+                            if msg.id == viewModel.chatMessages.last?.id {
+                                proxy.scrollTo(msg.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+                .rotationEffect(.degrees(180))
+                .scaleEffect(x: -1)
+            }
+            .defaultScrollAnchor(.top)
+            .background(Color(white: 0.3, opacity: 0.1))
+            .onTapGesture { hideKeyboard() }
+            .rotationEffect(.degrees(180))
+            .scaleEffect(x: -1)
+            .coordinateSpace(name: "scroll")
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                print(value)
+                if value == 0 && !isLoadingMore {
+                    Task { await loadMoreMessages2() }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack{
+                    Text("\(viewModel.chatMessages.count) 개")
+                    viewBottom(proxy: proxy)
+                }
+            }
         }
     }
     
@@ -77,50 +115,10 @@ struct ChatLogView: View {
     }
     
     @ViewBuilder
-    private func chatBubbleRow() -> some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack {
-                    ProgressView()
-                        .opacity(isLoadingMore ? 1 : 0)
-                        .onAppear {
-                            //loadMoreMessages(proxy)
-                            /*
-                            Task { @MainActor in
-                               await loadMoreMessages2(proxy)
-                            }
-                             */
-                        }
-                    ForEach(viewModel.chatMessages) { msg in
-                        Section(header: chatSection(msg: msg)) {
-                            HStack {
-                                if msg.senderId != loginUserID {
-                                    otherMessage(msg: msg)
-                                } else {
-                                    myMessage(msg: msg)
-                                }
-                            }
-                            .id(msg.id)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                        }
-                    }
-                }
-            }
-            .defaultScrollAnchor(.bottom)
-            .background(Color(white: 0.3, opacity: 0.1))
-            .safeAreaInset(edge: .bottom) {
-                viewBottom(proxy: proxy)
-            }
-            .onTapGesture { hideKeyboard() }
-        }
-    }
-    
-    @ViewBuilder
     private func otherMessage(msg: ChatMessages) -> some View {
         HStack(alignment: .top) {
-            if (msg.senderId != loginUserID) && (msg.isFirstInTimeGroup ?? false) {
-                WebImage(url: URL(string: viewModel.usersInfo[msg.senderId]?.profileImageURL ?? ""))
+            if (msg.senderId != AuthManager.shared.id) && (msg.isFirstInTimeGroup ?? false) {
+                WebImage(url: URL(string: viewModel.usersInfo?[msg.senderId]?.profileImageURL ?? ""))
                     .resizable()
                     .scaledToFill()
                     .frame(width: 35, height: 35)
@@ -132,7 +130,7 @@ struct ChatLogView: View {
             }
             VStack(alignment: .leading) {
                 if msg.isFirstInTimeGroup ?? false {
-                    Text(viewModel.usersInfo[msg.senderId]?.displayName ?? "")
+                    Text(viewModel.usersInfo?[msg.senderId]?.displayName ?? "")
                         .font(.system(size: 10, weight: .ultraLight))
                 }
                 HStack(alignment: .bottom) {
@@ -195,16 +193,14 @@ struct ChatLogView: View {
                 .onChange(of: viewModel.chatText, { old, new in
                     enterButtonText = viewModel.chatText.count > 0 ? "⇧" : "#"
                 })
-            Button {
+            Button { 
                 if !viewModel.chatText.isEmpty {
-                    let sendAction: () = viewModel.fromMessageListView 
+                    let sendAction: () = viewModel.fromMessageListView
                     ? viewModel.sendMessageByRoomId()
                     : viewModel.sendMessage()
-                    sendAction
-                    
-                    let lastMsgId = viewModel.chatMessages.last?.id
                     DispatchQueue.main.async {
-                        proxy.scrollTo(lastMsgId, anchor: .bottom)
+                        sendAction
+                        proxy.scrollTo("Bottom", anchor: .bottom)
                     }
                 }
             } label: {
@@ -229,7 +225,6 @@ struct ChatLogView: View {
         chatRoomId: "UyZOQtY9occyvmxpP82jr7QdEP12_WDznGLHspLevJ0kgC9m783bUtWB3_Wv5HZZ3NMOQysA9VqEUdgdGQs713_uBzmBwnRmdbkCFoBls9DHa4uC8j2",
         participants: ["UyZOQtY9occyvmxpP82jr7QdEP12","WDznGLHspLevJ0kgC9m783bUtWB3","Wv5HZZ3NMOQysA9VqEUdgdGQs713","uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
         lastMessageTimeStamp: .init(date: Date())), chatRoomName: "홍길동")
-    
 }
 
 extension ChatLogView {
@@ -255,22 +250,15 @@ extension ChatLogView {
             }
         }
     }
-    @MainActor
-    private func loadMoreMessages2(_ proxy: ScrollViewProxy) async {
+    private func loadMoreMessages2() async {
         guard !isLoadingMore else { return }
-        
         isLoadingMore = true
-        let firstVisibleMessagesId = viewModel.chatMessages.first?.id
-        
-        let success = try? await viewModel.fromMessageListView
+        _ = try? await viewModel.fromMessageListView
         ? viewModel.fetchMoreMessagesByRoomId2()
         : viewModel.fetchMoreMessagesBySelectedUser2()
-        
-        if success == true, let targetId = firstVisibleMessagesId {
-            proxy.scrollTo(targetId, anchor: .top)
-        }
         isLoadingMore = false
     }
+    
     
     func formatDataToYear(_ date: Date) -> String {
         let formatter = DateFormatter()
@@ -294,8 +282,8 @@ extension ChatLogView {
     
     func navigationTitleLengthCheck() {
         if viewModel.fromMessageListView {
-            navigationTitle = (chatRoom?.isGroup ?? false)
-            ? (chatRoom?.chatName ?? "")
+            navigationTitle = (viewModel.chatRoom?.isGroup ?? false)
+            ? (viewModel.chatRoom?.chatName ?? "")
             : chatRoomName
         } else {
             guard let userData = userData else { return }

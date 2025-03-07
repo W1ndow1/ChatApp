@@ -17,6 +17,7 @@ xcuserdata/
 !*.xcworkspace/contents.xcworkspacedata
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
+project.pbxproj
 
 # Firebase & Google Services
 GoogleService-Info.plist

@@ -19,6 +19,9 @@ struct MessageListView: View {
             .toolbar {
                 navigationBarContent()
             }
+            .onDisappear {
+                //viewModel.stopListening()
+            }
         }
     }
     
@@ -59,7 +62,6 @@ struct MessageListView: View {
                         }
                         .padding(.horizontal, 10)
                         .tint(Color.primary)
-                        Divider()
                     }
                 }
             }
