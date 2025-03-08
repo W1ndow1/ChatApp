@@ -19,9 +19,6 @@ struct MessageListView: View {
             .toolbar {
                 navigationBarContent()
             }
-            .onDisappear {
-                //viewModel.stopListening()
-            }
         }
     }
     

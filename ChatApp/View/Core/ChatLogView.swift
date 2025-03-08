@@ -7,20 +7,25 @@ struct ChatLogView: View {
     @State var enterButtonText = "#"
     @State var chatRoomName = ""
     @State var msgCount: Int = 0
-    @State private var isLoadingMore = false
+    @State private var isSendMessage = false
+    @State private var isTop = false
+    @State private var fromMessageListView: Bool = false
+    @State private var debounceTask: Task<Void, Never>?
     
     private var userData: Set<ChatUser>?
     
     //새 채팅방 생성으로 들어온 경우
-    init(userData: Set<ChatUser>?) {
+    init(userData: Set<ChatUser>?, fromMessageListView: Bool = false) {
         self.userData = userData
+        self.fromMessageListView = fromMessageListView
         self._viewModel = StateObject(wrappedValue: ChatLogViewModel(userData: userData))
     }
      
     
     //채팅방 목록으로 들어온 경우
-    init(chatRoom: ChatRooms, chatRoomName: String) {
+    init(chatRoom: ChatRooms, chatRoomName: String, fromMessageListView: Bool = true) {
         self.userData = .none
+        self.fromMessageListView = fromMessageListView
         self.chatRoomName = chatRoomName
         self._viewModel = StateObject(wrappedValue: ChatLogViewModel(chatRoom: chatRoom))
     }
@@ -31,29 +36,26 @@ struct ChatLogView: View {
                 .navigationTitle(navigationTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
+                    viewModel.fetchInitialMessages(chatRoomId: fromMessageListView
+                                                            ? viewModel.chatRoom?.chatRoomId ?? ""
+                                                            : viewModel.chatRoomId ?? "")
                     navigationTitleLengthCheck()
-                    viewModel.fetchInitialMessagesByRoomId()
                 }
                 .onDisappear {
                     viewModel.stopListening()
                 }
         }
     }
-    
     @ViewBuilder
     private func chatBubbleRow() -> some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical) {
                 LazyVStack {
-                    ForEach(viewModel.chatMessages) { msg in
+                    GeometryReader { geo in
                         Color.clear
-                            .frame(height: 1)
-                            .background(
-                                 GeometryReader { geo in
-                                     Color.clear.preference(key: ScrollOffsetPreferenceKey.self, 
-                                                            value: geo.frame(in: .named("scroll")).minY)
-                                 }
-                            )
+                            .preference(key: ScrollOffsetPreferenceKey.self, 
+                                        value: geo.frame(in: .named("scroll")).minY)}
+                    ForEach(viewModel.chatMessages) { msg in
                         Section(header: chatSection(msg: msg)) {
                             HStack {
                                 if msg.senderId != AuthManager.shared.id {
@@ -67,8 +69,8 @@ struct ChatLogView: View {
                         }
                         .id(msg.id)
                         .onAppear {
-                            if msg.id == viewModel.chatMessages.last?.id {
-                                proxy.scrollTo(msg.id, anchor: .bottom)
+                            if msg.id == viewModel.chatMessages.last?.id && isSendMessage  {
+                                proxy.scrollTo(msg.id)
                             }
                         }
                     }
@@ -81,22 +83,25 @@ struct ChatLogView: View {
             .onTapGesture { hideKeyboard() }
             .rotationEffect(.degrees(180))
             .scaleEffect(x: -1)
+            .safeAreaInset(edge: .bottom) { viewBottom(proxy: proxy) }
             .coordinateSpace(name: "scroll")
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                print(value)
-                if value == 0 && !isLoadingMore {
-                    Task { await loadMoreMessages2() }
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                VStack{
-                    Text("\(viewModel.chatMessages.count) 개")
-                    viewBottom(proxy: proxy)
+                debounceTask?.cancel()
+                debounceTask = Task {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                    if value > -10 && !isTop {
+                        isTop = true
+                        Task {
+                            await loadMoreMessages()
+                        }
+                    } else if value <= -10 {
+                        isTop = false
+                    }
                 }
             }
         }
     }
-    
+ 
     @ViewBuilder
     private func chatSection(msg: ChatMessages) -> some View {
         if msg.isFirstInDayGroup ?? false {
@@ -195,13 +200,11 @@ struct ChatLogView: View {
                 })
             Button { 
                 if !viewModel.chatText.isEmpty {
-                    let sendAction: () = viewModel.fromMessageListView
+                    let sendAction: () = fromMessageListView
                     ? viewModel.sendMessageByRoomId()
-                    : viewModel.sendMessage()
-                    DispatchQueue.main.async {
-                        sendAction
-                        proxy.scrollTo("Bottom", anchor: .bottom)
-                    }
+                    : viewModel.sendMessageBySelectedUser()
+                    sendAction
+                    isSendMessage.toggle()
                 }
             } label: {
                 ZStack {
@@ -222,41 +225,25 @@ struct ChatLogView: View {
 
 #Preview {
     ChatLogView(chatRoom: ChatRooms(
-        chatRoomId: "UyZOQtY9occyvmxpP82jr7QdEP12_WDznGLHspLevJ0kgC9m783bUtWB3_Wv5HZZ3NMOQysA9VqEUdgdGQs713_uBzmBwnRmdbkCFoBls9DHa4uC8j2",
-        participants: ["UyZOQtY9occyvmxpP82jr7QdEP12","WDznGLHspLevJ0kgC9m783bUtWB3","Wv5HZZ3NMOQysA9VqEUdgdGQs713","uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
+        chatRoomId: """
+                    UyZOQtY9occyvmxpP82jr7QdEP12_
+                    WDznGLHspLevJ0kgC9m783bUtWB3_
+                    Wv5HZZ3NMOQysA9VqEUdgdGQs713_
+                    uBzmBwnRmdbkCFoBls9DHa4uC8j2
+                    """,
+        participants: ["UyZOQtY9occyvmxpP82jr7QdEP12",
+                       "WDznGLHspLevJ0kgC9m783bUtWB3",
+                       "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
+                       "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
         lastMessageTimeStamp: .init(date: Date())), chatRoomName: "홍길동")
 }
 
 extension ChatLogView {
-   
-    private func loadMoreMessages(_ proxy: ScrollViewProxy) {
-        guard !isLoadingMore else { return }
-        
-        isLoadingMore = true
-        let firstVisibleMessageId = viewModel.chatMessages.first?.id
-        
-        let fetchAction = viewModel.fromMessageListView
-        ? viewModel.fetchMoreMessagesByRoomId
-        : viewModel.fetchMoreMessagesBySelectedUser
-        
-        fetchAction { success in
-            guard success, let targetId = firstVisibleMessageId else {
-                self.isLoadingMore = false
-                return
-            }
-            DispatchQueue.main.async {
-                proxy.scrollTo(targetId, anchor: .top)
-                self.isLoadingMore = false
-            }
-        }
-    }
-    private func loadMoreMessages2() async {
-        guard !isLoadingMore else { return }
-        isLoadingMore = true
-        _ = try? await viewModel.fromMessageListView
-        ? viewModel.fetchMoreMessagesByRoomId2()
-        : viewModel.fetchMoreMessagesBySelectedUser2()
-        isLoadingMore = false
+    
+    private func loadMoreMessages() async {
+         _ = try? await viewModel.fetchMoreMessages(chatRoomId: fromMessageListView
+                                    ? viewModel.chatRoom?.chatRoomId ?? ""
+                                    : viewModel.chatRoomId ?? "")
     }
     
     
@@ -281,7 +268,7 @@ extension ChatLogView {
     }
     
     func navigationTitleLengthCheck() {
-        if viewModel.fromMessageListView {
+        if fromMessageListView {
             navigationTitle = (viewModel.chatRoom?.isGroup ?? false)
             ? (viewModel.chatRoom?.chatName ?? "")
             : chatRoomName

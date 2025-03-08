@@ -1,6 +1,3 @@
-# Created by https://www.toptal.com/developers/gitignore/api/xcode
-# Edit at https://www.toptal.com/developers/gitignore?templates=xcode
-
 ### Xcode ###
 ## User settings
 xcuserdata/
@@ -24,6 +21,3 @@ GoogleService-Info.plist
 
 # Info.plist
 Info.plist
-
-
-# End of https://www.toptal.com/developers/gitignore/api/xcode

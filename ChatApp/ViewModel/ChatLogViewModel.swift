@@ -7,7 +7,6 @@ class ChatLogViewModel: ObservableObject {
     @Published var chatText = ""
     @Published var chatMessages: [ChatMessages] = []
     @Published var chatRoom: ChatRooms?
-    @Published var fromMessageListView: Bool = true
     @Published var usersInfo: [String : ChatUser]?
     @Published var chatRoomId: String?
     
@@ -21,27 +20,25 @@ class ChatLogViewModel: ObservableObject {
     
  
     //새 채팅방 생성시
-    init(userData: Set<ChatUser>?, fromMessageListView: Bool = false) {
+    init(userData: Set<ChatUser>?) {
         self.userData = userData
-        self.fromMessageListView = fromMessageListView
+        makeUsersInfoBySelectedUser()
+        makeChatRoomIdBySelectedUser()
     }
 
     
     //채팅방 목록으로 들어온 경우
-    init(chatRoom room: ChatRooms, fromMessageListView: Bool = true) {
+    init(chatRoom room: ChatRooms) {
         self.userData = .init()
         self.chatRoom = room
-        self.fromMessageListView = fromMessageListView
-        fetchUserInfo(userIds: room.participants)
-        //fetchRecentMessageByRoomId()
+        fetchUsersInfoByRoom(userIds: room.participants)
     }
      
-     
-    
     deinit {
         listener?.remove()
     }
     
+    //Combine으로 리스너 만들 때 사용
     func messageStream() {
         messageSubject
             .receive(on: DispatchQueue.main)
@@ -60,7 +57,7 @@ class ChatLogViewModel: ObservableObject {
     
     //MARK: - 메시지 전송
     
-    func sendMessage() {
+    func sendMessageBySelectedUser() {
         guard let fromId = AuthManager.shared.id else { return }
         guard let selectedUsersId = userData?.map({$0.uid}) else { return }
         guard let chatName = userData?.map({$0.displayName}).joined(separator: ",") else { return }
@@ -142,7 +139,7 @@ class ChatLogViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func sendMessageByRoomId2() {
+    func sendMessageByRoomIdTransection() {
         guard let chatRoomId = chatRoom?.chatRoomId,
               let senderId = AuthManager.shared.id else { return }
         let chatMessageData = ChatMessages(
@@ -188,11 +185,8 @@ class ChatLogViewModel: ObservableObject {
     }
     
     
-    
-    
-    //MARK: - 메시지 조회
-    
-    func fetchUserInfo(userIds: [String]) {
+    //MARK: - 공용 메서드
+    func fetchUsersInfoByRoom(userIds: [String]) {
         DatabaseManager.shared.collectionUsers(userIds: userIds)
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {
@@ -204,109 +198,22 @@ class ChatLogViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    
-    func fetchMessagesBySelectedUser() {
-        guard let fromId = AuthManager.shared.id else { return }
-        var selectedUserId = (userData?.map({$0.uid}))
-        selectedUserId?.append(fromId)
-        guard let chatRoomId = selectedUserId?.sorted(by: {$0 < $1}).joined(separator: "_") else { return }
-        DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
-            .collection("messages")
-            .order(by: "timeStamp", descending: false)
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("FireStore Error:\(error.localizedDescription)")
-                    return
-                }
-                snapshot?.documentChanges.forEach { change in
-                    switch change.type {
-                    case .added :
-                        if let data = try? change.document.data(as: ChatMessages.self) {
-                            self.addMessage(data)
-                        }
-                    case .modified:
-                        break;
-                    case .removed:
-                        let removeChatMessageId = change.document.documentID
-                        self.chatMessages.removeAll(where: {$0.messageId == removeChatMessageId})
-                        break;
-                    }
-                }
-            }
-    }
-    
-    func fetchMessagesByRoomId() {
-        guard let chatRoomId = chatRoom?.chatRoomId else { return }
-        guard listener == nil else { return }
-        listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
-            .collection("messages")
-            .order(by: "timeStamp", descending: false)
-            .limit(to: 20)
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("🔥Firestore Error:\(error.localizedDescription)")
-                    return
-                }
-                self.lastDocument = snapshot?.documents.last
-                snapshot?.documentChanges.forEach { change in
-                    if let msg = try? change.document.data(as: ChatMessages.self) {
-                        switch change.type {
-                        case .added :
-                            if !(self.chatMessages.contains(where: {$0.messageId == msg.messageId})) {
-                                self.addMessage(msg)
-                            }
-                        case .modified:
-                            if let index = self.chatMessages.firstIndex(where: { $0.messageId == msg.messageId }) {
-                                self.chatMessages[index] = msg
-                            }
-                        case .removed:
-                            self.chatMessages.removeAll(where: { $0.messageId == msg.messageId})
-                        }
-                    }
-                }
-            }
-    }
-    
-    //MARK: - 공용 메서드
-    
-    func makeUserInfo() {
+    func makeUsersInfoBySelectedUser() {
         guard let userData = self.userData else { return }
         self.usersInfo = Dictionary(uniqueKeysWithValues: userData.map {($0.uid, $0)})
     }
     
-    func makeSelectedUserChatRoomId() {
-        guard let fromId = AuthManager.shared.id else { return }
-        var selectedUserId = (userData?.map({$0.uid}))
-        selectedUserId?.append(fromId)
-        if let roomId = selectedUserId?.sorted(by: {$0 < $1}).joined(separator: "_") {
-            self.chatRoomId = roomId
-        }
-    }
-    
-    func addMessage(_ newMessage: ChatMessages) {
-        if !(chatMessages.contains(where: {$0.id == newMessage.id})) {
-            let calendar = Calendar.current
-            var message = newMessage
-            let currentTimestamp = message.timeStamp.dateValue()
-            
-            if chatMessages.isEmpty {
-                message.isFirstInDayGroup = true
-                message.isFirstInTimeGroup = true
-            } else {
-                let lastMessage = chatMessages.last!
-                let lastTimestamp = lastMessage.timeStamp.dateValue()
-                // 날짜 그룹
-                message.isFirstInDayGroup = !calendar.isDate(currentTimestamp, inSameDayAs: lastTimestamp)
-                // 시간 그룹
-                message.isFirstInTimeGroup = formatDataToTime(date: currentTimestamp) != formatDataToTime(date: lastTimestamp)
-            }
-            chatMessages.append(message)
-        }
+    func makeChatRoomIdBySelectedUser() {
+        guard let fromId = AuthManager.shared.id, let userData = self.userData else { return }
+        var selectedUserId = userData.map({$0.uid})
+        selectedUserId.append(fromId)
+        let roomId = selectedUserId.sorted(by: {$0 < $1}).joined(separator: "_")
+        self.chatRoomId = roomId
     }
     
     func showLocalNotification(message msg: ChatMessages) {
         let content = UNMutableNotificationContent()
-        content.title = "새 메시지"
+        content.title = usersInfo?[msg.senderId]?.displayName ?? "새로운 메시지"
         content.body = msg.text.count > 30 ? String(msg.text.prefix(20)) : msg.text
         content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
@@ -320,9 +227,8 @@ class ChatLogViewModel: ObservableObject {
                 }
             }
         }
-        
     }
-    
+
     func formatDataToTime(date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
@@ -330,6 +236,25 @@ class ChatLogViewModel: ObservableObject {
         return formatter.string(from: date)
     }
     
+    func addMessage(_ newMessage: ChatMessages) {
+        let calendar = Calendar.current
+        var message = newMessage
+        let currentTimestamp = message.timeStamp.dateValue()
+        
+        if chatMessages.isEmpty {
+            message.isFirstInDayGroup = true
+            message.isFirstInTimeGroup = true
+        } else {
+            let lastMessage = chatMessages.last!
+            let lastTimestamp = lastMessage.timeStamp.dateValue()
+            // 날짜 그룹
+            message.isFirstInDayGroup = !calendar.isDate(currentTimestamp, inSameDayAs: lastTimestamp)
+            // 시간 그룹
+            message.isFirstInTimeGroup = formatDataToTime(date: currentTimestamp) != formatDataToTime(date: lastTimestamp)
+        }
+        chatMessages.append(message)
+    }
+
     func processChatMessages(_ messages: [ChatMessages]) -> [ChatMessages] {
         var processedMessages = messages
         let calendar = Calendar.current
@@ -363,19 +288,39 @@ class ChatLogViewModel: ObservableObject {
         isInitialMessage = true
     }
     
-    //MARK: - 메시지 동적 로드
-    func fetchRecentMessageByRoomId() {
-        guard let roomId = chatRoom?.chatRoomId, listener == nil else { return }
-        listener = DatabaseManager.shared.db.collection("rooms").document(roomId)
-            .collection("messages").order(by: "timeStamp", descending: true)
+    
+    //MARK: - 메시지 가져오기
+    
+    func fetchInitialMessages(chatRoomId: String) {
+        let query = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
+            .collection("messages")
+            .order(by: "timeStamp", descending: true)
             .limit(to: pageSize)
-            .addSnapshotListener { snapshot, error in
+        query.getDocuments { snapshot, error in
                 if let error = error {
-                    print("Firebase error:\(error)")
+                    print("Firebase Error:\(error)")
                     return
                 }
+                guard let documents = snapshot?.documents else { return }
                 self.lastDocument = snapshot?.documents.last
-                snapshot?.documentChanges.reversed().forEach { change in
+                let message = Array(documents.compactMap({ try? $0.data(as: ChatMessages.self) }).reversed())
+                self.chatMessages = self.processChatMessages(message)
+                self.startMessageRealTimeListener(chatRoomId: chatRoomId)
+            }
+    }
+    
+    func startMessageRealTimeListener(chatRoomId: String) {
+        listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
+            .collection("messages")
+            .whereField("timeStamp", isGreaterThan: Timestamp(date: Date()))
+            .order(by: "timeStamp", descending: true)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Firebase Listener Error:\(error)")
+                    return
+                }
+                guard let snapshot = snapshot else { return }
+                snapshot.documentChanges.reversed().forEach { change in
                     if let msg = try? change.document.data(as: ChatMessages.self) {
                         switch change.type {
                         case .added:
@@ -383,16 +328,37 @@ class ChatLogViewModel: ObservableObject {
                                 self.addMessage(msg)
                             }
                         case .modified:
-                            break;
+                            break
                         case .removed:
-                            self.chatMessages.removeAll(where: { $0.messageId == msg.messageId})
+                            self.chatMessages.removeAll(where: { $0.messageId == msg.id})
                         }
                     }
                 }
             }
     }
     
-    func fetchMoreMessagesByRoomId(completion: @escaping (Bool) -> Void) {
+    func fetchMoreMessages(chatRoomId roomId: String) async throws -> Bool {
+        guard let lastDoc = lastDocument else { return false }
+        let query = DatabaseManager.shared.db.collection("rooms")
+            .document(roomId).collection("messages")
+            .order(by: "timeStamp", descending: true)
+            .start(afterDocument: lastDoc)
+            .limit(to: pageSize)
+        let snapshot = try await query.getDocuments()
+        guard !snapshot.documents.isEmpty else { return false }
+        self.lastDocument = snapshot.documents.last
+        
+        await MainActor.run(body: {
+            let newMessages = snapshot.documents.compactMap({ try? $0.data(as: ChatMessages.self) }).reversed()
+            chatMessages.insert(contentsOf: newMessages, at: 0)
+            chatMessages = processChatMessages(chatMessages)
+        })
+        return true
+    }
+    
+    //MARK: - Combine 변경 예정
+    
+    func fetchMoreMessageByCombine(completion: @escaping (Bool) -> Void) {
         guard let roomId = chatRoom?.chatRoomId, let lastDoc = lastDocument else {
             completion(false)
             return
@@ -414,102 +380,8 @@ class ChatLogViewModel: ObservableObject {
                 completion(true)
             }
     }
-    
-    func fetchMoreMessagesByRoomId2() async throws -> Bool {
-        guard let roomId = chatRoom?.chatRoomId, let lastDoc = DatabaseManager.shared.lastDocument else {
-            return false
-        }
-        let query = DatabaseManager.shared.db.collection("rooms")
-            .document(roomId).collection("messages")
-            .order(by: "timeStamp", descending: true)
-            .start(afterDocument: lastDoc)//확인하기
-            .limit(to: pageSize)
-        
-        let snapshot = try await query.getDocuments()
-        guard !snapshot.documents.isEmpty else { return false }
-        
-        await MainActor.run(body: {
-            self.lastDocument = snapshot.documents.last
-            let newMessages = snapshot.documents.compactMap({ try? $0.data(as: ChatMessages.self) }).reversed()
-            chatMessages.insert(contentsOf: newMessages, at: 0)
-            chatMessages = processChatMessages(chatMessages)
-        })
-        return true
-    }
 
-    func fetchRecentMessagesBySelectedUser() {
-        makeUserInfo()
-        makeSelectedUserChatRoomId()
-        guard let roomId = self.chatRoomId, listener == nil else { return }
-        listener = DatabaseManager.shared.db.collection("rooms").document(roomId)
-            .collection("messages").order(by: "timeStamp", descending: true)
-            .limit(to: pageSize)
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Firebase error:\(error)")
-                    return
-                }
-                self.lastDocument = snapshot?.documents.last
-                snapshot?.documentChanges.reversed().forEach { change in
-                    switch change.type {
-                    case .added:
-                        if let msg = try? change.document.data(as: ChatMessages.self) {
-                            self.addMessage(msg)
-                        }
-                    case .modified:
-                        break;
-                    case .removed:
-                        break;
-                    }
-                }
-            }
-    }
-    
-    func fetchMoreMessagesBySelectedUser(completion: @escaping (Bool) -> Void) {
-        guard let roomId = self.chatRoomId, let lastDoc = lastDocument else {
-            completion(false)
-            return
-        }
-        DatabaseManager.shared.db.collection("rooms").document(roomId)
-            .collection("messages").order(by: "timeStamp", descending: true)
-            .start(afterDocument: lastDoc)
-            .limit(to: pageSize)
-            .getDocuments { snapshot, error in
-                guard let documents = snapshot?.documents, !documents.isEmpty else {
-                    completion(false)
-                    return
-                }
-                self.lastDocument = snapshot?.documents.last
-                var newMessages = [ChatMessages]()
-                newMessages = documents.compactMap({try? $0.data(as: ChatMessages.self)}).reversed()
-                self.chatMessages.insert(contentsOf: newMessages, at: 0)
-                self.chatMessages = self.processChatMessages(self.chatMessages)
-                completion(true)
-            }
-    }
-    
-    func fetchMoreMessagesBySelectedUser2() async throws -> Bool{
-        guard let roomId = self.chatRoomId, let lastDoc = lastDocument else {
-            return false
-        }
-        let query = DatabaseManager.shared.db.collection("rooms")
-            .document(roomId).collection("messages")
-            .order(by: "timeStamp", descending: true)
-            .start(afterDocument: lastDoc)
-            .limit(to: pageSize)
-        let snapshot = try await query.getDocuments()
-        guard !snapshot.documents.isEmpty else { return false }
-        
-        await MainActor.run {
-            lastDocument = snapshot.documents.last
-            let newMessages = snapshot.documents.compactMap({ try? $0.data(as: ChatMessages.self)}).reversed()
-            self.chatMessages.insert(contentsOf: newMessages, at: 0)
-            self.chatMessages = processChatMessages(chatMessages)
-        }
-        return true
-    }
-    
-    func fetchInitialMessagesByRoomId() {
+    func fetchInitialMessagesByCombine() {
         guard let chatRoomId = chatRoom?.chatRoomId else { return }
         DatabaseManager.shared.collectionChatMessages(chatRoomId: chatRoomId)
             .receive(on: DispatchQueue.main)
@@ -526,14 +398,12 @@ class ChatLogViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    
-    
     func startRealTimeListener() {
         guard let chatRoomId = chatRoom?.chatRoomId else { return }
         listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
             .collection("messages")
+            .whereField("timeStamp", isGreaterThan: Timestamp(date: Date()))
             .order(by: "timeStamp", descending: true)
-            .limit(to: 1)
             .addSnapshotListener { snapshot, error in
                 if let error = error {
                     self.messageSubject.send(completion: .failure(error))

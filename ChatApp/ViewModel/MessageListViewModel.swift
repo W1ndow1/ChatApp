@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import FirebaseFirestore
+import UserNotifications
 
 class MessageListViewModel: ObservableObject {
     @Published var errorMessage = ""
@@ -51,7 +52,6 @@ class MessageListViewModel: ObservableObject {
                 .whereField("participants", arrayContains: uid)
                 .order(by: "lastMessageTimeStamp", descending: true)
                 .addSnapshotListener { querySnapshot, errer in
-                    //if self.isPause { return }
                     if let error = errer {
                         print("🔥 Firestore Error: \(error.localizedDescription)")
                         return
@@ -124,6 +124,24 @@ class MessageListViewModel: ObservableObject {
         let snapshot = try await query.getDocuments()
         msgCount = snapshot.documents.count
         return msgCount
+    }
+    
+    func showLocalNotification(message msg: ChatMessages) {
+        let content = UNMutableNotificationContent()
+        content.title = userIdInfo[msg.senderId]?.displayName ?? "새로운 메시지"
+        content.body = msg.text.count > 30 ? String(msg.text.prefix(20)) : msg.text
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request) { error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Error local Notification:\(error)")
+                } else{
+                    print("알림요청 성공 - 앱 상태: \(UIApplication.shared.applicationState.rawValue)")
+                }
+            }
+        }
     }
 }
 
