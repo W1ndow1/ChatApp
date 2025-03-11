@@ -4,13 +4,19 @@ import FirebaseCore
 
 struct MessageListView: View {
     @StateObject var viewModel = MessageListViewModel()
-    @State var showNewMessageView = false
-    @State var selectedUserData: Set<ChatUser>?
-    @State var navigationChatLogview = false
-
+    @State private var showNewMessageView = false
+    @State private var showSearchbar = false
+    @State private var selectedUserData: Set<ChatUser>?
+    @State private var navigationChatLogview = false
+    @State private var searchText = ""
+    @FocusState private var isTextFieldFocused: Bool
+    
     var body: some View {
         NavigationStack {
             VStack {
+                if showSearchbar {
+                    searchbar()
+                }
                 messageList()
                     .navigationDestination(isPresented: $navigationChatLogview) {
                         ChatLogView(userData: selectedUserData)
@@ -21,47 +27,59 @@ struct MessageListView: View {
             }
         }
     }
+    @ViewBuilder
+    func searchbar() -> some View {
+        TextField(text: $searchText, label: {
+            Text("검색어 입력")
+        })
+        .textFieldStyle(RoundedBorderTextFieldStyle())
+        .focused($isTextFieldFocused)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+    }
     
     @ViewBuilder
     func messageList() -> some View {
         ScrollView {
-            ForEach(viewModel.chatRooms) { room in
-                VStack {
-                    NavigationLink {
-                        ChatLogView(chatRoom: room, chatRoomName: dynamicRoomName(chatRoom: room))
-                    } label: {
-                        HStack(spacing: 10) {
-                            if !room.isGroup {
-                                WebImage(url: URL(string: viewModel.chatRoomIdInfo[room.chatRoomId]?.profileImageURL ?? ""))
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 50, height: 50)
-                                    .clipShape(Circle())
-                                    .overlay(RoundedRectangle(cornerRadius: 44).stroke(.opacity(0.3), lineWidth: 1))
-                            } else {
-                                if let uid = AuthManager.shared.id {
-                                    let user = room.participants.filter({$0 != uid })
-                                    groupChatRoomImage(user: user)
+            ForEach(viewModel.chatRooms.filter { room in
+                searchText.isEmpty ||
+                room.chatName.contains(searchText) ||
+                room.lastMessage.contains(searchText)}) { room in
+                    VStack {
+                        NavigationLink {
+                            ChatLogView(chatRoom: room)
+                        } label: {
+                            HStack(spacing: 10) {
+                                if !room.isGroup {
+                                    let opponentId = room.participants.first(where: {$0 != AuthManager.shared.id }) ?? room.participants[0]
+                                    WebImage(url: URL(string: viewModel.usersIdInfo[opponentId]?.profileImageURL ?? ""))
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 50, height: 50)
+                                        .clipShape(Circle())
+                                        .overlay(RoundedRectangle(cornerRadius: 44).stroke(.opacity(0.3), lineWidth: 1))
+                                } else {
+                                    if let uid = AuthManager.shared.id {
+                                        let user = room.participants.filter({$0 != uid })
+                                        groupChatRoomImage(user: user)
+                                    }
                                 }
+                                VStack(alignment:.leading) {
+                                    Text(room.chatName)
+                                    Text(room.lastMessage.prefix(20) + "......")
+                                        .foregroundStyle(Color(.lightGray))
+                                        .font(.system(size: 13, weight: .light))
+                                        .multilineTextAlignment(.leading)
+                                }
+                                Spacer()
+                                Text(getLastMessageTime(lastTimeStamp: room.lastMessageTimeStamp))
+                                    .font(.system(size: 13))
                             }
-                            VStack(alignment:.leading) {
-                                Text(room.isGroup
-                                     ? room.chatName
-                                     : (viewModel.chatRoomIdInfo[room.chatRoomId]?.displayName ?? ""))
-                                Text(room.lastMessage)
-                                    .foregroundStyle(Color(.lightGray))
-                                    .font(.system(size: 13, weight: .light))
-                                    .multilineTextAlignment(.leading)
-                            }
-                            Spacer()
-                            Text(getLastMessageTime(lastTimeStamp: room.lastMessageTimeStamp))
-                                .font(.system(size: 13))
+                            .padding(.horizontal, 10)
+                            .tint(Color.primary)
                         }
-                        .padding(.horizontal, 10)
-                        .tint(Color.primary)
                     }
                 }
-            }
         }
     }
     
@@ -70,7 +88,7 @@ struct MessageListView: View {
         let columns: [GridItem] = Array(repeating: .init(.flexible(minimum: 2, maximum: 4), spacing: 23), count: 2)
         LazyVGrid(columns: columns, alignment:.leading, spacing: 3) {
             ForEach(user, id: \.self) { item in
-                WebImage(url: URL(string: viewModel.userIdInfo[item]?.profileImageURL ?? ""))
+                WebImage(url: URL(string: viewModel.usersIdInfo[item]?.profileImageURL ?? ""))
                     .resizable()
                     .scaledToFill()
                     .frame(width: 25, height: 25)
@@ -99,7 +117,20 @@ struct MessageListView: View {
             }
         }
         ToolbarItem(placement:.topBarTrailing) {
-            HStack(spacing: 5) {
+            HStack(spacing: 3) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        showSearchbar.toggle()
+                        if showSearchbar {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                isTextFieldFocused = true
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Color(.label))
+                }
                 Button {
                     showNewMessageView.toggle()
                 } label: {
@@ -130,7 +161,7 @@ struct MessageListView: View {
 
 extension MessageListView {
     
-    func dynamicRoomName(chatRoom: ChatRooms) -> String{
+    func dynamicRoomName(chatRoom: ChatRoom) -> String{
         return viewModel.chatRoomIdInfo[chatRoom.chatRoomId]?.displayName ?? ""
     }
 

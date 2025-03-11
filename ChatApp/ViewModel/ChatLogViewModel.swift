@@ -5,8 +5,8 @@ import UserNotifications
 
 class ChatLogViewModel: ObservableObject {
     @Published var chatText = ""
-    @Published var chatMessages: [ChatMessages] = []
-    @Published var chatRoom: ChatRooms?
+    @Published var chatMessages: [ChatMessage] = []
+    @Published var chatRoom: ChatRoom?
     @Published var usersInfo: [String : ChatUser]?
     @Published var chatRoomId: String?
     
@@ -16,7 +16,7 @@ class ChatLogViewModel: ObservableObject {
     private var lastDocument: DocumentSnapshot?
     private let pageSize = 20
     private var isInitialMessage: Bool = true
-    private let messageSubject = PassthroughSubject<ChatMessages, Error>()
+    private let messageSubject = PassthroughSubject<ChatMessage, Error>()
     
  
     //새 채팅방 생성시
@@ -28,7 +28,7 @@ class ChatLogViewModel: ObservableObject {
 
     
     //채팅방 목록으로 들어온 경우
-    init(chatRoom room: ChatRooms) {
+    init(chatRoom room: ChatRoom) {
         self.userData = .init()
         self.chatRoom = room
         fetchUsersInfoByRoom(userIds: room.participants)
@@ -67,7 +67,7 @@ class ChatLogViewModel: ObservableObject {
         guard let receiverId = participants.count == 2 ? participants.first : "" else { return }
         
         let chatRoomId = participants.sorted(by: { $0 < $1 }).joined(separator: "_")
-        let chatMessageData = ChatMessages(
+        let chatMessageData = ChatMessage(
             messageId: UUID().uuidString,
             senderId: fromId,
             receiverId: receiverId,
@@ -76,13 +76,15 @@ class ChatLogViewModel: ObservableObject {
             readBy: []
         )
         
-        let chatRoomData = ChatRooms(
+        let chatRoomData = ChatRoom(
             chatRoomId: chatRoomId,
+            chatRoomMakerId: fromId,
             participants: participants.sorted(by: { $0 < $1 }),
             isGroup: (participants.count > 2),
             chatName: chatName,
             lastMessage: chatText,
-            lastMessageTimeStamp: chatMessageData.timeStamp
+            lastMessageTimeStamp: chatMessageData.timeStamp,
+            lastMessageSenderId: fromId
         )
         self.chatText = ""
         DatabaseManager.shared.checkChatRoomExists(chatRoomId: chatRoomId)
@@ -114,7 +116,7 @@ class ChatLogViewModel: ObservableObject {
     func sendMessageByRoomId() {
         guard let chatRoomId = chatRoom?.chatRoomId else { return }
         guard let senderId = AuthManager.shared.id else { return }
-        let chatMessageData = ChatMessages(messageId: UUID().uuidString,
+        let chatMessageData = ChatMessage(messageId: UUID().uuidString,
                                            senderId: senderId,
                                            text: chatText,
                                            timeStamp: Timestamp(date: Date()),
@@ -142,7 +144,7 @@ class ChatLogViewModel: ObservableObject {
     func sendMessageByRoomIdTransection() {
         guard let chatRoomId = chatRoom?.chatRoomId,
               let senderId = AuthManager.shared.id else { return }
-        let chatMessageData = ChatMessages(
+        let chatMessageData = ChatMessage(
             messageId: UUID().uuidString,
             senderId: senderId,
             text: chatText,
@@ -173,7 +175,8 @@ class ChatLogViewModel: ObservableObject {
             let chatRoomRef = DatabaseManager().db.collection("rooms").document(chatRoomId)
             transaction.updateData([
                 "lastMessage": chatMessageData.text,
-                "lastMessageTimeStamp": chatMessageData.timeStamp
+                "lastMessageTimeStamp": chatMessageData.timeStamp,
+                "lastMessageSenderId": chatMessageData.senderId
             ], forDocument: chatRoomRef)
             
             return nil
@@ -211,7 +214,7 @@ class ChatLogViewModel: ObservableObject {
         self.chatRoomId = roomId
     }
     
-    func showLocalNotification(message msg: ChatMessages) {
+    func showLocalNotification(message msg: ChatMessage) {
         let content = UNMutableNotificationContent()
         content.title = usersInfo?[msg.senderId]?.displayName ?? "새로운 메시지"
         content.body = msg.text.count > 30 ? String(msg.text.prefix(20)) : msg.text
@@ -236,35 +239,44 @@ class ChatLogViewModel: ObservableObject {
         return formatter.string(from: date)
     }
     
-    func addMessage(_ newMessage: ChatMessages) {
+    func addMessage(_ newMessage: ChatMessage) {
         let calendar = Calendar.current
         var message = newMessage
         let currentTimestamp = message.timeStamp.dateValue()
+        let currentMessageSenderId = message.senderId
         
         if chatMessages.isEmpty {
             message.isFirstInDayGroup = true
             message.isFirstInTimeGroup = true
+            message.isFromSameSender = false
         } else {
             let lastMessage = chatMessages.last!
             let lastTimestamp = lastMessage.timeStamp.dateValue()
+            let lastMessageSenderId = lastMessage.senderId
             // 날짜 그룹
             message.isFirstInDayGroup = !calendar.isDate(currentTimestamp, inSameDayAs: lastTimestamp)
             // 시간 그룹
             message.isFirstInTimeGroup = formatDataToTime(date: currentTimestamp) != formatDataToTime(date: lastTimestamp)
+            // 보낸이 그룹
+            message.isFromSameSender = currentMessageSenderId == lastMessageSenderId
+            
         }
         chatMessages.append(message)
     }
 
-    func processChatMessages(_ messages: [ChatMessages]) -> [ChatMessages] {
+    func processChatMessages(_ messages: [ChatMessage]) -> [ChatMessage] {
         var processedMessages = messages
         let calendar = Calendar.current
         
+        
         for i in 0..<processedMessages.count {
             let currentTimestamp = processedMessages[i].timeStamp.dateValue()
+            let currentSenderId = processedMessages[i].senderId
             let isFirstMessage = (i == 0)
             
             //이전 메시지 비교
             let perviousTimestamp = isFirstMessage ? nil : processedMessages[i - 1].timeStamp.dateValue()
+            let perviousSenderId = isFirstMessage ? nil :  processedMessages[i - 1].senderId
             
             //같은 날짜 확인
             if isFirstMessage || perviousTimestamp != nil && !calendar.isDate(currentTimestamp, inSameDayAs: perviousTimestamp!) {
@@ -277,6 +289,12 @@ class ChatLogViewModel: ObservableObject {
                 processedMessages[i].isFirstInTimeGroup = true
             } else {
                 processedMessages[i].isFirstInTimeGroup = false
+            }
+            //같은 아이디 확인
+            if isFirstMessage || perviousSenderId != nil && currentSenderId != perviousSenderId {
+                processedMessages[i].isFromSameSender = false
+            } else {
+                processedMessages[i].isFromSameSender = true
             }
         }
         return processedMessages
@@ -297,19 +315,19 @@ class ChatLogViewModel: ObservableObject {
             .order(by: "timeStamp", descending: true)
             .limit(to: pageSize)
         query.getDocuments { snapshot, error in
-                if let error = error {
-                    print("Firebase Error:\(error)")
-                    return
-                }
-                guard let documents = snapshot?.documents else { return }
-                self.lastDocument = snapshot?.documents.last
-                let message = Array(documents.compactMap({ try? $0.data(as: ChatMessages.self) }).reversed())
-                self.chatMessages = self.processChatMessages(message)
-                self.startMessageRealTimeListener(chatRoomId: chatRoomId)
+            if let error = error {
+                print("Firebase Error:\(error)")
+                return
             }
+            guard let documents = snapshot?.documents else { return }
+            self.lastDocument = documents.last
+            let message = Array(documents.compactMap({ try? $0.data(as: ChatMessage.self) }).reversed())
+            self.chatMessages = self.processChatMessages(message)
+            self.fetchMessagesStartListener(chatRoomId: chatRoomId)
+        }
     }
     
-    func startMessageRealTimeListener(chatRoomId: String) {
+    func fetchMessagesStartListener(chatRoomId: String) {
         listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
             .collection("messages")
             .whereField("timeStamp", isGreaterThan: Timestamp(date: Date()))
@@ -319,9 +337,9 @@ class ChatLogViewModel: ObservableObject {
                     print("Firebase Listener Error:\(error)")
                     return
                 }
-                guard let snapshot = snapshot else { return }
-                snapshot.documentChanges.reversed().forEach { change in
-                    if let msg = try? change.document.data(as: ChatMessages.self) {
+                guard let snapshot = snapshot?.documentChanges else { return }
+                snapshot.reversed().forEach { change in
+                    if let msg = try? change.document.data(as: ChatMessage.self) {
                         switch change.type {
                         case .added:
                             if !(self.chatMessages.contains(where: {$0.messageId == msg.messageId})) {
@@ -349,7 +367,7 @@ class ChatLogViewModel: ObservableObject {
         self.lastDocument = snapshot.documents.last
         
         await MainActor.run(body: {
-            let newMessages = snapshot.documents.compactMap({ try? $0.data(as: ChatMessages.self) }).reversed()
+            let newMessages = snapshot.documents.compactMap({ try? $0.data(as: ChatMessage.self) }).reversed()
             chatMessages.insert(contentsOf: newMessages, at: 0)
             chatMessages = processChatMessages(chatMessages)
         })
@@ -373,8 +391,8 @@ class ChatLogViewModel: ObservableObject {
                     return
                 }
                 self.lastDocument = snapshot?.documents.last
-                var newMessages = [ChatMessages]()
-                newMessages = documents.compactMap({try? $0.data(as: ChatMessages.self)}).reversed()
+                var newMessages = [ChatMessage]()
+                newMessages = documents.compactMap({try? $0.data(as: ChatMessage.self)}).reversed()
                 self.chatMessages.insert(contentsOf: newMessages, at: 0)
                 self.chatMessages = self.processChatMessages(self.chatMessages)
                 completion(true)
@@ -411,7 +429,7 @@ class ChatLogViewModel: ObservableObject {
                 }
                 guard let snapshot = snapshot else { return }
                 snapshot.documentChanges.reversed().forEach { change in
-                    if change.type == .added, let msg = try? change.document.data(as: ChatMessages.self) {
+                    if change.type == .added, let msg = try? change.document.data(as: ChatMessage.self) {
                         if !(self.chatMessages.contains(where: {$0.messageId == msg.messageId})) {
                             self.messageSubject.send(msg)
                         }

@@ -5,7 +5,7 @@ struct ChatLogView: View {
     @StateObject var viewModel: ChatLogViewModel
     @State var navigationTitle = ""
     @State var enterButtonText = "#"
-    @State var chatRoomName = ""
+    @State var chatRoom: ChatRoom?
     @State var msgCount: Int = 0
     @State private var isSendMessage = false
     @State private var isTop = false
@@ -23,10 +23,10 @@ struct ChatLogView: View {
      
     
     //채팅방 목록으로 들어온 경우
-    init(chatRoom: ChatRooms, chatRoomName: String, fromMessageListView: Bool = true) {
+    init(chatRoom: ChatRoom, fromMessageListView: Bool = true) {
         self.userData = .none
         self.fromMessageListView = fromMessageListView
-        self.chatRoomName = chatRoomName
+        self.chatRoom = chatRoom
         self._viewModel = StateObject(wrappedValue: ChatLogViewModel(chatRoom: chatRoom))
     }
     
@@ -103,7 +103,7 @@ struct ChatLogView: View {
     }
  
     @ViewBuilder
-    private func chatSection(msg: ChatMessages) -> some View {
+    private func chatSection(msg: ChatMessage) -> some View {
         if msg.isFirstInDayGroup ?? false {
             HStack {
                 Text(formatDataToYear(msg.timeStamp.dateValue()))
@@ -119,10 +119,15 @@ struct ChatLogView: View {
         }
     }
     
+    
+    func shouldDisplayImage(current: String) {
+        
+    }
+    
     @ViewBuilder
-    private func otherMessage(msg: ChatMessages) -> some View {
+    private func otherMessage(msg: ChatMessage) -> some View {
         HStack(alignment: .top) {
-            if (msg.senderId != AuthManager.shared.id) && (msg.isFirstInTimeGroup ?? false) {
+            if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
                 WebImage(url: URL(string: viewModel.usersInfo?[msg.senderId]?.profileImageURL ?? ""))
                     .resizable()
                     .scaledToFill()
@@ -134,9 +139,9 @@ struct ChatLogView: View {
                     .frame(width:35)
             }
             VStack(alignment: .leading) {
-                if msg.isFirstInTimeGroup ?? false {
+                if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
                     Text(viewModel.usersInfo?[msg.senderId]?.displayName ?? "")
-                        .font(.system(size: 10, weight: .ultraLight))
+                        .font(.system(size: 10, weight: .light))
                 }
                 HStack(alignment: .bottom) {
                     Text(msg.text)
@@ -147,25 +152,27 @@ struct ChatLogView: View {
                         .frame(minWidth: 30, alignment: .leading)
                         .lineLimit(nil)
                         .multilineTextAlignment(.leading)
-                    if msg.isFirstInTimeGroup ?? false {
+                    if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
                         Text(formatDataToTime(msg.timeStamp.dateValue()))
                             .font(.system(size: 10, weight: .light))
                     }
                     Spacer()
                 }
+                .padding(.vertical, 5)
             }
+            .padding(.trailing, 50)
         }
         Spacer()
     }
     
     @ViewBuilder
-    private func myMessage(msg: ChatMessages) -> some View {
+    private func myMessage(msg: ChatMessage) -> some View {
         Spacer()
         HStack(alignment: .bottom) {
             Spacer()
-            if msg.isFirstInTimeGroup ?? false {
+            if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
                 Text(formatDataToTime(msg.timeStamp.dateValue()))
-                    .font(.system(size: 10, weight: .ultraLight))
+                    .font(.system(size: 10, weight: .light))
             }
             Text(msg.text)
                 .padding(8)
@@ -176,6 +183,8 @@ struct ChatLogView: View {
                 .lineLimit(nil)
                 .multilineTextAlignment(.leading)
         }
+        .padding(.vertical, 5)
+        .padding(.leading, 50)
     }
 
     
@@ -224,18 +233,17 @@ struct ChatLogView: View {
 
 
 #Preview {
-    ChatLogView(chatRoom: ChatRooms(
+    ChatLogView(chatRoom: ChatRoom(
         chatRoomId: """
-                    UyZOQtY9occyvmxpP82jr7QdEP12_
-                    WDznGLHspLevJ0kgC9m783bUtWB3_
                     Wv5HZZ3NMOQysA9VqEUdgdGQs713_
                     uBzmBwnRmdbkCFoBls9DHa4uC8j2
-                    """,
-        participants: ["UyZOQtY9occyvmxpP82jr7QdEP12",
-                       "WDznGLHspLevJ0kgC9m783bUtWB3",
-                       "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
+                    """, 
+        chatRoomMakerId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
+        participants: ["Wv5HZZ3NMOQysA9VqEUdgdGQs713",
                        "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
-        lastMessageTimeStamp: .init(date: Date())), chatRoomName: "홍길동")
+        lastMessageTimeStamp: .init(date: Date()),
+        lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")
+    )
 }
 
 extension ChatLogView {
@@ -269,9 +277,7 @@ extension ChatLogView {
     
     func navigationTitleLengthCheck() {
         if fromMessageListView {
-            navigationTitle = (viewModel.chatRoom?.isGroup ?? false)
-            ? (viewModel.chatRoom?.chatName ?? "")
-            : chatRoomName
+            navigationTitle = chatRoom?.chatName ?? ""
         } else {
             guard let userData = userData else { return }
             if userData.count < 4 {

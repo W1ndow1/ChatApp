@@ -27,7 +27,7 @@ class DatabaseManager: NSObject {
     
     var lastDocument: DocumentSnapshot?
     private var listener: ListenerRegistration?
-    private var chatMessagesSubject = PassthroughSubject<[ChatMessages], Error>()
+    private var chatMessagesSubject = PassthroughSubject<[ChatMessage], Error>()
     
     //MARK: - 저장
     func storeUserInformation(userData: [String: Any], uid: String) -> Future<Bool, Error>{
@@ -58,7 +58,7 @@ class DatabaseManager: NSObject {
         }
     }
     
-    func storeChatRoomData(chatRoomData: ChatRooms) -> AnyPublisher<Void, Error> {
+    func storeChatRoomData(chatRoomData: ChatRoom) -> AnyPublisher<Void, Error> {
         let chatRoomRef = db.collection(chatRoomPath).document(chatRoomData.chatRoomId)
         return Future { promise in
             do {
@@ -76,7 +76,7 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
-    func storeChatMessageData(chatRoomData: ChatRooms, chatMessageData: ChatMessages) -> Future<Bool, Error> {
+    func storeChatMessageData(chatRoomData: ChatRoom, chatMessageData: ChatMessage) -> Future<Bool, Error> {
         return Future<Bool, Error> { promise in
             do {
                 try self.db.collection(self.chatRoomPath).document(chatRoomData.chatRoomId)
@@ -94,7 +94,7 @@ class DatabaseManager: NSObject {
         }
     }
     
-    func storeChatMessageData(chatRoomId: String, chatMessageData: ChatMessages) -> Future<Bool, Error> {
+    func storeChatMessageData(chatRoomId: String, chatMessageData: ChatMessage) -> Future<Bool, Error> {
         return Future<Bool, Error> { promise in
             do {
                 try self.db.collection(self.chatRoomPath).document(chatRoomId)
@@ -113,13 +113,15 @@ class DatabaseManager: NSObject {
     }
     
     //MARK: - 수정
-    func updateChatRoom(chatRoomId: String, chatMessageData: ChatMessages) -> AnyPublisher<Bool, Error> {
+    func updateChatRoom(chatRoomId: String, chatMessageData: ChatMessage) -> AnyPublisher<Bool, Error> {
         let chatRoomRef = db.collection(chatRoomPath).document(chatRoomId)
         return Future { promise in
             let batch = self.db.batch()
             batch.updateData([
                 "lastMessage" : chatMessageData.text,
-                "lastMessageTimeStamp" : chatMessageData.timeStamp
+                "lastMessageTimeStamp" : chatMessageData.timeStamp,
+                "lastMessageSenderId" : chatMessageData.senderId
+                
             ], forDocument: chatRoomRef)
             batch.commit() { error in
                 if let error = error {
@@ -243,7 +245,7 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
         }
     
-    func collectionChatRooms(chatRoomId roomId: String) -> AnyPublisher<[ChatMessages], Error> {
+    func collectionChatRooms(chatRoomId roomId: String) -> AnyPublisher<[ChatMessage], Error> {
         let chatMessagesRef = self.db.collection(self.chatRoomPath).document(roomId)
             .collection(self.chatMesseagesPath)
             .order(by: "timeStamp", descending: false)
@@ -252,11 +254,11 @@ class DatabaseManager: NSObject {
                 print("Firebase Error:\(error)")
                 return
             }
-            var messages = [ChatMessages]()
+            var messages = [ChatMessage]()
             snapshot?.documentChanges.forEach { change in
                 switch change.type {
                 case .added:
-                    if let message = try? change.document.data(as: ChatMessages.self) {
+                    if let message = try? change.document.data(as: ChatMessage.self) {
                         messages.append(message)
                     }
                 case .modified:
@@ -270,7 +272,7 @@ class DatabaseManager: NSObject {
         return chatMessagesSubject.eraseToAnyPublisher()
     }
     
-    func collectionChatRooms(uid id: String) -> AnyPublisher<[ChatRooms], Error> {
+    func collectionChatRooms(uid id: String) -> AnyPublisher<[ChatRoom], Error> {
         return Future { promise in
             self.db.collection(self.chatRoomPath)
                 .whereField("participants", arrayContains: id)
@@ -285,7 +287,7 @@ class DatabaseManager: NSObject {
                         return
                     }
                     do {
-                        let chatRooms = try documents.map({ try $0.data(as: ChatRooms.self) })
+                        let chatRooms = try documents.map({ try $0.data(as: ChatRoom.self) })
                         promise(.success(chatRooms))
                     } catch {
                         promise(.failure(error))
@@ -295,7 +297,7 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
-    func collectionChatMessages(uid1: String, uid2: String) -> AnyPublisher<[ChatMessages], Error> {
+    func collectionChatMessages(uid1: String, uid2: String) -> AnyPublisher<[ChatMessage], Error> {
         return Future { promise in
             self.db.collection(self.chatRoomPath)
                 .whereField("participants", arrayContains: uid1)
@@ -316,7 +318,7 @@ class DatabaseManager: NSObject {
                         return Set(participants) == Set([uid1, uid2])
                     }
                     let dispatchGroup = DispatchGroup()
-                    var allMessages = [ChatMessages]()
+                    var allMessages = [ChatMessage]()
                     
                     for chatRoom in chatRooms {
                         dispatchGroup.enter()
@@ -335,7 +337,7 @@ class DatabaseManager: NSObject {
                                     promise(.failure(NSError()))
                                     return
                                 }
-                                let chatMessage = messageDocs.compactMap({ try? $0.data(as: ChatMessages.self)})
+                                let chatMessage = messageDocs.compactMap({ try? $0.data(as: ChatMessage.self)})
                                 allMessages.append(contentsOf: chatMessage)
                                 dispatchGroup.leave()
                             }
@@ -349,7 +351,7 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
 
-    func collectionChatMessages(chatRoomId: String) -> AnyPublisher<[ChatMessages], Error> {
+    func collectionChatMessages(chatRoomId: String) -> AnyPublisher<[ChatMessage], Error> {
         return Future { promise in
             self.db.collection(self.chatRoomPath).document(chatRoomId)
                 .collection(self.chatMesseagesPath)
@@ -363,7 +365,7 @@ class DatabaseManager: NSObject {
                     self.lastDocument = snapshot?.documents.last
                     let documents = snapshot?.documents ?? []
                     do {
-                        let initialMessages = try documents.compactMap({try $0.data(as: ChatMessages.self)})
+                        let initialMessages = try documents.compactMap({try $0.data(as: ChatMessage.self)})
                         promise(.success(initialMessages.reversed()))
                     } catch {
                         promise(.failure(error))
@@ -373,7 +375,7 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
-    func startCollectionChatMessagesRealTimeListener(chatRoomId: String) -> AnyPublisher<ChatMessages, Error> {
+    func startCollectionChatMessagesRealTimeListener(chatRoomId: String) -> AnyPublisher<ChatMessage, Error> {
         return Future { [weak self] promise in
             self?.listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
                 .collection("messages")
@@ -387,7 +389,7 @@ class DatabaseManager: NSObject {
                     snapshot.documentChanges.forEach { change in
                         switch change.type {
                         case .added:
-                            if let msg = try? change.document.data(as: ChatMessages.self) {
+                            if let msg = try? change.document.data(as: ChatMessage.self) {
                                 promise(.success(msg))
                             }
                         case .modified, .removed:

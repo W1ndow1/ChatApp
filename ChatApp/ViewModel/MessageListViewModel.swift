@@ -15,9 +15,9 @@ class MessageListViewModel: ObservableObject {
     @Published var currentUser: ChatUser?
     @Published var profileURL: String?
     @Published var profileImage: UIImage?
-    @Published var chatRooms: [ChatRooms] = []
+    @Published var chatRooms: [ChatRoom] = []
     @Published var chatRoomIdInfo: [String : ChatUser] = [:]
-    @Published var userIdInfo: [String: ChatUser] = [:]
+    @Published var usersIdInfo: [String: ChatUser] = [:]
     
     private var cancellables = Set<AnyCancellable>()
     private var listener: ListenerRegistration?
@@ -25,10 +25,9 @@ class MessageListViewModel: ObservableObject {
     
     init() {
         guard let uid = AuthManager.shared.id else { return }
-        fetchUserInfo()
         fetchCurrentUser(uid: uid)
     }
-    
+
     func fetchCurrentUser(uid: String) {
         DatabaseManager.shared.collectionUsers(userId: uid)
             .sink(receiveCompletion: { [weak self] completion in
@@ -36,7 +35,9 @@ class MessageListViewModel: ObservableObject {
                 case .failure(let error):
                     print("Error fetchCurrent:\(error)")
                 case .finished:
-                    self?.fetchChatRoomsListener()
+                    self?.fetchAllUsersInfo()
+                    //추후 push messages 이용시
+                    //self?.fetchChatRoomsListener()
                 }
             }, receiveValue: { result in
                 self.currentUser = result
@@ -44,7 +45,7 @@ class MessageListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    
+
     func fetchChatRoomsListener() {
         guard let uid = AuthManager.shared.id else { return }
         if listener == nil {
@@ -59,16 +60,17 @@ class MessageListViewModel: ObservableObject {
                     querySnapshot?.documentChanges.forEach { change in
                         switch change.type {
                         case .added:
-                            if let data = try? change.document.data(as:ChatRooms.self),
-                               !self.chatRooms.contains(where: {$0.chatRoomId == data.chatRoomId}) {
-                                self.chatRooms.append(data)
-                                self.fetchUsersInfo(for: data)
+                            if let chatRoom = try? change.document.data(as:ChatRoom.self),
+                               !self.chatRooms.contains(where: {$0.chatRoomId == chatRoom.chatRoomId}) {
+                                self.chatRooms.append(chatRoom)
+                                self.fetchUsersInfo(for: chatRoom)
+                                
                             }
                         case .modified:
-                            if let updatedChatRoom = try? change.document.data(as: ChatRooms.self),
+                            if let updatedChatRoom = try? change.document.data(as: ChatRoom.self),
                                let index = self.chatRooms.firstIndex(where: { $0.chatRoomId == updatedChatRoom.chatRoomId }) {
                                 self.chatRooms[index] = updatedChatRoom
-                                //self.fetchUsersInfo(for: updatedChatRoom)
+                                self.showLocalNotification(chatRoom: updatedChatRoom)
                             }
                         case .removed:
                             let removedChatRoomId = change.document.documentID
@@ -82,19 +84,109 @@ class MessageListViewModel: ObservableObject {
         }
     }
     
-    func fetchUserInfo() {
+    func fetchChatRooms() {
+        guard let uid = AuthManager.shared.id else { return }
+        let query = DatabaseManager.shared.db.collection("rooms")
+            .whereField("participants", arrayContains: uid)
+            .order(by: "lastMessageTimeStamp", descending: true)
+        query.getDocuments { snapshot, error in
+            if let error = error {
+                print("Firebase Error :\(error)")
+                return
+            }
+            guard let snapshot = snapshot?.documents else { return }
+            let chatRooms = snapshot.compactMap({ try? $0.data(as: ChatRoom.self)})
+            self.editChatRoomsInfo(chatRooms: chatRooms)
+            self.fetchChatRoomsStartListner()
+            
+            /*
+             self.fetchUsersInfo(for: chatRooms)
+            self.chatRooms = chatRooms
+            self.fetchChatRoomsStartListner()
+             */
+        }
+    }
+    
+    func editChatRoomsInfo(chatRooms: [ChatRoom]) {
+        for chatRoom in chatRooms {
+            let opponentId = chatRoom.participants.first(where: {$0 != AuthManager.shared.id}) ?? chatRoom.participants[0]
+            let newChatRoom = ChatRoom(chatRoomId: chatRoom.chatRoomId,
+                                       chatRoomMakerId: chatRoom.chatRoomMakerId,
+                                       participants: chatRoom.participants,
+                                       isGroup: chatRoom.isGroup,
+                                       chatName: chatRoom.isGroup ? chatRoom.chatName : (usersIdInfo[opponentId]?.displayName ?? ""),
+                                       lastMessage: chatRoom.lastMessage,
+                                       lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
+                                       lastMessageSenderId: chatRoom.lastMessageSenderId)
+            self.chatRooms.append(newChatRoom)
+        }
+    }
+    
+    func editChatRoomInfo(chatRoom: ChatRoom) -> ChatRoom {
+        let opponentId = chatRoom.participants.first(where: {$0 != AuthManager.shared.id}) ?? chatRoom.participants[0]
+        let newChatRoom = ChatRoom(chatRoomId: chatRoom.chatRoomId,
+                                   chatRoomMakerId: chatRoom.chatRoomMakerId,
+                                   participants: chatRoom.participants,
+                                   isGroup: chatRoom.isGroup,
+                                   chatName: chatRoom.isGroup ? chatRoom.chatName : (usersIdInfo[opponentId]?.displayName ?? ""),
+                                   lastMessage: chatRoom.lastMessage,
+                                   lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
+                                   lastMessageSenderId: chatRoom.lastMessageSenderId)
+        return newChatRoom
+    }
+    
+    func fetchChatRoomsStartListner() {
+        guard let uid = AuthManager.shared.id else { return }
+        let query = DatabaseManager.shared.db.collection("rooms")
+            .whereField("participants", arrayContains: uid)
+            .order(by: "lastMessageTimeStamp", descending: true)
+        query.addSnapshotListener { querySnapshot, errer in
+            if let error = errer {
+                print("🔥 Firestore Error: \(error.localizedDescription)")
+                return
+            }
+            querySnapshot?.documentChanges.forEach { change in
+                switch change.type {
+                case .added:
+                    if let chatRoom = try? change.document.data(as:ChatRoom.self),
+                       !self.chatRooms.contains(where: {$0.chatRoomId == chatRoom.chatRoomId}) {
+                        self.chatRooms.append(self.editChatRoomInfo(chatRoom: chatRoom))
+                        self.showLocalNotification(chatRoom: chatRoom)
+                    }
+                case .modified:
+                    if let updatedChatRoom = try? change.document.data(as: ChatRoom.self),
+                       let index = self.chatRooms.firstIndex(where: { $0.chatRoomId == updatedChatRoom.chatRoomId }) {
+                        self.chatRooms[index] = self.editChatRoomInfo(chatRoom: updatedChatRoom)
+                        self.showLocalNotification(chatRoom: updatedChatRoom)
+                    }
+                case .removed:
+                    let removedChatRoomId = change.document.documentID
+                    self.chatRooms.removeAll { $0.chatRoomId == removedChatRoomId }
+                }
+            }
+            self.chatRooms.sort(by: {
+                $0.lastMessageTimeStamp.dateValue() > $1.lastMessageTimeStamp.dateValue()
+            })
+        }
+    }
+    
+    
+    func fetchAllUsersInfo() {
         DatabaseManager.shared.collectionAllUsers()
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {
                     print("🔥Firestore Error: \(failure.localizedDescription)")
                 }
+                if case .finished = completion {
+                    self.fetchChatRooms()
+                }
             }, receiveValue: { chatUsers in
-                self.userIdInfo = Dictionary(uniqueKeysWithValues: chatUsers.map{ ($0.uid, $0) })
+                self.usersIdInfo = Dictionary(uniqueKeysWithValues: chatUsers.map{ ($0.uid, $0) })
             })
             .store(in: &cancellables)
     }
     
-    func fetchUsersInfo(for room: ChatRooms) {
+    func fetchUsersInfo(for room: ChatRoom) {
         guard let uid = AuthManager.shared.id else { return }
         guard let opponentId = room.participants.first(where: { $0 != uid }) else {
             chatRoomIdInfo[room.chatRoomId] = currentUser
@@ -109,7 +201,27 @@ class MessageListViewModel: ObservableObject {
                 self.chatRoomIdInfo[room.chatRoomId] = result
             })
             .store(in: &cancellables)
+    } 
+    
+    func fetchUsersInfo(for rooms: [ChatRoom]) {
+        guard let uid = AuthManager.shared.id else { return }
+        for room in rooms {
+            guard let opponentId = room.participants.first(where: { $0 != uid }) else {
+                chatRoomIdInfo[room.chatRoomId] = currentUser
+                return }
+            
+            DatabaseManager.shared.collectionUsers(userId: opponentId)
+                .sink(receiveCompletion: { completion in
+                    if case .failure(let failure) = completion {
+                        print("🔥Firestore Error: \(failure.localizedDescription)")
+                    }
+                }, receiveValue: { result in
+                    self.chatRoomIdInfo[room.chatRoomId] = result
+                })
+                .store(in: &cancellables)
+        }
     }
+    
     
     func stopListening() {
         listener?.remove()
@@ -117,18 +229,15 @@ class MessageListViewModel: ObservableObject {
         isPause = false
     }
     
-    func messagesCount(roomId: String) async throws -> Int {
-        var msgCount = 0
-        let query = DatabaseManager.shared.db.collection("rooms").document(roomId)
-            .collection("messages").order(by: "timeStamp", descending: false)
-        let snapshot = try await query.getDocuments()
-        msgCount = snapshot.documents.count
-        return msgCount
-    }
-    
-    func showLocalNotification(message msg: ChatMessages) {
+    func showLocalNotification(chatRoom: ChatRoom) {
+        let msg = ChatMessage(messageId: "",
+                              senderId: chatRoom.lastMessageSenderId,
+                               text: chatRoom.lastMessage,
+                               timeStamp: chatRoom.lastMessageTimeStamp,
+                               readBy:[])
+        guard currentUser?.uid != msg.senderId else { return }
         let content = UNMutableNotificationContent()
-        content.title = userIdInfo[msg.senderId]?.displayName ?? "새로운 메시지"
+        content.title = usersIdInfo[msg.senderId]?.displayName ?? "새로운 메시지"
         content.body = msg.text.count > 30 ? String(msg.text.prefix(20)) : msg.text
         content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)

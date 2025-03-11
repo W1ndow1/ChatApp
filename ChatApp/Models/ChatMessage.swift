@@ -8,7 +8,7 @@
 import Foundation
 import FirebaseCore
 
-struct ChatMessages: Identifiable, Codable {
+struct ChatMessage: Identifiable, Codable {
     var id: String { messageId }
     var messageId: String
     var senderId: String
@@ -18,14 +18,17 @@ struct ChatMessages: Identifiable, Codable {
     var readBy: [String]
     var isFirstInDayGroup: Bool?
     var isFirstInTimeGroup: Bool?
+    var isFromSameSender: Bool?
 }
 
-struct ChatRooms: Identifiable, Codable {
+struct ChatRoom: Identifiable, Codable {
     var id: String { chatRoomId }
     var chatRoomId: String
+    var chatRoomMakerId: String
     var participants: [String]
     var isGroup: Bool = false
     var chatName: String = ""
     var lastMessage: String = ""
     var lastMessageTimeStamp: Timestamp
+    var lastMessageSenderId: String
 }
