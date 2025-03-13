@@ -98,12 +98,6 @@ class MessageListViewModel: ObservableObject {
             let chatRooms = snapshot.compactMap({ try? $0.data(as: ChatRoom.self)})
             self.editChatRoomsInfo(chatRooms: chatRooms)
             self.fetchChatRoomsStartListner()
-            
-            /*
-             self.fetchUsersInfo(for: chatRooms)
-            self.chatRooms = chatRooms
-            self.fetchChatRoomsStartListner()
-             */
         }
     }
     

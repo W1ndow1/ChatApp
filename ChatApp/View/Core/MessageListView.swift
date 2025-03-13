@@ -5,20 +5,20 @@ import FirebaseCore
 struct MessageListView: View {
     @StateObject var viewModel = MessageListViewModel()
     @State private var showNewMessageView = false
-    @State private var showSearchbar = false
+    @State private var showSearchBar = false
     @State private var selectedUserData: Set<ChatUser>?
-    @State private var navigationChatLogview = false
+    @State private var navigationChatLogView = false
     @State private var searchText = ""
     @FocusState private var isTextFieldFocused: Bool
     
     var body: some View {
         NavigationStack {
             VStack {
-                if showSearchbar {
-                    searchbar()
+                if showSearchBar {
+                    searchBar()
                 }
                 messageList()
-                    .navigationDestination(isPresented: $navigationChatLogview) {
+                    .navigationDestination(isPresented: $navigationChatLogView) {
                         ChatLogView(userData: selectedUserData)
                     }
             }
@@ -28,7 +28,7 @@ struct MessageListView: View {
         }
     }
     @ViewBuilder
-    func searchbar() -> some View {
+    func searchBar() -> some View {
         TextField(text: $searchText, label: {
             Text("검색어 입력")
         })
@@ -72,12 +72,13 @@ struct MessageListView: View {
                                         .multilineTextAlignment(.leading)
                                 }
                                 Spacer()
-                                Text(getLastMessageTime(lastTimeStamp: room.lastMessageTimeStamp))
+                                Text(DateFormat.lastMessageTime(timeStamp: room.lastMessageTimeStamp))
                                     .font(.system(size: 13))
                             }
                             .padding(.horizontal, 10)
                             .tint(Color.primary)
                         }
+                        Divider()
                     }
                 }
         }
@@ -120,8 +121,8 @@ struct MessageListView: View {
             HStack(spacing: 3) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.1)) {
-                        showSearchbar.toggle()
-                        if showSearchbar {
+                        showSearchBar.toggle()
+                        if showSearchBar {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                 isTextFieldFocused = true
                             }
@@ -139,7 +140,7 @@ struct MessageListView: View {
                 }
                 .fullScreenCover(isPresented: $showNewMessageView, onDismiss: nil, content: {
                     NewMessageView(didSelectNewUser: { user in
-                        self.navigationChatLogview.toggle()
+                        self.navigationChatLogView.toggle()
                         self.selectedUserData = user
                     })
                 })
@@ -157,57 +158,4 @@ struct MessageListView: View {
 
 #Preview {
     MessageListView()
-}
-
-extension MessageListView {
-    
-    func dynamicRoomName(chatRoom: ChatRoom) -> String{
-        return viewModel.chatRoomIdInfo[chatRoom.chatRoomId]?.displayName ?? ""
-    }
-
-    func getLastMessageTime(lastTimeStamp: Timestamp) -> String {
-        let serverDate = lastTimeStamp.dateValue() // 서버 시간 (UTC)
-        let now = Date() // 현재 시간
-        
-        // 한국 시간(KST)으로 변환을 위한 캘린더 설정
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
-        
-        // 시간 차이 계산
-        let components = calendar.dateComponents([.month, .day, .hour, .minute, .second], from: serverDate, to: now)
-        
-        // DateFormatter 설정 (필요할 때만 사용)
-        let formatter = DateFormatter()
-        formatter.timeZone = calendar.timeZone
-        
-        // 1년 이상 차이
-        if let months = components.month, months >= 12 {
-            formatter.dateFormat = "yy년MM월dd일"
-            return formatter.string(from: serverDate)
-        }
-        
-        // 2일 이상 차이
-        if let days = components.day, days > 1 {
-            formatter.dateFormat = "M월dd일"
-            return formatter.string(from: serverDate)
-        }
-        
-        // 어제
-        if let days = components.day, days == 1 {
-            return "어제"
-        }
-        
-        // 오늘 (24시간 이내)
-        if let hours = components.hour, hours >= 1 {
-            return "\(hours)시간 전"
-        }
-        
-        // 1시간 이내
-        if let minutes = components.minute, minutes >= 1 {
-            return "\(minutes)분 전"
-        }
-        
-        // 1분 미만
-        return "방금 전"
-    }
 }

@@ -106,7 +106,7 @@ struct ChatLogView: View {
     private func chatSection(msg: ChatMessage) -> some View {
         if msg.isFirstInDayGroup ?? false {
             HStack {
-                Text(formatDataToYear(msg.timeStamp.dateValue()))
+                Text(msg.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일"))
                     .padding(8)
                     .font(.system(size: 12, weight: .light))
                     .background(Color.gray.opacity(0.5))
@@ -153,7 +153,7 @@ struct ChatLogView: View {
                         .lineLimit(nil)
                         .multilineTextAlignment(.leading)
                     if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                        Text(formatDataToTime(msg.timeStamp.dateValue()))
+                        Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
                             .font(.system(size: 10, weight: .light))
                     }
                     Spacer()
@@ -171,7 +171,7 @@ struct ChatLogView: View {
         HStack(alignment: .bottom) {
             Spacer()
             if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                Text(formatDataToTime(msg.timeStamp.dateValue()))
+                Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
                     .font(.system(size: 10, weight: .light))
             }
             Text(msg.text)
@@ -204,6 +204,16 @@ struct ChatLogView: View {
                     RoundedRectangle(cornerRadius: 20)
                         .stroke(Color.primary, lineWidth: 0.8)
                 })
+                .onAppear {
+                    viewModel.loadWritingMessages()
+                }
+                .onDisappear {
+                    if viewModel.chatText.count > 0 {
+                        viewModel.saveWritingMessages()
+                    } else {
+                        viewModel.clearWritingMessages()
+                    }
+                }
                 .onChange(of: viewModel.chatText, { old, new in
                     enterButtonText = viewModel.chatText.count > 0 ? "⇧" : "#"
                 })
@@ -252,27 +262,6 @@ extension ChatLogView {
          _ = try? await viewModel.fetchMoreMessages(chatRoomId: fromMessageListView
                                     ? viewModel.chatRoom?.chatRoomId ?? ""
                                     : viewModel.chatRoomId ?? "")
-    }
-    
-    
-    func formatDataToYear(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy년 M월 d일"
-        return formatter.string(from: date)
-    }
-    
-    func formatDataToTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "a h:mm"
-        return formatter.string(from: date)
-    }
-    
-    func formatDateToString(_ date: Date, dateFormat: String) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = dateFormat
-        return formatter.string(from: date)
     }
     
     func navigationTitleLengthCheck() {

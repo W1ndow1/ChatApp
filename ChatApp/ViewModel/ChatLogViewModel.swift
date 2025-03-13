@@ -306,6 +306,26 @@ class ChatLogViewModel: ObservableObject {
         isInitialMessage = true
     }
     
+    private func writingMessageKey() -> String {
+        if let roomId = chatRoom?.chatRoomId {
+            return "writingMessage_\(roomId)"
+        } else if let roomId = chatRoomId {
+            return "writingMessage_\(roomId)"
+        }
+        return "writingMessage"
+    }
+    
+    func loadWritingMessages() {
+        chatText = UserDefaults.standard.string(forKey: writingMessageKey()) ?? ""
+    }
+    
+    func saveWritingMessages() {
+        UserDefaults.standard.set(chatText, forKey: writingMessageKey())
+    }
+    
+    func clearWritingMessages() {
+        UserDefaults.standard.removeObject(forKey: writingMessageKey())
+    }
     
     //MARK: - 메시지 가져오기
     

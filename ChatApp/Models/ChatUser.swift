@@ -13,5 +13,4 @@ struct ChatUser: Identifiable, Codable, Hashable {
     var email: String = ""
     var profileImageURL: String = ""
     var displayName: String = ""
-    var lastChattingDate: Date?
 }
