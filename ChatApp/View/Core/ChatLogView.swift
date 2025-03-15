@@ -37,8 +37,8 @@ struct ChatLogView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
                     viewModel.fetchInitialMessages(chatRoomId: fromMessageListView
-                                                            ? viewModel.chatRoom?.chatRoomId ?? ""
-                                                            : viewModel.chatRoomId ?? "")
+                                                   ? viewModel.chatRoom?.chatRoomId ?? ""
+                                                   : viewModel.chatRoomId ?? "")
                     navigationTitleLengthCheck()
                 }
                 .onDisappear {
@@ -80,7 +80,7 @@ struct ChatLogView: View {
             }
             .defaultScrollAnchor(.top)
             .background(Color(white: 0.3, opacity: 0.1))
-            .onTapGesture { hideKeyboard() }
+            .onTapGesture { self.hideKeyboard() }
             .rotationEffect(.degrees(180))
             .scaleEffect(x: -1)
             .safeAreaInset(edge: .bottom) { viewBottom(proxy: proxy) }
@@ -119,10 +119,6 @@ struct ChatLogView: View {
         }
     }
     
-    
-    func shouldDisplayImage(current: String) {
-        
-    }
     
     @ViewBuilder
     private func otherMessage(msg: ChatMessage) -> some View {

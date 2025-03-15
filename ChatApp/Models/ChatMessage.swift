@@ -21,7 +21,7 @@ struct ChatMessage: Identifiable, Codable {
     var isFromSameSender: Bool?
 }
 
-struct ChatRoom: Identifiable, Codable {
+struct ChatRoom: Identifiable, Codable, Hashable {
     var id: String { chatRoomId }
     var chatRoomId: String
     var chatRoomMakerId: String

@@ -18,6 +18,7 @@ class MessageListViewModel: ObservableObject {
     @Published var chatRooms: [ChatRoom] = []
     @Published var chatRoomIdInfo: [String : ChatUser] = [:]
     @Published var usersIdInfo: [String: ChatUser] = [:]
+    @Published var favoriteChatRooms = Set<String>()
     
     private var cancellables = Set<AnyCancellable>()
     private var listener: ListenerRegistration?
@@ -26,6 +27,7 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
+        fetchFavoritesRoom(uid: uid)
     }
 
     func fetchCurrentUser(uid: String) {
@@ -245,6 +247,46 @@ class MessageListViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    func fetchFavoritesRoom(uid currentId: String) {
+        DatabaseManager.shared.collectionFavoritesChatRooms(for: currentId)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("Firebase Error:\(failure)")
+                    return
+                }
+                if case .finished = completion {
+                    return
+                }
+            }, receiveValue: { favoriteChatRooms in
+                self.favoriteChatRooms = favoriteChatRooms
+            })
+            .store(in: &cancellables)
+    }
+    
+    func toggleFavorite(roomId: String) {
+        guard let currentId = AuthManager.shared.id else { return }
+        if favoriteChatRooms.contains(roomId) {
+            favoriteChatRooms.remove(roomId)
+        } else {
+            favoriteChatRooms.insert(roomId)
+        }
+        DatabaseManager.shared.updateFavoriteChatRooms(userId: currentId, chatRoomIds: favoriteChatRooms)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("Firebase Error:\(failure)")
+                    return
+                }
+            }, receiveValue: { result in
+                print("Success Favorite Room : \(result)")
+                
+            })
+            .store(in: &cancellables)
+    }
+    
+    func isFavorite(_ chatRoom: ChatRoom) -> Bool {
+        return favoriteChatRooms.contains(chatRoom.chatRoomId)
     }
 }
 

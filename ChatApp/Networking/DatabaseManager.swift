@@ -24,6 +24,7 @@ class DatabaseManager: NSObject {
     let usersPath: String = "users"
     let chatRoomPath: String = "rooms"
     let chatMesseagesPath: String = "messages"
+    let favoritesPath: String = "favorites"
     
     var lastDocument: DocumentSnapshot?
     private var listener: ListenerRegistration?
@@ -150,7 +151,7 @@ class DatabaseManager: NSObject {
     }
     
     func updateUserProfileImageURL(userId: String, imageURL: String) -> AnyPublisher<Bool, Error> {
-        let userRef = DatabaseManager.shared.db.collection("users").document(userId)
+        let userRef = db.collection(self.usersPath).document(userId)
         return Future { promise in
             userRef.updateData(["profileImageURL" : imageURL], completion: { error in
                 if let error = error {
@@ -163,7 +164,66 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
+    func updateFavoriteIds(userId: String, favoriteIds: Set<String>) -> AnyPublisher<Bool, Error> {
+        let favoriteRef = db.collection(self.favoritesPath).document(userId)
+        return Future { promise in
+            favoriteRef.setData(["favoriteIds": Array(favoriteIds)]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func updateFavoriteChatRooms(userId: String, chatRoomIds: Set<String>) -> AnyPublisher<Bool, Error> {
+        let favoriteRef = db.collection(self.favoritesPath).document(userId)
+        return Future { promise in
+            favoriteRef.setData(["favoriteChatRooms": Array(chatRoomIds)]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
     //MARK: - 불러오기
+    func collectionFavoritesUsers(for userId: String) -> AnyPublisher<Set<String>, Error> {
+        return Future { promise in
+            self.db.collection("favorites").document(userId)
+                .getDocument() { snapshot, error in
+                    if let error = error {
+                        promise(.failure(error))
+                        return
+                    }
+                    let favoriteIds = snapshot?.data()?["favoriteIds"] as? Set<String> ?? []
+                    promise(.success(favoriteIds))
+                }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func collectionFavoritesChatRooms(for userId: String) -> AnyPublisher<Set<String>, Error> {
+        return Future { promise in
+            self.db.collection("favorites").document(userId)
+                .getDocument() { snapshot, error in
+                    if let error = error {
+                        promise(.failure(error))
+                        return
+                    }
+                    let favoriteIds = snapshot?.data()?["favoriteChatRooms"] as? Set<String> ?? []
+                    promise(.success(favoriteIds))
+                }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    
     func collectionUsersExceptionOfUser(exceptionId id: String) -> AnyPublisher<[ChatUser], Error> {
         return Future { promise in
             self.db.collection(self.usersPath)
@@ -291,60 +351,6 @@ class DatabaseManager: NSObject {
                         promise(.success(chatRooms))
                     } catch {
                         promise(.failure(error))
-                    }
-                }
-        }
-        .eraseToAnyPublisher()
-    }
-    
-    func collectionChatMessages(uid1: String, uid2: String) -> AnyPublisher<[ChatMessage], Error> {
-        return Future { promise in
-            self.db.collection(self.chatRoomPath)
-                .whereField("participants", arrayContains: uid1)
-                .getDocuments { querySnapshot, error in
-                    if let error = error {
-                        print("🔥Firestore Error: \(error.localizedDescription)")
-                        promise(.failure(error))
-                        return
-                    }
-                    guard let documents = querySnapshot?.documents else {
-                        print("⚠️ No documents found for user \(uid1), \(uid2)")
-                        promise(.failure(NSError()))
-                        return
-                    }
-                    
-                    let chatRooms = documents.filter { doc in
-                        let participants = doc["participants"] as? [String] ?? []
-                        return Set(participants) == Set([uid1, uid2])
-                    }
-                    let dispatchGroup = DispatchGroup()
-                    var allMessages = [ChatMessage]()
-                    
-                    for chatRoom in chatRooms {
-                        dispatchGroup.enter()
-                        self.db.collection(self.chatRoomPath)
-                            .document(chatRoom.documentID)
-                            .collection(self.chatMesseagesPath)
-                            .order(by: "timeStamp", descending: false)
-                            .getDocuments { snapshot, error in
-                                if let error {
-                                    print("🔥 Firestore Error: \(error.localizedDescription)")
-                                    promise(.failure(error))
-                                    return
-                                }
-                                guard let messageDocs = snapshot?.documents else {
-                                    print("⚠️ No documents found for user \(uid1), \(uid2)")
-                                    promise(.failure(NSError()))
-                                    return
-                                }
-                                let chatMessage = messageDocs.compactMap({ try? $0.data(as: ChatMessage.self)})
-                                allMessages.append(contentsOf: chatMessage)
-                                dispatchGroup.leave()
-                            }
-                    }
-                    dispatchGroup.notify(queue: .main) {
-                        allMessages.sort(by: { $0.timeStamp.dateValue() < $1.timeStamp.dateValue() })
-                        promise(.success(allMessages))
                     }
                 }
         }
