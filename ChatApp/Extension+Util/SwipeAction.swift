@@ -18,9 +18,11 @@ struct SwipeActionsView : View {
                         SwipeAction(content: {
                             CardView(color)
                         }, actions: {
-                            Action(tint: .gray, 
+                            Action(tint: .yellow,
                                    icon: "flag",
-                                   iconFont: .title2,
+                                   iconFont: .system(size: 20),
+                                   //title: "보관",
+                                   //titleFont: .system(size: 15, weight: .bold),
                                    action: {
                                 print("save")
                             })
@@ -117,7 +119,7 @@ struct SwipeAction<Content: View>: View {
     func ActionButton(resetPosition: @escaping () -> ()) -> some View {
         Rectangle()
             .fill(.clear)
-            .frame(width: CGFloat(actions.count) * 100)
+            .frame(width: CGFloat(actions.count) * 80)
             .overlay(alignment: direction.alignment) {
                 HStack(spacing: 0) {
                     ForEach(actions) { button in
@@ -129,12 +131,18 @@ struct SwipeAction<Content: View>: View {
                                 button.action()
                             }
                         }, label: {
-                            Image(systemName: button.icon)
-                                .font(button.iconFont)
-                                .foregroundStyle(button.iconTint)
-                                .frame(width: 100)
-                                .frame(maxHeight: .infinity)
-                                .contentShape(.rect)
+                            VStack(spacing: 5) {
+                                Image(systemName: button.icon)
+                                    .font(button.iconFont)
+                                    .foregroundStyle(button.iconTint)
+                                if !button.title.isEmpty {
+                                    Text(button.title)
+                                        .font(button.titleFont)
+                                        .foregroundStyle(button.titleTint)
+                                }
+                            }
+                            .frame(width: 80)
+                            .frame(maxHeight: .infinity)  
                         })
                         .buttonStyle(.plain)
                         .background(button.tint)
@@ -191,9 +199,12 @@ enum SwipeDirection {
 struct Action: Identifiable {
     private(set) var id: UUID = .init()
     var tint: Color
-    var icon: String
+    var icon: String = ""
     var iconFont: Font = .title
     var iconTint: Color = .white
+    var title: String = ""
+    var titleFont: Font = .system(size: 15)
+    var titleTint: Color = .white
     var isEnable: Bool = true
     var action: () -> ()
 }

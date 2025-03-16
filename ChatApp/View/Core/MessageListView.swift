@@ -19,65 +19,20 @@ struct MessageListView: View {
                     searchBar()
                 }
                 chatRoomList()
-                    .navigationDestination(isPresented: $navigationChatLogView) {
-                        ChatLogView(userData: selectedUserData)
-                    }
-                
-            }
-            .toolbar {
-                navigationBarContent()
+                    
             }
             .navigationDestination(for: ChatRoom.self) { room in
                 ChatLogView(chatRoom: room)
             }
-        }
-    }
-
-    @ViewBuilder
-    func chatRoom(room: ChatRoom) -> some View {
-        NavigationLink {
-            ChatLogView(chatRoom: room)
-        } label: {
-            VStack {
-                HStack {
-                    if !room.isGroup {
-                        let opponentId = room.participants.first(where: {$0 != AuthManager.shared.id }) ?? room.participants[0]
-                        WebImage(url: URL(string: viewModel.usersIdInfo[opponentId]?.profileImageURL ?? ""))
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 51, height: 51)
-                            .clipShape(Circle())
-                            .overlay(RoundedRectangle(cornerRadius: 51).stroke(.opacity(0.3), lineWidth: 1))
-                    } else {
-                        if let uid = AuthManager.shared.id {
-                            let user = room.participants.filter({$0 != uid })
-                            groupChatRoomImage(user: user)
-                        }
-                    }
-                    VStack(alignment:.leading) {
-                        Text(room.chatName)
-                        Text(room.lastMessage.prefix(20) + "......")
-                            .foregroundStyle(Color(.lightGray))
-                            .font(.system(size: 13, weight: .light))
-                            .multilineTextAlignment(.leading)
-                    }
-                    Spacer()
-                    Text(DateFormat.lastMessageTime(timeStamp: room.lastMessageTimeStamp))
-                        .font(.system(size: 13))
-                }
-                .onTapGesture {
-                    navigationPath.append(room)
-                }
-                .padding(.top, 8)
-                .padding(.horizontal, 15)
-                .tint(Color.primary)
-                Divider()
+            .navigationDestination(isPresented: $navigationChatLogView) {
+                ChatLogView(userData: selectedUserData)
+            }
+            .toolbar {
+                navigationBarContent()
             }
         }
     }
 
-    
-    
     @ViewBuilder
     func chatRoomList() -> some View {
         ScrollView {
@@ -90,16 +45,25 @@ struct MessageListView: View {
                             (searchText.isEmpty ||
                              room.chatName.contains(searchText) ||
                              room.lastMessage.contains(searchText)) }) { room in
-                                SwipeAction(content: {
-                                    chatRoom(room: room)
-                                }, actions: {
-                                    Action(tint:.yellow, icon: "flag") {
-                                        print("Bookmarked")
-                                    }
-                                })
+                                Button {
+                                    navigationPath.append(room)
+                                } label: {
+                                    SwipeAction(content: {
+                                        chatRoom(room: room, favorite: true)
+                                    }, actions: {
+                                        Action(tint:.gray,
+                                               icon: "flag",
+                                               title: "즐겨찾기",
+                                               titleFont: .system(size: 10)) {
+                                            viewModel.toggleFavorite(roomId: room.chatRoomId)
+                                        }
+                                    })
+                                }
                             }
                     }, header: {
-                        sectionHeader()
+                        if !isTextFieldFocused {
+                            sectionHeader()
+                        }
                     })
                 }
                 //Normal chatRooms
@@ -108,18 +72,70 @@ struct MessageListView: View {
                     (searchText.isEmpty ||
                      room.chatName.contains(searchText) ||
                      room.lastMessage.contains(searchText))}) { room in
-                        SwipeAction(content: {
-                            chatRoom(room: room)
-                        }, actions: {
-                            Action(tint:.yellow, icon: "flag") {
-                                print("Bookmarked")
-                            }
-                        })
+                        Button {
+                            navigationPath.append(room)
+                        } label: {
+                            SwipeAction(content: {
+                                chatRoom(room: room, favorite: false)
+                            }, actions: {
+                                Action(tint:.yellow,
+                                       icon: "flag",
+                                       title: "즐겨찾기",
+                                       titleFont: .system(size: 10)) {
+                                    viewModel.toggleFavorite(roomId: room.chatRoomId)
+                                }
+                            })
+                        }
                     }
             }
             .onTapGesture { self.hideKeyboard() }
         }
     }
+    
+    @ViewBuilder
+    func chatRoom(room: ChatRoom, favorite: Bool) -> some View {
+        VStack {
+            HStack {
+                if !room.isGroup {
+                    let opponentId = room.participants.first(where: {$0 != AuthManager.shared.id }) ?? room.participants[0]
+                    WebImage(url: URL(string: viewModel.usersIdInfo[opponentId]?.profileImageURL ?? ""))
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 51, height: 51)
+                        .clipShape(Circle())
+                        .overlay(RoundedRectangle(cornerRadius: 51).stroke(.opacity(0.3), lineWidth: 1))
+                } else {
+                    if let uid = AuthManager.shared.id {
+                        let user = room.participants.filter({$0 != uid })
+                        groupChatRoomImage(user: user)
+                    }
+                }
+                VStack(alignment:.leading) {
+                    HStack {
+                        Text(room.chatName)
+                        if viewModel.isFavorite(room) {
+                            Image(systemName: "bookmark.circle")
+                                .font(.system(size: 20))
+                                .foregroundColor(Color.mint)
+                            
+                        }
+                    }
+                    Text(room.lastMessage.prefix(20) + "......")
+                        .foregroundStyle(Color(.lightGray))
+                        .font(.system(size: 13, weight: .light))
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Text(DateFormat.lastMessageTime(timeStamp: room.lastMessageTimeStamp))
+                    .font(.system(size: 13))
+            }
+            .padding(.top, 8)
+            .padding(.horizontal, 15)
+            .tint(Color.primary)
+            Divider()
+        }
+    }
+    
     
     @ViewBuilder
     func searchBar() -> some View {
@@ -139,6 +155,7 @@ struct MessageListView: View {
                 .font(.system(size: 13))
             Spacer()
         }
+        .padding(.horizontal, 15)
     }
     
     

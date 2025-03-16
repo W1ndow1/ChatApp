@@ -27,7 +27,6 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
-        fetchFavoritesRoom(uid: uid)
     }
 
     func fetchCurrentUser(uid: String) {
@@ -115,6 +114,7 @@ class MessageListViewModel: ObservableObject {
                                        lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
                                        lastMessageSenderId: chatRoom.lastMessageSenderId)
             self.chatRooms.append(newChatRoom)
+            self.fetchFavoriteRooms(uid: AuthManager.shared.id ?? "")
         }
     }
     
@@ -249,7 +249,7 @@ class MessageListViewModel: ObservableObject {
         }
     }
     
-    func fetchFavoritesRoom(uid currentId: String) {
+    func fetchFavoriteRooms(uid currentId: String) {
         DatabaseManager.shared.collectionFavoritesChatRooms(for: currentId)
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {
@@ -260,26 +260,28 @@ class MessageListViewModel: ObservableObject {
                     return
                 }
             }, receiveValue: { favoriteChatRooms in
-                self.favoriteChatRooms = favoriteChatRooms
+                DispatchQueue.main.async {
+                    self.favoriteChatRooms = favoriteChatRooms
+                }
             })
             .store(in: &cancellables)
     }
     
     func toggleFavorite(roomId: String) {
         guard let currentId = AuthManager.shared.id else { return }
-        if favoriteChatRooms.contains(roomId) {
-            favoriteChatRooms.remove(roomId)
-        } else {
-            favoriteChatRooms.insert(roomId)
-        }
-        DatabaseManager.shared.updateFavoriteChatRooms(userId: currentId, chatRoomIds: favoriteChatRooms)
+        let updateFavorites = favoriteChatRooms.contains(roomId)
+        ? favoriteChatRooms.subtracting([roomId])
+        : favoriteChatRooms.union([roomId])
+        DatabaseManager.shared.updateFavoriteChatRooms(userId: currentId, chatRoomIds: updateFavorites)
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {
                     print("Firebase Error:\(failure)")
                     return
                 }
-            }, receiveValue: { result in
+            }, receiveValue: { [self] result in
                 print("Success Favorite Room : \(result)")
+                // 변경시 chatRoom 다시 정렬
+                fetchFavoriteRooms(uid: currentId)
                 
             })
             .store(in: &cancellables)

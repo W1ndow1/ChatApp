@@ -31,7 +31,7 @@ class ChatLogViewModel: ObservableObject {
     init(chatRoom room: ChatRoom) {
         self.userData = .init()
         self.chatRoom = room
-        fetchUsersInfoByRoom(userIds: room.participants)
+        fetchUsersInfoByRoom()
     }
      
     deinit {
@@ -189,7 +189,8 @@ class ChatLogViewModel: ObservableObject {
     
     
     //MARK: - 공용 메서드
-    func fetchUsersInfoByRoom(userIds: [String]) {
+    func fetchUsersInfoByRoom() {
+        guard let userIds = chatRoom?.participants else { return }
         DatabaseManager.shared.collectionUsers(userIds: userIds)
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {

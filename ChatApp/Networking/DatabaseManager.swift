@@ -216,8 +216,11 @@ class DatabaseManager: NSObject {
                         promise(.failure(error))
                         return
                     }
-                    let favoriteIds = snapshot?.data()?["favoriteChatRooms"] as? Set<String> ?? []
-                    promise(.success(favoriteIds))
+                    if let favoriteIds = snapshot?.data()?["favoriteChatRooms"] as? [String] {
+                        promise(.success(Set(favoriteIds)))
+                    } else {
+                        promise(.success(Set()))
+                    }
                 }
         }
         .eraseToAnyPublisher()
