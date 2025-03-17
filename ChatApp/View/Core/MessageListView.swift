@@ -11,6 +11,7 @@ struct MessageListView: View {
     @State private var searchText = ""
     @FocusState private var isTextFieldFocused: Bool
     @State private var navigationPath = NavigationPath()
+    @StateObject private var swipeState = SwipeState()
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -19,6 +20,7 @@ struct MessageListView: View {
                     searchBar()
                 }
                 chatRoomList()
+                    .environmentObject(swipeState)
                     
             }
             .navigationDestination(for: ChatRoom.self) { room in
@@ -31,6 +33,7 @@ struct MessageListView: View {
                 navigationBarContent()
             }
         }
+        
     }
 
     @ViewBuilder
