@@ -9,6 +9,8 @@ class ChatLogViewModel: ObservableObject {
     @Published var chatRoom: ChatRoom?
     @Published var usersInfo: [String : ChatUser]?
     @Published var chatRoomId: String?
+    @Published var selectedUser: Set<ChatUser>?
+    @Published var isLeaveChatRoom: Bool = false
     
     private var userData: Set<ChatUser>?
     private var cancellables = Set<AnyCancellable>()
@@ -33,6 +35,7 @@ class ChatLogViewModel: ObservableObject {
         self.chatRoom = room
         fetchUsersInfoByRoom()
     }
+    
      
     deinit {
         listener?.remove()
@@ -459,4 +462,108 @@ class ChatLogViewModel: ObservableObject {
             }
         self.messageStream()
     }
+    
+    //MARK: - 채팅방 인원 관리
+    func leaveChatRoom() {
+        guard let uid = AuthManager.shared.id,
+              let roomId = chatRoom?.chatRoomId else { return }
+        DatabaseManager.shared.deleteChatRoomParticipant(userId: uid, chatRoomIds: roomId)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("Firebase Error : \(failure)")
+                }
+                if case .finished = completion {
+                    self.sendResultMessage()
+                }
+            }, receiveValue: { result in
+                self.isLeaveChatRoom = result
+            })
+            .store(in: &cancellables)
+    }
+    
+    func sendResultMessage() {
+        guard let uid = AuthManager.shared.id,
+              let usersInfo = usersInfo,
+              let chatRoomId = chatRoom?.chatRoomId,
+              let userName = usersInfo[uid]?.displayName else { return }
+        let leaveText = "\(userName)님이 채팅방에서 나갔습니다."
+        let resultMessage = ChatMessage(messageId: UUID().uuidString,
+                                        senderId: "leave",
+                                        text: leaveText,
+                                        timeStamp: Timestamp(date: Date()),
+                                        readBy: [])
+        DatabaseManager.shared.storeChatMessageData(chatRoomId: chatRoomId , chatMessageData: resultMessage)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    print("Error send message: \(error)")
+                case .finished:
+                     break
+                }
+            }, receiveValue: { _ in
+                
+            })
+            .store(in: &cancellables)
+    }
+    
+    func joinChatRoom(users: Set<ChatUser>) {
+        guard let participants = chatRoom?.participants,
+              let chatRoomId = chatRoom?.chatRoomId else { return }
+        let participantsSet = Set(participants)
+        let excludeUsers = users.filter { !participantsSet.contains($0.uid) }
+        let userIds = excludeUsers.map({$0.uid})
+        DatabaseManager.shared.updateChatRoomPatricipants(userIds: userIds, chatRoomId: chatRoomId)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("Firebase Error : \(failure)")
+                }
+            }, receiveValue: { [self] result in
+                sendResultMessage(inviteUsers: excludeUsers)
+            })
+            .store(in: &cancellables)
+        
+        
+        /*
+         <채팅방에 초대 하기 기능 만들기>
+         (1)초대 하는 사용자가 기존 채팅방에 있는지 확인하기 excludeSeletedUsers()   -check
+         (2)이후 채팅방 paticipants에 정보 넣기                               -check
+         (3)초대했다는 메시지를 채팅방에 넣어주기 => 초대한 사람이름으로               -check
+         (4)채팅방 목록에 리스너 동작하는지 확인해보기
+         @@@앞으로 3인 이상의 단체 채팅방 제작시 이전 정보 가져오지 않게 한다. 3인 이상시 UUID로 변경
+         
+         */
+        
+    }
+    
+    func sendResultMessage(inviteUsers: Set<ChatUser>) {
+        guard let uid = AuthManager.shared.id,
+              let usersInfo = usersInfo,
+              let chatRoomId = chatRoom?.chatRoomId else { return }
+        let userName = usersInfo[uid]?.displayName
+        let invitedUserNames = inviteUsers.map({$0.displayName})
+        let addText = """
+                      \(userName ?? "")님이
+                      \(invitedUserNames.joined(separator: ","))님을 채팅방에 초대했습니다.
+                      """
+        let resultMessage = ChatMessage(messageId: UUID().uuidString,
+                                        senderId: "join",
+                                        text: addText,
+                                        timeStamp: Timestamp(date: Date()),
+                                        readBy: [""])
+        DatabaseManager.shared.storeChatMessageData(chatRoomId: chatRoomId , chatMessageData: resultMessage)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    print("Error send message: \(error)")
+                case .finished:
+                     break
+                }
+            }, receiveValue: { _ in
+                
+            })
+            .store(in: &cancellables)
+        
+    }
+    
+    
 }

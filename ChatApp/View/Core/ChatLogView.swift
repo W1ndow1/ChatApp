@@ -11,30 +11,32 @@ struct ChatLogView: View {
     @State private var isTop = false
     @State private var fromMessageListView: Bool = false
     @State private var debounceTask: Task<Void, Never>?
+    @State private var showSideMenuView = false
+    @Binding var hideTabBar: Bool
     
     private var userData: Set<ChatUser>?
     
     //새 채팅방 생성으로 들어온 경우
-    init(userData: Set<ChatUser>?, fromMessageListView: Bool = false) {
+    init(userData: Set<ChatUser>?, fromMessageListView: Bool = false, hideTabBar: Binding<Bool> = .constant(true)) {
         self.userData = userData
         self.fromMessageListView = fromMessageListView
+        self._hideTabBar = hideTabBar
         self._viewModel = StateObject(wrappedValue: ChatLogViewModel(userData: userData))
     }
      
     
     //채팅방 목록으로 들어온 경우
-    init(chatRoom: ChatRoom, fromMessageListView: Bool = true) {
+    init(chatRoom: ChatRoom, fromMessageListView: Bool = true, hideTabBar: Binding<Bool> = .constant(true)) {
         self.userData = .none
         self.fromMessageListView = fromMessageListView
         self.chatRoom = chatRoom
+        self._hideTabBar = hideTabBar
         self._viewModel = StateObject(wrappedValue: ChatLogViewModel(chatRoom: chatRoom))
     }
     
     var body: some View {
         ZStack {
             chatBubbleRow()
-                .navigationTitle(navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
                     viewModel.fetchInitialMessages(chatRoomId: fromMessageListView
                                                    ? viewModel.chatRoom?.chatRoomId ?? ""
@@ -44,7 +46,20 @@ struct ChatLogView: View {
                 .onDisappear {
                     viewModel.stopListening()
                 }
+            SideMenuView(isShowing: $showSideMenuView, viewModel: viewModel)
         }
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    self.showSideMenuView.toggle()
+                }label: {
+                    Image(systemName: "sidebar.right")
+                }
+            }
+        }
+        .toolbar(showSideMenuView ? .hidden: .visible, for: .navigationBar)
     }
     @ViewBuilder
     private func chatBubbleRow() -> some View {
@@ -58,10 +73,13 @@ struct ChatLogView: View {
                     ForEach(viewModel.chatMessages) { msg in
                         Section(header: chatSection(msg: msg)) {
                             HStack {
-                                if msg.senderId != AuthManager.shared.id {
-                                    otherMessage(msg: msg)
-                                } else {
+                                switch msg.senderId {
+                                case "leave", "join":
+                                    chatRoomMemberStateMessage(msg: msg)
+                                case AuthManager.shared.id:
                                     myMessage(msg: msg)
+                                default:
+                                    otherMessage(msg: msg)
                                 }
                             }
                             .padding(.vertical, 4)
@@ -101,12 +119,23 @@ struct ChatLogView: View {
             }
         }
     }
+    @ViewBuilder
+    private func chatRoomMemberStateMessage(msg: ChatMessage) -> some View {
+        HStack {
+            Text(msg.text)
+                .padding(8)
+                .font(.system(size: 12, weight: .light))
+                .background(Color.gray.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(.vertical, 20)
+    }
  
     @ViewBuilder
     private func chatSection(msg: ChatMessage) -> some View {
         if msg.isFirstInDayGroup ?? false {
             HStack {
-                Text(msg.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일"))
+                Text(msg.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일 E"))
                     .padding(8)
                     .font(.system(size: 12, weight: .light))
                     .background(Color.gray.opacity(0.5))
@@ -260,7 +289,7 @@ extension ChatLogView {
                                     : viewModel.chatRoomId ?? "")
     }
     
-    func navigationTitleLengthCheck() {
+    private func navigationTitleLengthCheck() {
         if fromMessageListView {
             navigationTitle = chatRoom?.chatName ?? ""
         } else {
@@ -271,9 +300,5 @@ extension ChatLogView {
                 navigationTitle = userData.prefix(3).map({ $0.displayName }).joined(separator: ", ") + "..."
             }
         }
-    }
-    
-    func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }

@@ -47,6 +47,7 @@
 		A8E60A922D5FA0CA0030A203 /* ChatLogViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A912D5FA0CA0030A203 /* ChatLogViewModel.swift */; };
 		A8E60A972D651E260030A203 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A962D651E260030A203 /* FirebaseFunctions */; };
 		A8E60A992D651E260030A203 /* FirebaseFunctionsCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A982D651E260030A203 /* FirebaseFunctionsCombine-Community */; };
+		A8F550262D891631006B8644 /* SideMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8F550252D891631006B8644 /* SideMenuView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +80,7 @@
 		A8E60A8A2D5900640030A203 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
 		A8E60A8F2D5BCC0B0030A203 /* ChatLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatLogView.swift; sourceTree = "<group>"; };
 		A8E60A912D5FA0CA0030A203 /* ChatLogViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatLogViewModel.swift; sourceTree = "<group>"; };
+		A8F550252D891631006B8644 /* SideMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideMenuView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -216,6 +218,7 @@
 				A8670B652D83326C007692FC /* ProfileView.swift */,
 				A8670B642D83326C007692FC /* SettingView.swift */,
 				A84A89CD2D72D4D200EA053F /* EditUserInfoView.swift */,
+				A8F550252D891631006B8644 /* SideMenuView.swift */,
 			);
 			path = Sub;
 			sourceTree = "<group>";
@@ -326,6 +329,7 @@
 				A8E60A902D5BCC0B0030A203 /* ChatLogView.swift in Sources */,
 				A80AA1BB2D50F6EC00402AE6 /* MessageListView.swift in Sources */,
 				A80AA1AD2D3E916900402AE6 /* StorageManager.swift in Sources */,
+				A8F550262D891631006B8644 /* SideMenuView.swift in Sources */,
 				A8670B682D83326C007692FC /* ProfileView.swift in Sources */,
 				A8E60A842D57B2230030A203 /* NewMessageViewModel.swift in Sources */,
 				A80AA1C22D5238AA00402AE6 /* FriendListView.swift in Sources */,

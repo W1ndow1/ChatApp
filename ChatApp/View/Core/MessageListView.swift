@@ -12,6 +12,8 @@ struct MessageListView: View {
     @FocusState private var isTextFieldFocused: Bool
     @State private var navigationPath = NavigationPath()
     @StateObject private var swipeState = SwipeState()
+    @Binding var hideTabBar: Bool
+    @State private var showingAlert = false
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -21,17 +23,26 @@ struct MessageListView: View {
                 }
                 chatRoomList()
                     .environmentObject(swipeState)
-                    
             }
             .navigationDestination(for: ChatRoom.self) { room in
                 ChatLogView(chatRoom: room)
+                    .onAppear {
+                        hideTabBar = true
+                    }
             }
             .navigationDestination(isPresented: $navigationChatLogView) {
                 ChatLogView(userData: selectedUserData)
+                    .onAppear {
+                        hideTabBar = true
+                    }
             }
             .toolbar {
                 navigationBarContent()
             }
+            .onAppear {
+                hideTabBar = false
+            }
+             
         }
         
     }
@@ -50,17 +61,29 @@ struct MessageListView: View {
                              room.lastMessage.contains(searchText)) }) { room in
                                 Button {
                                     navigationPath.append(room)
+                                    hideTabBar = true
                                 } label: {
-                                    SwipeAction(content: {
+                                    SwipeAction {
                                         chatRoom(room: room, favorite: true)
-                                    }, actions: {
+                                    } actions: {
                                         Action(tint:.gray,
                                                icon: "flag",
                                                title: "즐겨찾기",
                                                titleFont: .system(size: 10)) {
                                             viewModel.toggleFavorite(roomId: room.chatRoomId)
                                         }
-                                    })
+                                        Action(tint: .red,
+                                               icon: "trash.fill",
+                                               title: "나가기",
+                                               titleFont: .system(size: 10)) {
+                                            showingAlert.toggle()
+                                        }
+                                    }
+                                    .alert("채팅방을 나가시겠습니까?", isPresented: $showingAlert) {
+                                        Button("확인", role: .destructive) {
+                                            viewModel.leaveChatRoom(room)
+                                        }
+                                    }
                                 }
                             }
                     }, header: {
@@ -78,16 +101,27 @@ struct MessageListView: View {
                         Button {
                             navigationPath.append(room)
                         } label: {
-                            SwipeAction(content: {
+                            SwipeAction {
                                 chatRoom(room: room, favorite: false)
-                            }, actions: {
+                            } actions: {
                                 Action(tint:.yellow,
                                        icon: "flag",
                                        title: "즐겨찾기",
                                        titleFont: .system(size: 10)) {
                                     viewModel.toggleFavorite(roomId: room.chatRoomId)
                                 }
-                            })
+                                Action(tint: .red,
+                                       icon: "trash.fill",
+                                       title: "나가기",
+                                       titleFont: .system(size: 10)) {
+                                    showingAlert.toggle()
+                                }
+                            }
+                            .alert("채팅방을 나가시겠습니까?", isPresented: $showingAlert) {
+                                Button("확인", role: .destructive) {
+                                    viewModel.leaveChatRoom(room)
+                                }
+                            }
                         }
                     }
             }
@@ -235,5 +269,5 @@ struct MessageListView: View {
 }
 
 #Preview {
-    MessageListView()
+    MessageListView(hideTabBar: .constant(false))
 }

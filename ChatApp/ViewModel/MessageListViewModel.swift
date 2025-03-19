@@ -290,6 +290,46 @@ class MessageListViewModel: ObservableObject {
     func isFavorite(_ chatRoom: ChatRoom) -> Bool {
         return favoriteChatRooms.contains(chatRoom.chatRoomId)
     }
+    
+    func leaveChatRoom(_ chatRoom: ChatRoom) {
+        guard let uid = AuthManager.shared.id else { return }
+        DatabaseManager.shared.deleteChatRoomParticipant(userId: uid, chatRoomIds: chatRoom.chatRoomId)
+            .sink(receiveCompletion: { complete in
+                if case .failure(let failure) = complete {
+                    print("Firebase Error:\(failure)")
+                }
+                if case .finished = complete {
+                    self.sendResultMessage(chatRoom: chatRoom)
+                }
+            }, receiveValue: { value in
+                print("Success leave ChatRoom : \(chatRoom.chatName), \(value)")
+
+            })
+            .store(in: &cancellables)
+    }
+    
+    func sendResultMessage(chatRoom: ChatRoom) {
+        guard let uid = AuthManager.shared.id,
+              let userInfo = currentUser else { return }
+        let leaveText = "\(userInfo.displayName)님이 채팅방에서 나갔습니다."
+        let resultMessage = ChatMessage(messageId: UUID().uuidString,
+                                        senderId: "leave",
+                                        text: leaveText,
+                                        timeStamp: Timestamp(date: Date()),
+                                        readBy: [])
+        DatabaseManager.shared.storeChatMessageData(chatRoomId: chatRoom.chatRoomId , chatMessageData: resultMessage)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    print("Error send message: \(error)")
+                case .finished:
+                     break
+                }
+            }, receiveValue: { _ in
+                
+            })
+            .store(in: &cancellables)
+    }
 }
 
 

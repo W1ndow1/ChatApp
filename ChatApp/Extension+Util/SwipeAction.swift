@@ -8,6 +8,10 @@
 import Foundation
 import SwiftUI
 
+class SwipeState: ObservableObject {
+    @Published var activeSwipeId: UUID?
+}
+
 struct SwipeActionsView : View {
     @State private var colors: [Color] = [.black, .yellow, .pink, .purple, .brown]
     @StateObject private var swipeState = SwipeState()
@@ -236,15 +240,12 @@ struct CustomTransition: Transition {
 enum SwipeDirection {
     case leading
     case trailing
-    case both
     
     var alignment: Alignment {
         switch self {
         case .leading:
             return .leading
         case .trailing:
-            return .trailing
-        case .both:
             return .trailing
         }
     }
@@ -276,6 +277,4 @@ struct ActionBuilder {
     SwipeActionsView()
 }
 
-class SwipeState: ObservableObject {
-    @Published var activeSwipeId: UUID?
-}
+

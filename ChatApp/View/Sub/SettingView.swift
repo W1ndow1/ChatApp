@@ -72,7 +72,6 @@ struct SettingView: View {
                 showingAlert = true
             } label: {
                 Text("로그아웃")
-                    .foregroundStyle(.black)
             }
             .confirmationDialog("로그아웃",
                                 isPresented: $showingAlert,

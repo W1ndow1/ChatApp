@@ -192,6 +192,35 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
+    func updateChatRoomPatricipants(userIds: [String], chatRoomId: String) -> AnyPublisher<Bool, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
+        return Future { promise in
+            docRef.updateData(["participants": FieldValue.arrayUnion(userIds)]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    //MARK: - 삭제하기
+    func deleteChatRoomParticipant(userId: String, chatRoomIds: String) -> AnyPublisher<Bool, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomIds)
+        return Future { promise in
+            docRef.updateData(["participants" : FieldValue.arrayRemove([userId])]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
     //MARK: - 불러오기
     func collectionFavoritesUsers(for userId: String) -> AnyPublisher<Set<String>, Error> {
         return Future { promise in
