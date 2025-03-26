@@ -3,10 +3,9 @@ import SDWebImageSwiftUI
 
 struct ChatLogView: View {
     @StateObject var viewModel: ChatLogViewModel
-    @State var navigationTitle = ""
-    @State var enterButtonText = "#"
-    @State var chatRoom: ChatRoom?
-    @State var msgCount: Int = 0
+    @State private var navigationTitle = ""
+    @State private var enterButtonText = "#"
+    @State private var chatRoom: ChatRoom?
     @State private var isSendMessage = false
     @State private var isTop = false
     @State private var fromMessageListView: Bool = false
@@ -17,11 +16,14 @@ struct ChatLogView: View {
     private var userData: Set<ChatUser>?
     
     //새 채팅방 생성으로 들어온 경우
-    init(userData: Set<ChatUser>?, fromMessageListView: Bool = false, hideTabBar: Binding<Bool> = .constant(true)) {
+    init(_ userData: Set<ChatUser>?,
+         _ chatRoom: ChatRoom?,
+         fromMessageListView: Bool = false,
+         hideTabBar: Binding<Bool> = .constant(true)) {
         self.userData = userData
         self.fromMessageListView = fromMessageListView
         self._hideTabBar = hideTabBar
-        self._viewModel = StateObject(wrappedValue: ChatLogViewModel(userData: userData))
+        self._viewModel = StateObject(wrappedValue: ChatLogViewModel(userData: userData, chatRoom: chatRoom))
     }
      
     
@@ -38,15 +40,14 @@ struct ChatLogView: View {
         ZStack {
             chatBubbleRow()
                 .onAppear {
-                    viewModel.fetchInitialMessages(chatRoomId: fromMessageListView
-                                                   ? viewModel.chatRoom?.chatRoomId ?? ""
-                                                   : viewModel.chatRoomId ?? "")
                     navigationTitleLengthCheck()
+                    guard let chatRoomId = viewModel.chatRoom?.chatRoomId else { return }
+                    viewModel.fetchInitialMessages(chatRoomId: chatRoomId)
                 }
                 .onDisappear {
                     viewModel.stopListening()
                 }
-            SideMenuView(isShowing: $showSideMenuView, viewModel: viewModel)
+            ChatRoomSideMenuView(viewModel: viewModel, isShowing: $showSideMenuView)
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -61,6 +62,7 @@ struct ChatLogView: View {
         }
         .toolbar(showSideMenuView ? .hidden: .visible, for: .navigationBar)
     }
+    
     @ViewBuilder
     private func chatBubbleRow() -> some View {
         ScrollViewReader { proxy in
@@ -121,25 +123,27 @@ struct ChatLogView: View {
     }
     @ViewBuilder
     private func chatRoomMemberStateMessage(msg: ChatMessage) -> some View {
-        HStack {
+        HStack(alignment: .center) {
             Text(msg.text)
-                .padding(8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .font(.system(size: 12, weight: .light))
                 .background(Color.gray.opacity(0.5))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 20)
     }
  
     @ViewBuilder
     private func chatSection(msg: ChatMessage) -> some View {
         if msg.isFirstInDayGroup ?? false {
             HStack {
-                Text(msg.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일 E"))
-                    .padding(8)
+                Text(msg.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일 (E)"))
+                    .padding(10)
                     .font(.system(size: 12, weight: .light))
                     .background(Color.gray.opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .padding(.vertical, 20)
             .onTapGesture {
@@ -173,7 +177,7 @@ struct ChatLogView: View {
                         .padding(8)
                         .background(Color.white)
                         .foregroundStyle(.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                         .frame(minWidth: 30, alignment: .leading)
                         .lineLimit(nil)
                         .multilineTextAlignment(.leading)
@@ -185,7 +189,7 @@ struct ChatLogView: View {
                 }
                 .padding(.vertical, 5)
             }
-            .padding(.trailing, 50)
+            .padding(.trailing, 30)
         }
         Spacer()
     }
@@ -203,13 +207,13 @@ struct ChatLogView: View {
                 .padding(8)
                 .foregroundStyle(Color.white)
                 .background(.tint)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
                 .frame(minWidth: 30, alignment: .trailing)
                 .lineLimit(nil)
                 .multilineTextAlignment(.leading)
         }
         .padding(.vertical, 5)
-        .padding(.leading, 50)
+        .padding(.leading, 30)
     }
 
     
@@ -231,6 +235,7 @@ struct ChatLogView: View {
                 })
                 .onAppear {
                     viewModel.loadWritingMessages()
+                    
                 }
                 .onDisappear {
                     if viewModel.chatText.count > 0 {
@@ -270,12 +275,16 @@ struct ChatLogView: View {
 #Preview {
     ChatLogView(chatRoom: ChatRoom(
         chatRoomId: """
+                    UyZOQtY9occyvmxpP82jr7QdEP12_
+                    WDznGLHspLevJ0kgC9m783bUtWB3_
                     Wv5HZZ3NMOQysA9VqEUdgdGQs713_
                     uBzmBwnRmdbkCFoBls9DHa4uC8j2
-                    """, 
+                    """,
         chatRoomMakerId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
         participants: ["Wv5HZZ3NMOQysA9VqEUdgdGQs713",
                        "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
+        isGroup: false,
+        chatName: "Malone,지구본,Time",
         lastMessageTimeStamp: .init(date: Date()),
         lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")
     )
@@ -284,21 +293,19 @@ struct ChatLogView: View {
 extension ChatLogView {
     
     private func loadMoreMessages() async {
-         _ = try? await viewModel.fetchMoreMessages(chatRoomId: fromMessageListView
-                                    ? viewModel.chatRoom?.chatRoomId ?? ""
-                                    : viewModel.chatRoomId ?? "")
+        guard let chatRoomId = viewModel.chatRoom?.chatRoomId else { return }
+        do {
+            _ = try await viewModel.fetchMoreMessages(chatRoomId: chatRoomId)
+        } catch {
+            print("메시지 로딩 실패:  \(error.localizedDescription)")
+        }
     }
     
     private func navigationTitleLengthCheck() {
         if fromMessageListView {
             navigationTitle = chatRoom?.chatName ?? ""
         } else {
-            guard let userData = userData else { return }
-            if userData.count < 4 {
-                navigationTitle = userData.map({ $0.displayName }).joined(separator: ", ")
-            } else {
-                navigationTitle = userData.prefix(3).map({ $0.displayName }).joined(separator: ", ") + "..."
-            }
+            navigationTitle = viewModel.chatRoom?.chatName ?? ""
         }
     }
 }

@@ -3,26 +3,28 @@ import SDWebImageSwiftUI
 import FirebaseCore
 
 struct MessageListView: View {
-    @StateObject var viewModel = MessageListViewModel()
-    @State private var showNewMessageView = false
-    @State private var showSearchBar = false
-    @State private var selectedUserData: Set<ChatUser>?
-    @State private var navigationChatLogView = false
-    @State private var searchText = ""
+    @StateObject private var viewModel = MessageListViewModel()
+    @StateObject private var swipe = SwipeState()
     @FocusState private var isTextFieldFocused: Bool
     @State private var navigationPath = NavigationPath()
-    @StateObject private var swipeState = SwipeState()
+    @State private var selectedUserData: Set<ChatUser>?
+    @State private var isShowSearchBar = false
+    @State private var isShowingNewMsgView = false
+    @State private var navigationChatLogView = false
+    @State private var showLeaveAlert = false
+    @State private var searchText = ""
+    @State private var makeRoomInfo: ChatRoom?
+    @State private var leaveRoomInfo: ChatRoom?
     @Binding var hideTabBar: Bool
-    @State private var showingAlert = false
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack {
-                if showSearchBar {
+                if isShowSearchBar {
                     searchBar()
                 }
                 chatRoomList()
-                    .environmentObject(swipeState)
+                    .environmentObject(swipe)
             }
             .navigationDestination(for: ChatRoom.self) { room in
                 ChatLogView(chatRoom: room)
@@ -31,7 +33,8 @@ struct MessageListView: View {
                     }
             }
             .navigationDestination(isPresented: $navigationChatLogView) {
-                ChatLogView(userData: selectedUserData)
+                ChatLogView(selectedUserData, makeRoomInfo)
+                
                     .onAppear {
                         hideTabBar = true
                     }
@@ -42,9 +45,7 @@ struct MessageListView: View {
             .onAppear {
                 hideTabBar = false
             }
-             
         }
-        
     }
 
     @ViewBuilder
@@ -54,43 +55,18 @@ struct MessageListView: View {
                 //First section: Favorite chatRooms
                 let favoriteChatRooms = viewModel.chatRooms.filter { viewModel.isFavorite($0) }
                 if !favoriteChatRooms.isEmpty {
-                    Section(content: {
+                    Section {
                         ForEach(favoriteChatRooms.filter { room in
                             (searchText.isEmpty ||
                              room.chatName.contains(searchText) ||
                              room.lastMessage.contains(searchText)) }) { room in
-                                Button {
-                                    navigationPath.append(room)
-                                    hideTabBar = true
-                                } label: {
-                                    SwipeAction {
-                                        chatRoom(room: room, favorite: true)
-                                    } actions: {
-                                        Action(tint:.gray,
-                                               icon: "flag",
-                                               title: "즐겨찾기",
-                                               titleFont: .system(size: 10)) {
-                                            viewModel.toggleFavorite(roomId: room.chatRoomId)
-                                        }
-                                        Action(tint: .red,
-                                               icon: "trash.fill",
-                                               title: "나가기",
-                                               titleFont: .system(size: 10)) {
-                                            showingAlert.toggle()
-                                        }
-                                    }
-                                    .alert("채팅방을 나가시겠습니까?", isPresented: $showingAlert) {
-                                        Button("확인", role: .destructive) {
-                                            viewModel.leaveChatRoom(room)
-                                        }
-                                    }
-                                }
+                                chatRoomRow(room: room)
                             }
-                    }, header: {
+                    } header: {
                         if !isTextFieldFocused {
                             sectionHeader()
                         }
-                    })
+                    }
                 }
                 //Normal chatRooms
                 ForEach(viewModel.chatRooms.filter { room in
@@ -98,31 +74,7 @@ struct MessageListView: View {
                     (searchText.isEmpty ||
                      room.chatName.contains(searchText) ||
                      room.lastMessage.contains(searchText))}) { room in
-                        Button {
-                            navigationPath.append(room)
-                        } label: {
-                            SwipeAction {
-                                chatRoom(room: room, favorite: false)
-                            } actions: {
-                                Action(tint:.yellow,
-                                       icon: "flag",
-                                       title: "즐겨찾기",
-                                       titleFont: .system(size: 10)) {
-                                    viewModel.toggleFavorite(roomId: room.chatRoomId)
-                                }
-                                Action(tint: .red,
-                                       icon: "trash.fill",
-                                       title: "나가기",
-                                       titleFont: .system(size: 10)) {
-                                    showingAlert.toggle()
-                                }
-                            }
-                            .alert("채팅방을 나가시겠습니까?", isPresented: $showingAlert) {
-                                Button("확인", role: .destructive) {
-                                    viewModel.leaveChatRoom(room)
-                                }
-                            }
-                        }
+                        chatRoomRow(room: room)
                     }
             }
             .onTapGesture { self.hideKeyboard() }
@@ -130,7 +82,38 @@ struct MessageListView: View {
     }
     
     @ViewBuilder
-    func chatRoom(room: ChatRoom, favorite: Bool) -> some View {
+    func chatRoomRow(room: ChatRoom) -> some View {
+        Button {
+            navigationPath.append(room)
+        } label: {
+            SwipeAction {
+                chatRoomRowBody(room: room)
+            } actions: {
+                Action(tint:.yellow,
+                       icon: "flag",
+                       title: "즐겨찾기",
+                       titleFont: .system(size: 10)) {
+                    viewModel.toggleFavorite(roomId: room.chatRoomId)
+                }
+                Action(tint: .red,
+                       icon: "trash.fill",
+                       title: "나가기",
+                       titleFont: .system(size: 10)) {
+                    leaveRoomInfo = room
+                    showLeaveAlert.toggle()
+                }
+            }
+            .alert("채팅방을 나가시겠습니까?", isPresented: $showLeaveAlert) {
+                Button("확인", role: .destructive) {
+                    guard let leaveRoom = leaveRoomInfo else { return }
+                    viewModel.leaveChatRoom(leaveRoom)
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    func chatRoomRowBody(room: ChatRoom) -> some View {
         VStack {
             HStack {
                 if !room.isGroup {
@@ -157,7 +140,10 @@ struct MessageListView: View {
                             
                         }
                     }
-                    Text(room.lastMessage.prefix(20) + "......")
+                    let msg = room.lastMessage.count > 20
+                    ? room.lastMessage.prefix(20) + "..."
+                    : room.lastMessage
+                    Text(msg)
                         .foregroundStyle(Color(.lightGray))
                         .font(.system(size: 13, weight: .light))
                         .multilineTextAlignment(.leading)
@@ -166,13 +152,11 @@ struct MessageListView: View {
                 Text(DateFormat.lastMessageTime(timeStamp: room.lastMessageTimeStamp))
                     .font(.system(size: 13))
             }
-            .padding(.top, 8)
+            .padding(.vertical, 8)
             .padding(.horizontal, 15)
             .tint(Color.primary)
-            Divider()
         }
     }
-    
     
     @ViewBuilder
     func searchBar() -> some View {
@@ -195,7 +179,6 @@ struct MessageListView: View {
         .padding(.horizontal, 15)
     }
     
-    
     @ViewBuilder
     func groupChatRoomImage(user: [String]) -> some View {
         let columns: [GridItem] = Array(repeating: .init(.flexible(minimum: 2, maximum: 4), spacing: 24), count: 2)
@@ -212,7 +195,6 @@ struct MessageListView: View {
         .frame(width: 55, height: 55)
     }
    
-    
     @ToolbarContentBuilder
     func navigationBarContent() -> some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
@@ -233,8 +215,8 @@ struct MessageListView: View {
             HStack(spacing: 3) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.1)) {
-                        showSearchBar.toggle()
-                        if showSearchBar {
+                        isShowSearchBar.toggle()
+                        if isShowSearchBar {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                 isTextFieldFocused = true
                             }
@@ -245,17 +227,18 @@ struct MessageListView: View {
                         .foregroundStyle(Color(.label))
                 }
                 Button {
-                    showNewMessageView.toggle()
+                    isShowingNewMsgView.toggle()
                 } label: {
                     Image(systemName: "plus.circle")
                         .foregroundStyle(Color(.label))
                 }
-                .fullScreenCover(isPresented: $showNewMessageView, onDismiss: nil, content: {
-                    NewMessageView(didSelectNewUser: { user in
+                .fullScreenCover(isPresented: $isShowingNewMsgView) {
+                    NewMessageView(isInChatRoom: false) { user, chatRoom in
                         self.navigationChatLogView.toggle()
                         self.selectedUserData = user
-                    })
-                })
+                        self.makeRoomInfo = chatRoom
+                    }
+                }
                 
                 NavigationLink {
                     SettingView()

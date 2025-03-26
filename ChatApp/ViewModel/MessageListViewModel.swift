@@ -11,13 +11,9 @@ import FirebaseFirestore
 import UserNotifications
 
 class MessageListViewModel: ObservableObject {
-    @Published var errorMessage = ""
     @Published var currentUser: ChatUser?
-    @Published var profileURL: String?
-    @Published var profileImage: UIImage?
-    @Published var chatRooms: [ChatRoom] = []
-    @Published var chatRoomIdInfo: [String : ChatUser] = [:]
-    @Published var usersIdInfo: [String: ChatUser] = [:]
+    @Published var chatRooms = [ChatRoom]()
+    @Published var usersIdInfo = [String: ChatUser]()
     @Published var favoriteChatRooms = Set<String>()
     
     private var cancellables = Set<AnyCancellable>()
@@ -27,7 +23,9 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
+        //updateAllChatRoomsWithParticipantsJoinDates()
     }
+    
 
     func fetchCurrentUser(uid: String) {
         DatabaseManager.shared.collectionUsers(userId: uid)
@@ -37,8 +35,6 @@ class MessageListViewModel: ObservableObject {
                     print("Error fetchCurrent:\(error)")
                 case .finished:
                     self?.fetchAllUsersInfo()
-                    //추후 push messages 이용시
-                    //self?.fetchChatRoomsListener()
                 }
             }, receiveValue: { result in
                 self.currentUser = result
@@ -46,44 +42,21 @@ class MessageListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-
-    func fetchChatRoomsListener() {
-        guard let uid = AuthManager.shared.id else { return }
-        if listener == nil {
-            listener = DatabaseManager.shared.db.collection("rooms")
-                .whereField("participants", arrayContains: uid)
-                .order(by: "lastMessageTimeStamp", descending: true)
-                .addSnapshotListener { querySnapshot, errer in
-                    if let error = errer {
-                        print("🔥 Firestore Error: \(error.localizedDescription)")
-                        return
-                    }
-                    querySnapshot?.documentChanges.forEach { change in
-                        switch change.type {
-                        case .added:
-                            if let chatRoom = try? change.document.data(as:ChatRoom.self),
-                               !self.chatRooms.contains(where: {$0.chatRoomId == chatRoom.chatRoomId}) {
-                                self.chatRooms.append(chatRoom)
-                                self.fetchUsersInfo(for: chatRoom)
-                                
-                            }
-                        case .modified:
-                            if let updatedChatRoom = try? change.document.data(as: ChatRoom.self),
-                               let index = self.chatRooms.firstIndex(where: { $0.chatRoomId == updatedChatRoom.chatRoomId }) {
-                                self.chatRooms[index] = updatedChatRoom
-                                self.showLocalNotification(chatRoom: updatedChatRoom)
-                            }
-                        case .removed:
-                            let removedChatRoomId = change.document.documentID
-                            self.chatRooms.removeAll { $0.chatRoomId == removedChatRoomId }
-                        }
-                    }
-                    self.chatRooms.sort(by: {
-                        $0.lastMessageTimeStamp.dateValue() > $1.lastMessageTimeStamp.dateValue()
-                    })
+    func fetchAllUsersInfo() {
+        DatabaseManager.shared.collectionAllUsers()
+            .sink(receiveCompletion: { completion in
+                if case .failure(let failure) = completion {
+                    print("🔥Firestore Error: \(failure.localizedDescription)")
                 }
-        }
+                if case .finished = completion {
+                    self.fetchChatRooms()
+                }
+            }, receiveValue: { chatUsers in
+                self.usersIdInfo = Dictionary(uniqueKeysWithValues: chatUsers.map{ ($0.uid, $0) })
+            })
+            .store(in: &cancellables)
     }
+    
     
     func fetchChatRooms() {
         guard let uid = AuthManager.shared.id else { return }
@@ -108,11 +81,13 @@ class MessageListViewModel: ObservableObject {
             let newChatRoom = ChatRoom(chatRoomId: chatRoom.chatRoomId,
                                        chatRoomMakerId: chatRoom.chatRoomMakerId,
                                        participants: chatRoom.participants,
+                                       participantsJoinDates: chatRoom.participantsJoinDates,
                                        isGroup: chatRoom.isGroup,
                                        chatName: chatRoom.isGroup ? chatRoom.chatName : (usersIdInfo[opponentId]?.displayName ?? ""),
                                        lastMessage: chatRoom.lastMessage,
                                        lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
-                                       lastMessageSenderId: chatRoom.lastMessageSenderId)
+                                       lastMessageSenderId: chatRoom.lastMessageSenderId
+            )
             self.chatRooms.append(newChatRoom)
             self.fetchFavoriteRooms(uid: AuthManager.shared.id ?? "")
         }
@@ -123,6 +98,7 @@ class MessageListViewModel: ObservableObject {
         let newChatRoom = ChatRoom(chatRoomId: chatRoom.chatRoomId,
                                    chatRoomMakerId: chatRoom.chatRoomMakerId,
                                    participants: chatRoom.participants,
+                                   participantsJoinDates: chatRoom.participantsJoinDates,
                                    isGroup: chatRoom.isGroup,
                                    chatName: chatRoom.isGroup ? chatRoom.chatName : (usersIdInfo[opponentId]?.displayName ?? ""),
                                    lastMessage: chatRoom.lastMessage,
@@ -166,59 +142,7 @@ class MessageListViewModel: ObservableObject {
         }
     }
     
-    
-    func fetchAllUsersInfo() {
-        DatabaseManager.shared.collectionAllUsers()
-            .sink(receiveCompletion: { completion in
-                if case .failure(let failure) = completion {
-                    print("🔥Firestore Error: \(failure.localizedDescription)")
-                }
-                if case .finished = completion {
-                    self.fetchChatRooms()
-                }
-            }, receiveValue: { chatUsers in
-                self.usersIdInfo = Dictionary(uniqueKeysWithValues: chatUsers.map{ ($0.uid, $0) })
-            })
-            .store(in: &cancellables)
-    }
-    
-    func fetchUsersInfo(for room: ChatRoom) {
-        guard let uid = AuthManager.shared.id else { return }
-        guard let opponentId = room.participants.first(where: { $0 != uid }) else {
-            chatRoomIdInfo[room.chatRoomId] = currentUser
-            return }
-        
-        DatabaseManager.shared.collectionUsers(userId: opponentId)
-            .sink(receiveCompletion: { completion in
-                if case .failure(let failure) = completion {
-                    print("🔥Firestore Error: \(failure.localizedDescription)")
-                }
-            }, receiveValue: { result in
-                self.chatRoomIdInfo[room.chatRoomId] = result
-            })
-            .store(in: &cancellables)
-    } 
-    
-    func fetchUsersInfo(for rooms: [ChatRoom]) {
-        guard let uid = AuthManager.shared.id else { return }
-        for room in rooms {
-            guard let opponentId = room.participants.first(where: { $0 != uid }) else {
-                chatRoomIdInfo[room.chatRoomId] = currentUser
-                return }
-            
-            DatabaseManager.shared.collectionUsers(userId: opponentId)
-                .sink(receiveCompletion: { completion in
-                    if case .failure(let failure) = completion {
-                        print("🔥Firestore Error: \(failure.localizedDescription)")
-                    }
-                }, receiveValue: { result in
-                    self.chatRoomIdInfo[room.chatRoomId] = result
-                })
-                .store(in: &cancellables)
-        }
-    }
-    
-    
+
     func stopListening() {
         listener?.remove()
         listener = nil
@@ -294,6 +218,10 @@ class MessageListViewModel: ObservableObject {
     func leaveChatRoom(_ chatRoom: ChatRoom) {
         guard let uid = AuthManager.shared.id else { return }
         DatabaseManager.shared.deleteChatRoomParticipant(userId: uid, chatRoomIds: chatRoom.chatRoomId)
+            .flatMap({ _ in
+                DatabaseManager.shared.deleteChatRoomParticipantJoinDates(userId: uid, chatRoomIds: chatRoom.chatRoomId)
+                
+            })
             .sink(receiveCompletion: { complete in
                 if case .failure(let failure) = complete {
                     print("Firebase Error:\(failure)")
@@ -309,8 +237,7 @@ class MessageListViewModel: ObservableObject {
     }
     
     func sendResultMessage(chatRoom: ChatRoom) {
-        guard let uid = AuthManager.shared.id,
-              let userInfo = currentUser else { return }
+        guard let userInfo = currentUser else { return }
         let leaveText = "\(userInfo.displayName)님이 채팅방에서 나갔습니다."
         let resultMessage = ChatMessage(messageId: UUID().uuidString,
                                         senderId: "leave",
@@ -329,6 +256,39 @@ class MessageListViewModel: ObservableObject {
                 
             })
             .store(in: &cancellables)
+    }
+    
+    func updateAllChatRoomsWithParticipantsJoinDates() {
+        let db = DatabaseManager.shared.db
+        let roomsCollection = db.collection("rooms")
+        
+        roomsCollection.getDocuments { snapshot, error in
+            if let error = error {
+                print("Firestore 조회 실패: \(error)")
+                return
+            }
+            guard let documents = snapshot?.documents else {
+                print("문서가 없습니다.")
+                return
+            }
+            
+            for document in documents {
+                let docRef = roomsCollection.document(document.documentID)
+                let currentData = document.data()
+                
+                // participantsJoinDates가 없거나 배열([])인 경우
+                if currentData["participantsJoinDates"] == nil || currentData["participantsJoinDates"] as? [Any] != nil {
+                    // 빈 딕셔너리로 업데이트
+                    docRef.updateData(["participantsJoinDates": [:]]) { error in
+                        if let error = error {
+                            print("업데이트 실패 - 문서 ID: \(document.documentID), 에러: \(error)")
+                        } else {
+                            print("업데이트 성공 - 문서 ID: \(document.documentID)")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

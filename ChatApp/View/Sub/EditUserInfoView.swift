@@ -14,20 +14,19 @@ struct EditUserInfoView: View {
     @StateObject var viewModel = LoginViewModel()
     @State private var selectedItem: PhotosPickerItem?
     var body: some View {
-        NavigationStack {
-            VStack{
-                profileImageView()
-                inputFiledView()
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .navigationTitle("사용자 정보 수정")
-            .navigationBarTitleDisplayMode(.inline)
+        VStack{
+            profileImageView()
+            inputFiledView()
+            Spacer()
         }
+        .padding(.horizontal, 10)
+        .navigationTitle("사용자 정보 수정")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             navigationBarContent()
         }
     }
+    
     @ToolbarContentBuilder
     func navigationBarContent() -> some ToolbarContent {
         ToolbarItem(placement:.topBarTrailing) {

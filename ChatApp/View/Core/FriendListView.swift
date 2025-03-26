@@ -14,6 +14,7 @@ struct FriendListView: View {
     @State private var showSearchbar = false
     @State private var selectedUser: ChatUser? = nil
     @State private var selectedUserData: Set<ChatUser>?
+    @State private var chatRoom = ChatRoom()
     @State private var navigationChatLogView = false
     @FocusState private var isTextFieldFocused: Bool
     
@@ -26,7 +27,7 @@ struct FriendListView: View {
                 }
                 friendList()
                     .navigationDestination(isPresented: $navigationChatLogView) {
-                        ChatLogView(userData: selectedUserData)
+                        ChatLogView(selectedUserData, chatRoom)
                     }
             }
             .toolbar {

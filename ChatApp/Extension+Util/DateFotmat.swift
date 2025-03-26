@@ -16,43 +16,40 @@ struct DateFormat {
         // 한국 시간(KST)으로 변환을 위한 캘린더 설정
         var calendar = Calendar.current
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
-        
-        // 시간 차이 계산
-        let components = calendar.dateComponents([.month, .day, .hour, .minute, .second], from: serverDate, to: now)
-        
+    
         // DateFormatter 설정 (필요할 때만 사용)
         let formatter = DateFormatter()
-        formatter.timeZone = calendar.timeZone
+        formatter.locale = Locale(identifier: "ko_KR")
         
-        // 1년 이상 차이
-        if let months = components.month, months >= 12 {
-            formatter.dateFormat = "yy년MM월dd일"
-            return formatter.string(from: serverDate)
+        //오늘일 경우
+        if calendar.isDateInToday(serverDate) {
+            let components = calendar.dateComponents([.hour, .minute], from: serverDate, to: now)
+            if let hours = components.hour, hours >= 1{
+                formatter.dateFormat = "a h:mm"
+                return formatter.string(from: serverDate)
+            }
+            if let minutes = components.minute, minutes >= 1 {
+                return "\(minutes)분 전"
+            }
+            return "방금 전"
+            
         }
         
-        // 2일 이상 차이
-        if let days = components.day, days > 1 {
-            formatter.dateFormat = "M월dd일"
-            return formatter.string(from: serverDate)
-        }
-        
-        // 어제
-        if let days = components.day, days == 1 {
+        // 날짜가 어제인지 확인
+        if calendar.isDateInYesterday(serverDate) {
             return "어제"
         }
         
-        // 오늘 (24시간 이내)
-        if let hours = components.hour, hours >= 1 {
-            return "\(hours)시간 전"
-        }
+        // 날짜가 오늘, 어제가 아닐 때
+        let serverYear = calendar.component(.year, from: serverDate)
+        let currentYear = calendar.component(.year, from: now)
         
-        // 1시간 이내
-        if let minutes = components.minute, minutes >= 1 {
-            return "\(minutes)분 전"
+        if serverYear != currentYear {
+            formatter.dateFormat = "yy년 M월 dd일"
+        } else {
+            formatter.dateFormat = "M월 dd일"
         }
-        
-        // 1분 미만
-        return "방금 전"
+        return formatter.string(from: serverDate)
     }
 }
 

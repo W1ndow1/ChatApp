@@ -192,7 +192,7 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
-    func updateChatRoomPatricipants(userIds: [String], chatRoomId: String) -> AnyPublisher<Bool, Error> {
+    func updateChatRoomParticipants(userIds: [String], chatRoomId: String) -> AnyPublisher<Bool, Error> {
         let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
         return Future { promise in
             docRef.updateData(["participants": FieldValue.arrayUnion(userIds)]) { error in
@@ -206,11 +206,104 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
+    func updateChatRoomId(chatRoomId: String) -> AnyPublisher<String, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
+        return Future { promise in
+            docRef.updateData(["chatRoomId": UUID().uuidString]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(chatRoomId))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    
+    func updateChatRoomParticipantsJoinDates(userId: String, chatRoomId: String) -> AnyPublisher<Bool, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
+        return Future { promise in
+            docRef.updateData([
+                "participantsJoinDates.\(userId)" : Timestamp(date: Date())
+            ]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func updateChatRoomParticipantsJoinDates(userIds: [String], chatRoomId: String) -> AnyPublisher<Bool, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
+        let dic = userIds.reduce(into: [String : Timestamp]()) { $0[$1] = Timestamp(date: Date()) }
+        return Future { promise in
+            docRef.updateData(["participantsJoinDates" : dic]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func convertToGroupChat(oldChatRoomId: String, newChatRoom: ChatRoom) -> AnyPublisher<Bool, Error> {
+        let batch = db.batch()
+        let oldChatRoomRef = db.collection(chatRoomPath).document(oldChatRoomId)
+        let newChatRoomRef = db.collection(chatRoomPath).document(newChatRoom.chatRoomId)
+        return Future { promise in
+            oldChatRoomRef.collection(self.chatMesseagesPath).getDocuments() { snapshot, error in
+                if let error = error {
+                    promise(.failure(error))
+                    return
+                }
+                do {
+                    try batch.setData(from: newChatRoom, forDocument: newChatRoomRef)
+                    snapshot?.documents.forEach { doc in
+                        let messageRef = newChatRoomRef.collection(self.chatMesseagesPath).document(doc.documentID)
+                        batch.setData(doc.data(), forDocument: messageRef)
+                    }
+                    batch.deleteDocument(oldChatRoomRef)
+                    batch.commit { error in
+                        if let error = error {
+                            promise(.failure(error))
+                        } else {
+                            promise(.success(true))
+                        }
+                    }
+                }catch {
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    
     //MARK: - 삭제하기
     func deleteChatRoomParticipant(userId: String, chatRoomIds: String) -> AnyPublisher<Bool, Error> {
         let docRef = db.collection(self.chatRoomPath).document(chatRoomIds)
         return Future { promise in
             docRef.updateData(["participants" : FieldValue.arrayRemove([userId])]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func deleteChatRoomParticipantJoinDates(userId: String, chatRoomIds: String) -> AnyPublisher<Bool, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomIds)
+        return Future { promise in
+            docRef.updateData(["participantsJoinDates" : FieldValue.arrayRemove([userId])]) { error in
                 if let error = error {
                     promise(.failure(error))
                 } else {
@@ -337,33 +430,6 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
         }
     
-    func collectionChatRooms(chatRoomId roomId: String) -> AnyPublisher<[ChatMessage], Error> {
-        let chatMessagesRef = self.db.collection(self.chatRoomPath).document(roomId)
-            .collection(self.chatMesseagesPath)
-            .order(by: "timeStamp", descending: false)
-        chatMessagesRef.addSnapshotListener { snapshot, error in
-            if let error = error {
-                print("Firebase Error:\(error)")
-                return
-            }
-            var messages = [ChatMessage]()
-            snapshot?.documentChanges.forEach { change in
-                switch change.type {
-                case .added:
-                    if let message = try? change.document.data(as: ChatMessage.self) {
-                        messages.append(message)
-                    }
-                case .modified:
-                    break;
-                case .removed:
-                    break;
-                }
-            }
-            self.chatMessagesSubject.send(messages)
-        }
-        return chatMessagesSubject.eraseToAnyPublisher()
-    }
-    
     func collectionChatRooms(uid id: String) -> AnyPublisher<[ChatRoom], Error> {
         return Future { promise in
             self.db.collection(self.chatRoomPath)
@@ -388,6 +454,30 @@ class DatabaseManager: NSObject {
         }
         .eraseToAnyPublisher()
     }
+    
+    func collectionChatRooms(participants: [String]) -> AnyPublisher<[ChatRoom], Error> {
+        let sortParticipants = participants.sorted()
+        return Future { promise in
+            self.db.collection(self.chatRoomPath)
+                .whereField("participants", arrayContainsAny: sortParticipants)
+                .whereField("isGroup", isEqualTo: false)
+                .getDocuments() { snapshot, error in
+                    if let error = error {
+                        promise(.failure(error))
+                        return
+                    }
+                    let chatRooms = snapshot?.documents
+                        .compactMap({try? $0.data(as: ChatRoom.self)})
+                        .filter{
+                            let roomParticipants = $0.participants.sorted()
+                            return roomParticipants.count == 2 && 
+                            roomParticipants[1] == sortParticipants[1]} ?? []
+                    promise(.success(chatRooms))
+                }
+        }
+        .eraseToAnyPublisher()
+    }
+
 
     func collectionChatMessages(chatRoomId: String) -> AnyPublisher<[ChatMessage], Error> {
         return Future { promise in
@@ -412,6 +502,8 @@ class DatabaseManager: NSObject {
         }
         .eraseToAnyPublisher()
     }
+    
+    
     
     func startCollectionChatMessagesRealTimeListener(chatRoomId: String) -> AnyPublisher<ChatMessage, Error> {
         return Future { [weak self] promise in
@@ -455,5 +547,22 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
-    
+    func checkChatRoomParticipants(userId: String, chatRoomId: String) -> AnyPublisher<Bool, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
+        return Future { promise in
+            docRef.getDocument() { snapshot, error in
+                if let error = error {
+                    promise(.failure(error))
+                }
+                if let document = snapshot?.data()?["participants"] as? [String] {
+                    if document.contains(userId) {
+                        promise(.success(true))
+                    } else {
+                        promise(.success(false))
+                    }
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
 }
