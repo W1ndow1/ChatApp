@@ -17,10 +17,11 @@ struct HomeTabView: View {
         if viewModel.isAuthenticated {
             Group {
                 TabView(selection: $selectedTab) {
-                    FriendListView()
+                    FriendListView(hideTabBar: $hideTabBar)
                         .tabItem { Label("친구", systemImage: "person") }
                         .environmentObject(viewModel)
                         .tag(0)
+                        .toolbar((hideTabBar ? .hidden : .visible), for: .tabBar)
                     MessageListView(hideTabBar: $hideTabBar)
                         .tabItem { Label("메시지", systemImage: "message") }
                         .environmentObject(viewModel)

@@ -1,10 +1,3 @@
-//
-//  FriendListView.swift
-//  ChatApp
-//
-//  Created by window1 on 2/4/25.
-//
-
 import SwiftUI
 import SDWebImageSwiftUI
 
@@ -17,7 +10,7 @@ struct FriendListView: View {
     @State private var chatRoom = ChatRoom()
     @State private var navigationChatLogView = false
     @FocusState private var isTextFieldFocused: Bool
-    
+    @Binding var hideTabBar: Bool
     
     var body: some View {
         NavigationStack {
@@ -26,12 +19,18 @@ struct FriendListView: View {
                     searchBar()
                 }
                 friendList()
-                    .navigationDestination(isPresented: $navigationChatLogView) {
-                        ChatLogView(selectedUserData, chatRoom)
+            }
+            .navigationDestination(isPresented: $navigationChatLogView) {
+                ChatLogView(selectedUserData, chatRoom)
+                    .onAppear {
+                        hideTabBar = true
                     }
             }
             .toolbar {
                 navigationBarContent()
+            }
+            .onAppear {
+                hideTabBar = false
             }
         }
     }
@@ -81,10 +80,11 @@ struct FriendListView: View {
         }
         .onTapGesture { self.hideKeyboard() }
         .fullScreenCover(item: $selectedUser) { user in
-            ProfileView(user: user, startChatting: { user in
+            ProfileView(viewModel: viewModel, user: user) { user, chatRoom in
                 self.navigationChatLogView.toggle()
                 self.selectedUserData = user
-            })
+                self.chatRoom = chatRoom
+            }
         }
     }
     @ViewBuilder
@@ -141,18 +141,12 @@ struct FriendListView: View {
             }
         }
     }
-    
-    func makeUserArray(user: ChatUser) -> Set<ChatUser> {
-        var users = Set<ChatUser>()
-        users.insert(user)
-        return users
-    }
 }
 
 
 
 #Preview {
-    FriendListView()
+    FriendListView(hideTabBar: .constant(false))
 }
 
 

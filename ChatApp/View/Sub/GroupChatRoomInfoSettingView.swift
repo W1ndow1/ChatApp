@@ -1,5 +1,5 @@
 //
-//  ChatRoomSettingsView.swift
+//  GroupChatRoomInfoSettingView.swift
 //  ChatApp
 //
 //  Created by window1 on 3/21/25.
@@ -8,14 +8,14 @@
 import SwiftUI
 import FirebaseCore
 
-struct ChatRoomSettingsView: View {
+struct GroupChatRoomInfoSettingView: View {
     @Environment(\.dismiss) var dismiss
     @State private var chatRoomName = ""
     @State private var placeholder = ""
-        
+    
     let selectedItems: Set<ChatUser>
     var onComplete: (Set<ChatUser>, ChatRoom) -> ()
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 40) {
@@ -78,11 +78,14 @@ struct ChatRoomSettingsView: View {
     }
     
     func makeChatRoomInfo() -> ChatRoom {
-        let roomId = UUID().uuidString
-        return ChatRoom(chatRoomId: roomId,
+        let fromId = AuthManager.shared.id ?? ""
+        let participants = selectedItems.map({$0.uid}) + [fromId]
+        
+        return ChatRoom(chatRoomType: .group,
+                        chatRoomId: UUID().uuidString,
                         chatRoomMakerId: AuthManager.shared.id ?? "",
-                        isGroup: true,
-                        chatName: chatRoomName.count == 0 
+                        participants: participants.sorted(by: {$0 < $1}),
+                        chatName: chatRoomName.count == 0
                         ? placeholder
                         : chatRoomName
         )
@@ -90,5 +93,5 @@ struct ChatRoomSettingsView: View {
 }
 
 #Preview {
-    ChatRoomSettingsView(selectedItems: .init(), onComplete: { _,_ in})
+    GroupChatRoomInfoSettingView(selectedItems: .init(), onComplete: { _,_ in})
 }

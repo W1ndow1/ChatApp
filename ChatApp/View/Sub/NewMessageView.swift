@@ -17,10 +17,10 @@ struct NewMessageView: View {
     @State private var navigateToSettingView = false
  
     var isInChatRoom: Bool
-    var didSelectNewUser: (Set<ChatUser>, ChatRoom) -> ()
+    var chatRoomInfo: (Set<ChatUser>, ChatRoom) -> ()
     
     var body: some View {
-        NavigationStack() {
+        NavigationStack {
             Group {
                 TextField("🔎 검색", text: $searchText)
                     .padding(.horizontal, 10)
@@ -62,7 +62,7 @@ struct NewMessageView: View {
                             navigateToSettingView = true
                         //기존 채팅방에서 초대한 경우
                         } else {
-                            didSelectNewUser(selectedItems, makeChatRoomInfo())
+                            chatRoomInfo(selectedItems, makeChatRoomInfo())
                             dismiss()
                         }
                     } label: {
@@ -72,8 +72,8 @@ struct NewMessageView: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToSettingView) {
-                ChatRoomSettingsView(selectedItems: selectedItems) { selectedItems, chatRoom in
-                    didSelectNewUser(selectedItems, chatRoom)
+                GroupChatRoomInfoSettingView(selectedItems: selectedItems) { selectedItems, chatRoom in
+                    chatRoomInfo(selectedItems, chatRoom)
                     dismiss()
                 }
             }
@@ -85,20 +85,16 @@ struct NewMessageView: View {
         let participants = selectedItems.map({$0.uid}) + [fromId]
         let chatName = selectedItems.map{$0.displayName}.joined(separator: ",")
         
-        if participants.count == 2 {
-            Task { await viewModel.collectionChatRooms(participants)}
-            if let existChatRooms = viewModel.existChatRooms.first {
-                return existChatRooms
-            }
+        if let existChatRooms = viewModel.existChatRooms.first {
+            return existChatRooms
+        } else {
+            return ChatRoom(chatRoomType: (participants.count > 2 ? .group : .direct),
+                            chatRoomId: UUID().uuidString,
+                            chatRoomMakerId: fromId,
+                            participants: participants.sorted(by: {$0 < $1}),
+                            chatName: chatName
+            )
         }
-        
-        return ChatRoom(chatRoomId: UUID().uuidString,
-                        chatRoomMakerId: fromId,
-                        participants: participants.sorted(by: {$0 < $1}),
-                        isGroup: false,
-                        chatName: chatName
-        )
-        
     }
 }
 
@@ -138,7 +134,7 @@ struct NewMessagesViewRow: View {
                 Task {
                     print("\(selectedItems.map{$0.uid})")
                     if selectedItems.count > 0 {
-                    _ = await viewModel.collectionChatRooms(makeChatRoomParticipants(selectedItems))
+                        await viewModel.collectionChatRooms(makeChatRoomParticipants(selectedItems))
                     }
                 }
                 
@@ -152,6 +148,7 @@ struct NewMessagesViewRow: View {
         Divider()
         
     }
+    
     func makeChatRoomParticipants(_ selectedItems: Set<ChatUser>) -> [String] {
         guard let uid = AuthManager.shared.id else { return [] }
         var users = selectedItems.map({$0.uid}).sorted()

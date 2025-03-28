@@ -252,32 +252,14 @@ class DatabaseManager: NSObject {
         .eraseToAnyPublisher()
     }
     
-    func convertToGroupChat(oldChatRoomId: String, newChatRoom: ChatRoom) -> AnyPublisher<Bool, Error> {
-        let batch = db.batch()
-        let oldChatRoomRef = db.collection(chatRoomPath).document(oldChatRoomId)
-        let newChatRoomRef = db.collection(chatRoomPath).document(newChatRoom.chatRoomId)
+    func updateChatRoomFieldInfo(chatRoomId: String, field: String, value: Any) -> AnyPublisher<Bool, Error> {
+        let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
         return Future { promise in
-            oldChatRoomRef.collection(self.chatMesseagesPath).getDocuments() { snapshot, error in
+            docRef.updateData(["\(field)" : value]) { error in
                 if let error = error {
                     promise(.failure(error))
-                    return
-                }
-                do {
-                    try batch.setData(from: newChatRoom, forDocument: newChatRoomRef)
-                    snapshot?.documents.forEach { doc in
-                        let messageRef = newChatRoomRef.collection(self.chatMesseagesPath).document(doc.documentID)
-                        batch.setData(doc.data(), forDocument: messageRef)
-                    }
-                    batch.deleteDocument(oldChatRoomRef)
-                    batch.commit { error in
-                        if let error = error {
-                            promise(.failure(error))
-                        } else {
-                            promise(.success(true))
-                        }
-                    }
-                }catch {
-                    promise(.failure(error))
+                } else {
+                    promise(.success(true))
                 }
             }
         }
@@ -450,29 +432,6 @@ class DatabaseManager: NSObject {
                     } catch {
                         promise(.failure(error))
                     }
-                }
-        }
-        .eraseToAnyPublisher()
-    }
-    
-    func collectionChatRooms(participants: [String]) -> AnyPublisher<[ChatRoom], Error> {
-        let sortParticipants = participants.sorted()
-        return Future { promise in
-            self.db.collection(self.chatRoomPath)
-                .whereField("participants", arrayContainsAny: sortParticipants)
-                .whereField("isGroup", isEqualTo: false)
-                .getDocuments() { snapshot, error in
-                    if let error = error {
-                        promise(.failure(error))
-                        return
-                    }
-                    let chatRooms = snapshot?.documents
-                        .compactMap({try? $0.data(as: ChatRoom.self)})
-                        .filter{
-                            let roomParticipants = $0.participants.sorted()
-                            return roomParticipants.count == 2 && 
-                            roomParticipants[1] == sortParticipants[1]} ?? []
-                    promise(.success(chatRooms))
                 }
         }
         .eraseToAnyPublisher()

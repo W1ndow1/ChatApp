@@ -34,7 +34,6 @@ struct MessageListView: View {
             }
             .navigationDestination(isPresented: $navigationChatLogView) {
                 ChatLogView(selectedUserData, makeRoomInfo)
-                
                     .onAppear {
                         hideTabBar = true
                     }
@@ -116,7 +115,7 @@ struct MessageListView: View {
     func chatRoomRowBody(room: ChatRoom) -> some View {
         VStack {
             HStack {
-                if !room.isGroup {
+                if room.chatRoomType != .group {
                     let opponentId = room.participants.first(where: {$0 != AuthManager.shared.id }) ?? room.participants[0]
                     WebImage(url: URL(string: viewModel.usersIdInfo[opponentId]?.profileImageURL ?? ""))
                         .resizable()

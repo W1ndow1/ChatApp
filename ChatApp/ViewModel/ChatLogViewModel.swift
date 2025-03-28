@@ -22,7 +22,7 @@ class ChatLogViewModel: ObservableObject {
     init(userData: Set<ChatUser>?, chatRoom: ChatRoom?) {
         self.userData = userData
         self.chatRoom = chatRoom
-        makeUsersInfoBySelectedUser()
+        fetchUsersInfoByRoom()
     }
 
     
@@ -42,47 +42,45 @@ class ChatLogViewModel: ObservableObject {
     //새롭게 채팅방을 시작한 경우 여기서 부터 수정
     func sendMessageBySelectedUser() {
         guard let fromId = AuthManager.shared.id,
-              let selectedUserIds = userData?.map({$0.uid}),
-              let isGroup = chatRoom?.isGroup
+              let selectedUserIds = userData?.map({$0.uid})
               else { return }
         let participants = selectedUserIds + [fromId]
-        let receiverId = !isGroup ? participants.first : nil
-        
         let messageId = UUID().uuidString
         let timestamp = Timestamp(date: Date())
         
-        let chatMessageData = ChatMessage(
-            messageId: messageId,
-            senderId: fromId,
-            receiverId: receiverId ?? "",
-            text: chatText,
-            timeStamp: timestamp,
-            readBy: []
-        )
         var chatRoomData = ChatRoom()
         //기존 챗방 새로운 챗방 분기
         if let existingRoom = chatRoom, existingRoom.participantsJoinDates != nil {
             chatRoomData = existingRoom
         } else {
             chatRoomData = ChatRoom(
+                chatRoomType:(participants.count > 2 ? .group : .direct) ,
                 chatRoomId: chatRoom?.chatRoomId ?? UUID().uuidString,
                 chatRoomMakerId: chatRoom?.chatRoomMakerId ?? fromId,
-                participants: chatRoom?.participants ?? participants,
+                participants: chatRoom?.participants ?? participants.sorted(by: {$0 < $1}),
                 participantsJoinDates: participants.reduce(into: [String:Timestamp]()) { $0[$1] = timestamp },
-                isGroup: isGroup,
                 chatName: (chatRoom?.chatName ?? ""),
-                lastMessage: chatText,
+                lastMessage: chatText,                 
                 lastMessageTimeStamp: timestamp,
                 lastMessageSenderId: fromId
             )
         }
+        let chatMessageData = ChatMessage(
+            messageId: messageId,
+            senderId: fromId,
+            text: chatText,
+            timeStamp: timestamp,
+            readBy: []
+        )
         
         DispatchQueue.main.async {
             self.chatText = ""
         }
+        //이전채팅방 있는지 확인
         DatabaseManager.shared.checkChatRoomExists(chatRoomId: chatRoomData.chatRoomId)
             .flatMap({ exists -> AnyPublisher<Void, Error> in
                 if !exists {
+                    //채팅방 없는 경우
                     return DatabaseManager.shared.storeChatRoomData(chatRoomData: chatRoomData)
                 } else {
                     return Just(())
@@ -92,20 +90,6 @@ class ChatLogViewModel: ObservableObject {
             })
             .flatMap({ _ in
                 DatabaseManager.shared.storeChatMessageData(chatRoomData: chatRoomData, chatMessageData: chatMessageData)
-            })
-            .flatMap({ _ in
-                DatabaseManager.shared.checkChatRoomParticipants(userId: fromId, chatRoomId: chatRoomData.chatRoomId)
-                    .flatMap({ exists  -> AnyPublisher<Bool , Error> in
-                        if exists {
-                            return Just(false).setFailureType(to: Error.self).eraseToAnyPublisher()
-                        } else {
-                            let updateParticipants = DatabaseManager.shared.updateChatRoomParticipants(userIds: [fromId], chatRoomId: chatRoomData.chatRoomId)
-                            let updateJoinDates = DatabaseManager.shared.updateChatRoomParticipantsJoinDates(userId: fromId, chatRoomId: chatRoomData.chatRoomId)
-                            return Publishers.Zip(updateParticipants, updateJoinDates)
-                                .map({_, _ in true})
-                                .eraseToAnyPublisher()
-                        }
-                    })
             })
             .flatMap({ _ in
                 DatabaseManager.shared.updateChatRoom(chatRoomId: chatRoomData.chatRoomId, chatMessageData: chatMessageData)
@@ -358,7 +342,7 @@ class ChatLogViewModel: ObservableObject {
     
     //MARK: - Concurrency로 변경해보기
     
-    func fetchInitialMessages1(chatRoomId: String) async {
+    func fetchInitialMessages(chatRoomId: String) async {
         guard let uid = AuthManager.shared.id else { return }
         let messageRef = DatabaseManager.shared.db.collection("rooms")
             .document(chatRoomId).collection("messages")
@@ -395,7 +379,7 @@ class ChatLogViewModel: ObservableObject {
                     print("Fetch initial Message Error :\(error)")
                 }
                 if case .finished = completion {
-                    self.startRealTimeListener()
+                    return
                 }
             }, receiveValue: { message in
                 self.chatMessages = self.addPropMessage(message)
@@ -404,7 +388,7 @@ class ChatLogViewModel: ObservableObject {
     }
     
     //수정해야함
-    func startRealTimeListener() {
+    func fetchStartRealTimeListener() {
         guard let chatRoomId = chatRoom?.chatRoomId else { return }
         listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
             .collection("messages")
@@ -482,9 +466,13 @@ class ChatLogViewModel: ObservableObject {
     func joinChatRoom(users: Set<ChatUser>) {
         let userIds = users.map{$0.uid}
         guard let chatRoomId = chatRoom?.chatRoomId else { return }
+        let chatRoomType = ((users.count + (chatRoom?.participants.count ?? 0)) > 2) ? chatRoomType.group : chatRoomType.direct
         DatabaseManager.shared.updateChatRoomParticipants(userIds: userIds, chatRoomId: chatRoomId)
             .flatMap({ _ in
                 DatabaseManager.shared.updateChatRoomParticipantsJoinDates(userIds: userIds, chatRoomId: chatRoomId)
+            })
+            .flatMap({ _ in
+                DatabaseManager.shared.updateChatRoomFieldInfo(chatRoomId: chatRoomId, field: "chatRoomType", value: chatRoomType)
             })
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {

@@ -12,12 +12,13 @@ import Combine
 class FriendListViewModel: ObservableObject {
     @Published var users = [ChatUser]()
     @Published var favoriteUserIds = Set<String>()
+    @Published var existChatRooms = [ChatRoom]()
     
     private var cancellables = Set<AnyCancellable>()
     
     init() {
         fetchAllUsers()
-        fetchFavorites()
+        //fetchFavorites()
     }
     
     private func fetchAllUsers() {
@@ -77,5 +78,25 @@ class FriendListViewModel: ObservableObject {
     
     func isFavorite(_ user: ChatUser) -> Bool {
         return favoriteUserIds.contains(user.uid)
+    }
+    
+    func collectionChatRooms(_ participants: [String]) async {
+        let docRef = DatabaseManager.shared.db.collection("rooms")
+            .whereField("participants", arrayContainsAny: participants)
+            .whereField("chatRoomType", isNotEqualTo: chatRoomType.group.rawValue)
+        do {
+            let snapshot = try await docRef.getDocuments()
+            await MainActor.run {
+                self.existChatRooms = snapshot.documents
+                    .compactMap({try? $0.data(as: ChatRoom.self)})
+                    .filter { room in
+                        let roomParticipants = Set(room.participants)
+                        let targetPartocipants = Set(participants)
+                        return roomParticipants == targetPartocipants
+                    }
+            }
+        } catch {
+            print("Firebase Error: \(error.localizedDescription)")
+        }
     }
 }

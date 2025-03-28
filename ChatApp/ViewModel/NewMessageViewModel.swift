@@ -57,13 +57,17 @@ class NewMessageViewModel: ObservableObject {
     func collectionChatRooms(_ participants: [String]) async {
         let docRef = DatabaseManager.shared.db.collection("rooms")
             .whereField("participants", arrayContainsAny: participants)
-            .whereField("isGroup", isEqualTo: false)
+            .whereField("chatRoomType", isNotEqualTo: chatRoomType.advertisement.rawValue)
         do {
             let snapshot = try await docRef.getDocuments()
             await MainActor.run {
                 self.existChatRooms = snapshot.documents
                     .compactMap({try? $0.data(as: ChatRoom.self)})
-                    .filter({$0.participants.allSatisfy({participants.contains($0)})})
+                    .filter { room in
+                        let roomParticipants = Set(room.participants)
+                        let targetPartocipants = Set(participants)
+                        return roomParticipants == targetPartocipants
+                    }
             }
         } catch {
             print("Firebase Error: \(error.localizedDescription)")

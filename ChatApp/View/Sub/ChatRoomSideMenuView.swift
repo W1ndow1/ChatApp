@@ -15,16 +15,17 @@ struct ChatRoomSideMenuView: View {
     @State private var showNewMessageView = false
     @State private var leaveAlert = false
     @State private var validateAlert = false
-    @Binding var isShowing: Bool
+    @State private var isShowSettingView = false
+    @Binding var isShowSelectUserView: Bool
     
     var body: some View {
         ZStack {
-            if isShowing {
+            if isShowSelectUserView {
                 Rectangle()
                     .opacity(0.3)
                     .ignoresSafeArea()
                     .onTapGesture {
-                        isShowing.toggle()
+                        isShowSelectUserView.toggle()
                     }
                 HStack {
                     Spacer()
@@ -41,7 +42,7 @@ struct ChatRoomSideMenuView: View {
                 .transition(.move(edge: .trailing))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: isShowing)
+        .animation(.easeInOut(duration: 0.3), value: isShowSelectUserView)
     }
     
     @ViewBuilder
@@ -61,9 +62,12 @@ struct ChatRoomSideMenuView: View {
                     Image(systemName: "star.fill")
                 }
                 Button {
-                    
+                    isShowSettingView.toggle()
                 }label: {
                     Image(systemName: "gearshape")
+                }
+                .fullScreenCover(isPresented: $isShowSettingView) {
+                    ChatRoomSettingView()
                 }
             }
             .font(.system(size: 18, weight: .bold))
@@ -105,7 +109,6 @@ struct ChatRoomSideMenuView: View {
         HStack {
             Button {
                 showNewMessageView.toggle()
-                
             } label: {
                 HStack(spacing: 3) {
                     Text("대화상대")
@@ -116,13 +119,14 @@ struct ChatRoomSideMenuView: View {
                 .tint(.primary)
                 .padding(.bottom, 5)
             }
+            .disabled(viewModel.chatRoom?.chatRoomType == .selfChat)
             .fullScreenCover(isPresented: $showNewMessageView) {
                 //기존 채팅방 정보 보내기
-                NewMessageView(isInChatRoom: true) { users, _ in
+                NewMessageView(isInChatRoom: true) { users, chatRoom in
                     let addUsers = viewModel.validateChatRoomMembers(users: users)
                     if addUsers.count > 0 {
                         viewModel.joinChatRoom(users: addUsers)
-                        isShowing = false
+                        isShowSelectUserView = false
                     } else {
                         validateAlert.toggle()
                     }
@@ -172,5 +176,5 @@ struct ChatRoomSideMenuView: View {
                      "qZHV0Ds2YMWgZ1vLeNl1fHL5C2C3",
                      "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
       lastMessageTimeStamp: Timestamp(date: Date()),
-      lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")), isShowing: .constant(true))
+      lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")), isShowSelectUserView: .constant(true))
 }

@@ -23,7 +23,6 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
-        //updateAllChatRoomsWithParticipantsJoinDates()
     }
     
 
@@ -78,12 +77,16 @@ class MessageListViewModel: ObservableObject {
     func editChatRoomsInfo(chatRooms: [ChatRoom]) {
         for chatRoom in chatRooms {
             let opponentId = chatRoom.participants.first(where: {$0 != AuthManager.shared.id}) ?? chatRoom.participants[0]
-            let newChatRoom = ChatRoom(chatRoomId: chatRoom.chatRoomId,
+            let otherParticipants = chatRoom.participants.filter({$0 != AuthManager.shared.id})
+            let groupChatName = otherParticipants.compactMap({usersIdInfo[$0]?.displayName}).joined(separator: ",")
+            let newChatRoom = ChatRoom(chatRoomType: chatRoom.chatRoomType,
+                                       chatRoomId: chatRoom.chatRoomId,
                                        chatRoomMakerId: chatRoom.chatRoomMakerId,
                                        participants: chatRoom.participants,
                                        participantsJoinDates: chatRoom.participantsJoinDates,
-                                       isGroup: chatRoom.isGroup,
-                                       chatName: chatRoom.isGroup ? chatRoom.chatName : (usersIdInfo[opponentId]?.displayName ?? ""),
+                                       chatName: chatRoom.chatRoomType == .group 
+                                       ? chatRoom.chatName
+                                       : (usersIdInfo[opponentId]?.displayName ?? ""),
                                        lastMessage: chatRoom.lastMessage,
                                        lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
                                        lastMessageSenderId: chatRoom.lastMessageSenderId
@@ -95,12 +98,16 @@ class MessageListViewModel: ObservableObject {
     
     func editChatRoomInfo(chatRoom: ChatRoom) -> ChatRoom {
         let opponentId = chatRoom.participants.first(where: {$0 != AuthManager.shared.id}) ?? chatRoom.participants[0]
-        let newChatRoom = ChatRoom(chatRoomId: chatRoom.chatRoomId,
+        let otherParticipants = chatRoom.participants.filter({$0 != AuthManager.shared.id})
+        let groupChatName = otherParticipants.compactMap({usersIdInfo[$0]?.displayName}).joined(separator: ",")
+        let newChatRoom = ChatRoom(chatRoomType: chatRoom.chatRoomType,
+                                   chatRoomId: chatRoom.chatRoomId,
                                    chatRoomMakerId: chatRoom.chatRoomMakerId,
                                    participants: chatRoom.participants,
                                    participantsJoinDates: chatRoom.participantsJoinDates,
-                                   isGroup: chatRoom.isGroup,
-                                   chatName: chatRoom.isGroup ? chatRoom.chatName : (usersIdInfo[opponentId]?.displayName ?? ""),
+                                   chatName: chatRoom.chatRoomType == .group 
+                                   ? chatRoom.chatName
+                                   : (usersIdInfo[opponentId]?.displayName ?? ""),
                                    lastMessage: chatRoom.lastMessage,
                                    lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
                                    lastMessageSenderId: chatRoom.lastMessageSenderId)
@@ -258,34 +265,40 @@ class MessageListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func updateAllChatRoomsWithParticipantsJoinDates() {
+    func updateAllChatRoomsWithChatRoomType(completion: @escaping (Result<Void, Error>) -> Void) {
         let db = DatabaseManager.shared.db
         let roomsCollection = db.collection("rooms")
         
         roomsCollection.getDocuments { snapshot, error in
             if let error = error {
                 print("Firestore 조회 실패: \(error)")
-                return
-            }
-            guard let documents = snapshot?.documents else {
-                print("문서가 없습니다.")
+                completion(.failure(error))
                 return
             }
             
+            guard let documents = snapshot?.documents, !documents.isEmpty else {
+                print("문서가 없습니다.")
+                completion(.success(()))
+                return
+            }
+            
+            let batch = db.batch()
             for document in documents {
-                let docRef = roomsCollection.document(document.documentID)
                 let currentData = document.data()
-                
-                // participantsJoinDates가 없거나 배열([])인 경우
-                if currentData["participantsJoinDates"] == nil || currentData["participantsJoinDates"] as? [Any] != nil {
-                    // 빈 딕셔너리로 업데이트
-                    docRef.updateData(["participantsJoinDates": [:]]) { error in
-                        if let error = error {
-                            print("업데이트 실패 - 문서 ID: \(document.documentID), 에러: \(error)")
-                        } else {
-                            print("업데이트 성공 - 문서 ID: \(document.documentID)")
-                        }
-                    }
+                // chatRoomType 필드가 없는 경우에만 업데이트
+                if currentData["chatRoomType"] == nil {
+                    let docRef = document.reference
+                    batch.updateData(["chatRoomType": ""], forDocument: docRef)
+                }
+            }
+            
+            batch.commit { error in
+                if let error = error {
+                    print("배치 업데이트 실패: \(error)")
+                    completion(.failure(error))
+                } else {
+                    print("배치 업데이트 성공")
+                    completion(.success(()))
                 }
             }
         }

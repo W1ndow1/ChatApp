@@ -23,6 +23,7 @@ struct ChatMessage: Identifiable, Codable {
 
 struct ChatRoom: Identifiable, Codable, Hashable {
     var id: String { chatRoomId }
+    var chatRoomType: chatRoomType?
     var chatRoomId: String = ""
     var chatRoomMakerId: String = ""
     var participants: [String] = []
@@ -32,4 +33,11 @@ struct ChatRoom: Identifiable, Codable, Hashable {
     var lastMessage: String = ""
     var lastMessageTimeStamp: Timestamp = Timestamp()
     var lastMessageSenderId: String = ""
+}
+
+enum chatRoomType: String, Codable, CaseIterable {
+    case direct = "direct"
+    case group = "group"
+    case selfChat = "selfChat"
+    case advertisement = "advertisement"
 }

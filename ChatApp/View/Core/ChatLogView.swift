@@ -47,7 +47,7 @@ struct ChatLogView: View {
                 .onDisappear {
                     viewModel.stopListening()
                 }
-            ChatRoomSideMenuView(viewModel: viewModel, isShowing: $showSideMenuView)
+            ChatRoomSideMenuView(viewModel: viewModel, isShowSelectUserView: $showSideMenuView)
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -121,6 +121,7 @@ struct ChatLogView: View {
             }
         }
     }
+    
     @ViewBuilder
     private func chatRoomMemberStateMessage(msg: ChatMessage) -> some View {
         HStack(alignment: .center) {
@@ -274,6 +275,7 @@ struct ChatLogView: View {
 
 #Preview {
     ChatLogView(chatRoom: ChatRoom(
+        chatRoomType: .group,
         chatRoomId: """
                     UyZOQtY9occyvmxpP82jr7QdEP12_
                     WDznGLHspLevJ0kgC9m783bUtWB3_
@@ -283,7 +285,6 @@ struct ChatLogView: View {
         chatRoomMakerId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
         participants: ["Wv5HZZ3NMOQysA9VqEUdgdGQs713",
                        "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
-        isGroup: false,
         chatName: "Malone,지구본,Time",
         lastMessageTimeStamp: .init(date: Date()),
         lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")
