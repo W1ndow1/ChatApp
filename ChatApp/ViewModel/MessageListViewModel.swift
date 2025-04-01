@@ -23,6 +23,16 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
+        /*
+        renameField(completion: { result in
+            switch result {
+            case .success():
+                print("필드 이름 변경 성공")
+            case .failure(let error):
+                print("Error: \(error)")
+            }
+        })
+         */
     }
     
 
@@ -84,8 +94,9 @@ class MessageListViewModel: ObservableObject {
                                        chatRoomMakerId: chatRoom.chatRoomMakerId,
                                        participants: chatRoom.participants,
                                        participantsJoinDates: chatRoom.participantsJoinDates,
-                                       chatName: chatRoom.chatRoomType == .group 
-                                       ? chatRoom.chatName
+                                       isCustomName: chatRoom.isCustomName,
+                                       chatName: chatRoom.chatRoomType == .group
+                                       ? chatRoom.isCustomName ? chatRoom.chatName : groupChatName
                                        : (usersIdInfo[opponentId]?.displayName ?? ""),
                                        lastMessage: chatRoom.lastMessage,
                                        lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
@@ -105,8 +116,9 @@ class MessageListViewModel: ObservableObject {
                                    chatRoomMakerId: chatRoom.chatRoomMakerId,
                                    participants: chatRoom.participants,
                                    participantsJoinDates: chatRoom.participantsJoinDates,
-                                   chatName: chatRoom.chatRoomType == .group 
-                                   ? chatRoom.chatName
+                                   isCustomName: chatRoom.isCustomName,
+                                   chatName: chatRoom.chatRoomType == .group
+                                   ? chatRoom.isCustomName ? chatRoom.chatName : groupChatName
                                    : (usersIdInfo[opponentId]?.displayName ?? ""),
                                    lastMessage: chatRoom.lastMessage,
                                    lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
@@ -292,6 +304,41 @@ class MessageListViewModel: ObservableObject {
                 }
             }
             
+            batch.commit { error in
+                if let error = error {
+                    print("배치 업데이트 실패: \(error)")
+                    completion(.failure(error))
+                } else {
+                    print("배치 업데이트 성공")
+                    completion(.success(()))
+                }
+            }
+        }
+    }
+    
+    func renameField(completion: @escaping (Result<Void, Error>) -> Void) {
+        let db = DatabaseManager.shared.db
+        let roomsCollection = db.collection("rooms")
+        
+        roomsCollection.getDocuments { snapshot, error in
+            if let error = error {
+                print("Firebase Error: \(error)")
+                completion(.failure(error))
+                return
+            }
+            guard let documents = snapshot?.documents, !documents.isEmpty else {
+                print("변환할 문서가 없습니다.")
+                completion(.success(()))
+                return
+            }
+            let batch = db.batch()
+            for document in documents {
+                let docRef = roomsCollection.document(document.documentID)
+                if let isGroupValue = document.data()["isGroup"] as? Bool {
+                    batch.updateData(["isCustomName" : isGroupValue], forDocument: docRef)
+                    batch.updateData(["isGroup" : FieldValue.delete()], forDocument: docRef)
+                }
+            }
             batch.commit { error in
                 if let error = error {
                     print("배치 업데이트 실패: \(error)")

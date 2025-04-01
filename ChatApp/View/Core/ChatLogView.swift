@@ -48,6 +48,9 @@ struct ChatLogView: View {
                     viewModel.stopListening()
                 }
             ChatRoomSideMenuView(viewModel: viewModel, isShowSelectUserView: $showSideMenuView)
+                .onTapGesture {
+                    Task { await viewModel.refreshChatRoom(chatRoom?.chatRoomId ?? "") }
+                }
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -266,8 +269,8 @@ struct ChatLogView: View {
                 }
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.top, 5)
         .background(Color(.systemBackground))
     }
 }

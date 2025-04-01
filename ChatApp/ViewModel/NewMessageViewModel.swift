@@ -57,7 +57,7 @@ class NewMessageViewModel: ObservableObject {
     func collectionChatRooms(_ participants: [String]) async {
         let docRef = DatabaseManager.shared.db.collection("rooms")
             .whereField("participants", arrayContainsAny: participants)
-            .whereField("chatRoomType", isNotEqualTo: chatRoomType.advertisement.rawValue)
+            .whereField("chatRoomType", isNotEqualTo: ChatRoomType.advertisement.rawValue)
         do {
             let snapshot = try await docRef.getDocuments()
             await MainActor.run {

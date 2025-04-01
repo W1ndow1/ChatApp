@@ -83,7 +83,7 @@ class FriendListViewModel: ObservableObject {
     func collectionChatRooms(_ participants: [String]) async {
         let docRef = DatabaseManager.shared.db.collection("rooms")
             .whereField("participants", arrayContainsAny: participants)
-            .whereField("chatRoomType", isNotEqualTo: chatRoomType.group.rawValue)
+            .whereField("chatRoomType", isNotEqualTo: ChatRoomType.group.rawValue)
         do {
             let snapshot = try await docRef.getDocuments()
             await MainActor.run {

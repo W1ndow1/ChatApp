@@ -285,7 +285,7 @@ class DatabaseManager: NSObject {
     func deleteChatRoomParticipantJoinDates(userId: String, chatRoomIds: String) -> AnyPublisher<Bool, Error> {
         let docRef = db.collection(self.chatRoomPath).document(chatRoomIds)
         return Future { promise in
-            docRef.updateData(["participantsJoinDates" : FieldValue.arrayRemove([userId])]) { error in
+            docRef.updateData(["participantsJoinDates.\(userId)" : FieldValue.delete()]) { error in
                 if let error = error {
                     promise(.failure(error))
                 } else {

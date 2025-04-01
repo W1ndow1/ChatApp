@@ -48,23 +48,24 @@ class ChatLogViewModel: ObservableObject {
         let messageId = UUID().uuidString
         let timestamp = Timestamp(date: Date())
         
-        var chatRoomData = ChatRoom()
         //기존 챗방 새로운 챗방 분기
-        if let existingRoom = chatRoom, existingRoom.participantsJoinDates != nil {
-            chatRoomData = existingRoom
-        } else {
-            chatRoomData = ChatRoom(
-                chatRoomType:(participants.count > 2 ? .group : .direct) ,
-                chatRoomId: chatRoom?.chatRoomId ?? UUID().uuidString,
-                chatRoomMakerId: chatRoom?.chatRoomMakerId ?? fromId,
-                participants: chatRoom?.participants ?? participants.sorted(by: {$0 < $1}),
-                participantsJoinDates: participants.reduce(into: [String:Timestamp]()) { $0[$1] = timestamp },
-                chatName: (chatRoom?.chatName ?? ""),
-                lastMessage: chatText,                 
-                lastMessageTimeStamp: timestamp,
-                lastMessageSenderId: fromId
-            )
-        }
+        let chatRoomData: ChatRoom = {
+            guard let existingRoom = chatRoom, existingRoom.participantsJoinDates != nil else {
+                return ChatRoom(
+                    chatRoomType:(participants.count > 2 ? .group : .direct) ,
+                    chatRoomId: chatRoom?.chatRoomId ?? UUID().uuidString,
+                    chatRoomMakerId: chatRoom?.chatRoomMakerId ?? fromId,
+                    participants: chatRoom?.participants ?? participants.sorted(by: {$0 < $1}),
+                    participantsJoinDates: participants.reduce(into: [String:Timestamp]()) { $0[$1] = timestamp },
+                    chatName: (chatRoom?.chatName ?? ""),
+                    lastMessage: chatText,
+                    lastMessageTimeStamp: timestamp,
+                    lastMessageSenderId: fromId
+                )
+            }
+            return existingRoom
+        }()
+        
         let chatMessageData = ChatMessage(
             messageId: messageId,
             senderId: fromId,
@@ -73,27 +74,20 @@ class ChatLogViewModel: ObservableObject {
             readBy: []
         )
         
-        DispatchQueue.main.async {
-            self.chatText = ""
-        }
+        DispatchQueue.main.async { self.chatText = ""  }
         //이전채팅방 있는지 확인
         DatabaseManager.shared.checkChatRoomExists(chatRoomId: chatRoomData.chatRoomId)
-            .flatMap({ exists -> AnyPublisher<Void, Error> in
-                if !exists {
-                    //채팅방 없는 경우
-                    return DatabaseManager.shared.storeChatRoomData(chatRoomData: chatRoomData)
-                } else {
-                    return Just(())
-                        .setFailureType(to: Error.self)
-                        .eraseToAnyPublisher()
-                }
-            })
-            .flatMap({ _ in
+            .flatMap { exists -> AnyPublisher<Void, Error> in
+                exists 
+                ? Just(()).setFailureType(to: Error.self).eraseToAnyPublisher()
+                : DatabaseManager.shared.storeChatRoomData(chatRoomData: chatRoomData)
+            }
+            .flatMap { _ in
                 DatabaseManager.shared.storeChatMessageData(chatRoomData: chatRoomData, chatMessageData: chatMessageData)
-            })
-            .flatMap({ _ in
+            }
+            .flatMap { _ in
                 DatabaseManager.shared.updateChatRoom(chatRoomId: chatRoomData.chatRoomId, chatMessageData: chatMessageData)
-            })
+            }
             .sink(receiveCompletion: { completion in
                 if case .failure(let error) = completion {
                     print("Send Message Error : \(error)")
@@ -129,10 +123,8 @@ class ChatLogViewModel: ObservableObject {
                 switch completion {
                 case .failure(let error):
                     print("Send Message Error : \(error)")
-
                 case .finished:
                      break
-                     
                 }
             }, receiveValue: { _ in
                 
@@ -425,8 +417,8 @@ class ChatLogViewModel: ObservableObject {
                         await self.refreshChatRoom(roomId)
                     }
                 }
-            }, receiveValue: { result in
-                self.sendResultMessage()
+            }, receiveValue: { [weak self] _ in
+                self?.sendResultMessage()
             })
             .store(in: &cancellables)
     }
@@ -457,41 +449,52 @@ class ChatLogViewModel: ObservableObject {
     }
     
     func validateChatRoomMembers(users: Set<ChatUser>) -> Set<ChatUser> {
-        guard let participants = chatRoom?.participants else { return [] }
+        guard let participants = chatRoom?.participants else { return ([]) }
         let participantsSet = Set(participants)
         let excludeUsers = users.filter { !participantsSet.contains($0.uid) }
         return excludeUsers
     }
     
     func joinChatRoom(users: Set<ChatUser>) {
+        guard let chatRoom = chatRoom else { return }
         let userIds = users.map{$0.uid}
-        guard let chatRoomId = chatRoom?.chatRoomId else { return }
-        let chatRoomType = ((users.count + (chatRoom?.participants.count ?? 0)) > 2) ? chatRoomType.group : chatRoomType.direct
-        DatabaseManager.shared.updateChatRoomParticipants(userIds: userIds, chatRoomId: chatRoomId)
+        let chatRoomType: ChatRoomType = (users.count + (chatRoom.participants.count) > 2) ? .group : .direct
+        
+        //채팅방 이름 설정
+        let selectedName = users.map(\.displayName).joined(separator: ",")
+        let perviousName = chatRoom.participants.compactMap({usersInfo?[$0]?.displayName}).joined(separator: ",")
+        let addName = [perviousName, selectedName].filter{!$0.isEmpty}.joined(separator: ",")
+        let chatName = (chatRoomType == .group && chatRoom.isCustomName) ? chatRoom.chatName : addName
+        
+        DatabaseManager.shared.updateChatRoomParticipants(userIds: userIds, chatRoomId: chatRoom.chatRoomId)
             .flatMap({ _ in
-                DatabaseManager.shared.updateChatRoomParticipantsJoinDates(userIds: userIds, chatRoomId: chatRoomId)
+                DatabaseManager.shared.updateChatRoomParticipantsJoinDates(userIds: userIds, chatRoomId: chatRoom.chatRoomId)
             })
             .flatMap({ _ in
-                DatabaseManager.shared.updateChatRoomFieldInfo(chatRoomId: chatRoomId, field: "chatRoomType", value: chatRoomType)
+                DatabaseManager.shared.updateChatRoomFieldInfo(chatRoomId: chatRoom.chatRoomId, field: "chatRoomType", value: chatRoomType.rawValue)
+            })
+            .flatMap({ _ in
+                DatabaseManager.shared.updateChatRoomFieldInfo(chatRoomId: chatRoom.chatRoomId, field: "chatName", value: chatName)
             })
             .sink(receiveCompletion: { completion in
-                if case .failure(let failure) = completion {
-                    print("Firebase Error : \(failure)")
+                switch completion {
+                case .failure(let error):
+                    print("Firebase Error: \(error)")
+                case .finished:
+                    Task { await self.refreshChatRoom(chatRoom.chatRoomId) }
                 }
-                if case .finished = completion {
-                    Task {
-                        await self.refreshChatRoom(chatRoomId)
-                    }
-                }
-            }, receiveValue: { [self] result in
-                sendResultMessage(inviteUsers: users)
+            }, receiveValue: { [weak self] _ in
+                self?.sendResultMessage(inviteUsers: users)
             })
             .store(in: &cancellables)
     }
     
     func refreshChatRoom(_ chatRoomId: String) async {
         let docRef = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
-        self.chatRoom = try? await docRef.getDocument().data(as: ChatRoom.self)
+        let chatRoom = try? await docRef.getDocument().data(as: ChatRoom.self)
+        await MainActor.run {
+            self.chatRoom = chatRoom
+        }
         self.fetchUsersInfoByRoom()
     }
     

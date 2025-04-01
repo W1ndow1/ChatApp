@@ -137,7 +137,7 @@ struct ChatRoomSideMenuView: View {
             }
             Spacer()
         }
-        .background(.white)
+        .background(Color.clear)
     }
 
     @ViewBuilder
@@ -160,21 +160,26 @@ struct ChatRoomSideMenuView: View {
     }
 }
 
+
 #Preview {
-    ChatRoomSideMenuView(viewModel: .init(chatRoom: .init(chatRoomId:
-      """
-      UyZOQtY9occyvmxpP82jr7QdEP12_
-      WDznGLHspLevJ0kgC9m783bUtWB3_
-      Wv5HZZ3NMOQysA9VqEUdgdGQs713_
-      qZHV0Ds2YMWgZ1vLeNl1fHL5C2C3_
-      uBzmBwnRmdbkCFoBls9DHa4uC8j2
-      """,
-      chatRoomMakerId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
-      participants: ["UyZOQtY9occyvmxpP82jr7QdEP12",
-                     "WDznGLHspLevJ0kgC9m783bUtWB3",
-                     "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
-                     "qZHV0Ds2YMWgZ1vLeNl1fHL5C2C3",
-                     "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
-      lastMessageTimeStamp: Timestamp(date: Date()),
-      lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")), isShowSelectUserView: .constant(true))
+    ChatRoomSideMenuView(viewModel: .init(chatRoom: ChatRoom(
+        chatRoomType: ChatRoomType.group,
+        chatRoomId: """
+                    UyZOQtY9occyvmxpP82jr7QdEP12_
+                    WDznGLHspLevJ0kgC9m783bUtWB3_
+                    Wv5HZZ3NMOQysA9VqEUdgdGQs713_
+                    qZHV0Ds2YMWgZ1vLeNl1fHL5C2C3_
+                    uBzmBwnRmdbkCFoBls9DHa4uC8j2
+                    """,
+        chatRoomMakerId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
+        participants: ["UyZOQtY9occyvmxpP82jr7QdEP12",
+                      "WDznGLHspLevJ0kgC9m783bUtWB3",
+                      "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
+                      "qZHV0Ds2YMWgZ1vLeNl1fHL5C2C3",
+                      "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
+        isCustomName: true,
+        chatName: "Test Group Chat",
+        lastMessage: "Last test message",
+        lastMessageTimeStamp: Timestamp(date: Date()),
+        lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")), isShowSelectUserView: .constant(true))
 }
