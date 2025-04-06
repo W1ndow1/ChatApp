@@ -13,7 +13,7 @@ class NewMessageViewModel: ObservableObject {
     @Published var users = [ChatUser]()
     @Published var errerMessage = ""
     @Published var profileImage: UIImage?
-    @Published var existChatRooms = [ChatRoom]()
+    @Published var existChatRooms: [ChatRoom]?
     
     private var cancellables = Set<AnyCancellable>()
     

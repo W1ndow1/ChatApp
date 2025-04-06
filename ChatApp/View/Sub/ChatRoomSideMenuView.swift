@@ -35,6 +35,7 @@ struct ChatRoomSideMenuView: View {
                             .scrollIndicators(.hidden)
                         Spacer()
                         bottomView()
+                            
                     }
                     .frame(width: 320)
                     .background(.windowBackground)
@@ -43,6 +44,14 @@ struct ChatRoomSideMenuView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isShowSelectUserView)
+        .customAlert(title: viewModel.chatRoom?.chatName, message: "채팅방을 나가시겠습니까?", isPresented: $leaveAlert, actions: [
+            AlertAction(title: "취소", role: .destructive){},
+            AlertAction(title: "확인", role: .none){
+                viewModel.leaveChatRoom()
+                dismiss()
+            }
+        ])
+        .customAlert(title: "추가실패", message: "이미 채팅방에 있는 인원입니다.", isPresented: $validateAlert, actions: [AlertAction(title: "확인", role: .none, action: {})])
     }
     
     @ViewBuilder
@@ -132,9 +141,12 @@ struct ChatRoomSideMenuView: View {
                     }
                 }
             }
-            .alert("이미 채팅방에 있는 인원입니다.", isPresented: $validateAlert) {
+            
+            /*
+             .alert("이미 채팅방에 있는 인원입니다.", isPresented: $validateAlert) {
                 Button("확인", role: .none) { }
             }
+             */
             Spacer()
         }
         .background(Color.clear)
@@ -151,12 +163,15 @@ struct ChatRoomSideMenuView: View {
             .font(.system(size: 18, weight: .bold))
             .foregroundStyle(.tint)
         }
+        /*
         .alert("채팅방을 나가시겠습니까?", isPresented: $leaveAlert) {
             Button("확인", role: .destructive) {
                 viewModel.leaveChatRoom()
                 dismiss()
             }
         }
+         */
+        
     }
 }
 
@@ -178,7 +193,7 @@ struct ChatRoomSideMenuView: View {
                       "qZHV0Ds2YMWgZ1vLeNl1fHL5C2C3",
                       "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
         isCustomName: true,
-        chatName: "Test Group Chat",
+        chatName: "점심모임🍎🍙🥟🥗🥪",
         lastMessage: "Last test message",
         lastMessageTimeStamp: Timestamp(date: Date()),
         lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")), isShowSelectUserView: .constant(true))

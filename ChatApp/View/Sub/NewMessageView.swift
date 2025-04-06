@@ -15,6 +15,7 @@ struct NewMessageView: View {
     @State private var searchText = ""
     @State private var selectedItems: Set<ChatUser> = []
     @State private var navigateToSettingView = false
+    @State private var showSheet = false
  
     var isInChatRoom: Bool
     var chatRoomInfo: (Set<ChatUser>, ChatRoom) -> ()
@@ -30,9 +31,21 @@ struct NewMessageView: View {
             .padding(10)
             
             ScrollView{
-                if selectedItems.count > 0 {
-                    ForEach(viewModel.existChatRooms) { room in
-                        Text("\(room.chatName)")
+                if !isInChatRoom {
+                    if let existRooms = viewModel.existChatRooms, existRooms.count > 0 {
+                        Button {
+                            showSheet.toggle()
+                        } label: {
+                            Text("선택한 사용자가 참여하고 있는 채팅방 : \(existRooms.count)개")
+                                .font(.system(size: 15, weight: .thin))
+                            
+                        }
+                        .sheet(isPresented: $showSheet) {
+                            sheetView(existRooms)
+                                .presentationDetents([.height(300)])
+                                .presentationDragIndicator(.visible)
+                                .presentationCornerRadius(20)
+                        }
                     }
                 } else {
                     EmptyView()
@@ -80,12 +93,46 @@ struct NewMessageView: View {
         }
     }
     
+    @ViewBuilder
+    func sheetView(_ existRooms: [ChatRoom]) -> some View {
+        ScrollView {
+            ForEach(existRooms) { room in
+                VStack{
+                    HStack{
+                        Circle()
+                            .frame(width: 40, height: 40)
+                            .foregroundStyle(Color.customAlert)
+                        Button {
+                            chatRoomInfo(selectedItems, room)
+                            dismiss()
+                        } label: {
+                            VStack(alignment: .leading) {
+                                Text(room.chatName)
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundStyle(Color.buttonTitle)
+                                Text(room.lastMessage)
+                                    .font(.system(size: 13, weight: .light))
+                                    .foregroundStyle(.gray)
+                            }
+                        }
+                        Spacer()
+                    }
+                    Divider()
+                }
+                .padding(.vertical, 5)
+            }
+        }
+        .scrollIndicators(.hidden)
+        .padding(.top, 20)
+        .padding(.horizontal, 20)
+    }
+    
     func makeChatRoomInfo() -> ChatRoom {
         let fromId = AuthManager.shared.id ?? ""
         let participants = selectedItems.map({$0.uid}) + [fromId]
         let chatName = selectedItems.map{$0.displayName}.joined(separator: ",")
         
-        if let existChatRooms = viewModel.existChatRooms.first {
+        if let existChatRooms = viewModel.existChatRooms?.first {
             return existChatRooms
         } else {
             return ChatRoom(chatRoomType: (participants.count > 2 ? .group : .direct),

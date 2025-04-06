@@ -147,8 +147,13 @@ class MessageListViewModel: ObservableObject {
                 case .modified:
                     if let updatedChatRoom = try? change.document.data(as: ChatRoom.self),
                        let index = self.chatRooms.firstIndex(where: { $0.chatRoomId == updatedChatRoom.chatRoomId }) {
-                        self.chatRooms[index] = self.editChatRoomInfo(chatRoom: updatedChatRoom)
-                        self.showLocalNotification(chatRoom: updatedChatRoom)
+                        
+                        let previousChatRoom = self.chatRooms[index] //기존 데이터 
+                        
+                        if previousChatRoom.lastMessage != updatedChatRoom.lastMessage {
+                            self.chatRooms[index] = self.editChatRoomInfo(chatRoom: updatedChatRoom)
+                            self.showLocalNotification(chatRoom: updatedChatRoom)
+                        }
                     }
                 case .removed:
                     let removedChatRoomId = change.document.documentID
@@ -239,7 +244,6 @@ class MessageListViewModel: ObservableObject {
         DatabaseManager.shared.deleteChatRoomParticipant(userId: uid, chatRoomIds: chatRoom.chatRoomId)
             .flatMap({ _ in
                 DatabaseManager.shared.deleteChatRoomParticipantJoinDates(userId: uid, chatRoomIds: chatRoom.chatRoomId)
-                
             })
             .sink(receiveCompletion: { complete in
                 if case .failure(let failure) = complete {
