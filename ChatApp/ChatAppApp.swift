@@ -34,7 +34,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 @main
 struct ChatAppApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject var viewModel = LoginViewModel()
     
     init() {
         FirebaseApp.configure()
@@ -44,7 +43,6 @@ struct ChatAppApp: App {
         WindowGroup {
             HomeTabView()
                 .tint(.pink)
-                .environmentObject(viewModel)
         }
     }
 }

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HomeTabView: View {
-    @EnvironmentObject var viewModel: LoginViewModel
+    @StateObject var viewModel = LoginViewModel()
     @Environment(\.dismiss) private var dismiss
     @State var selectedTab = 1
     @State var hideTabBar = false
@@ -38,5 +38,5 @@ struct HomeTabView: View {
 
 #Preview {
     HomeTabView()
-        .environmentObject(LoginViewModel())
 }
+

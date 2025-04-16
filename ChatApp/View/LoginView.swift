@@ -32,8 +32,8 @@ struct LoginView: View {
             .navigationTitle("로그인" )
             .navigationBarTitleDisplayMode(.inline)
             .background(Color(white: 0, opacity: 0.05))
-            
         }
+        .customAlert(title: "확인", message: "이메일 혹은 비밀번호를 입력해주세요.", isPresented: $viewModel.showAlert, actions: [AlertAction(title: "확인", role: .none, action: {})])
     }
     
     @ViewBuilder
@@ -52,7 +52,6 @@ struct LoginView: View {
         
         Button {
             viewModel.loginButtonTap()
-            print(viewModel.isAuthenticated)
         } label: {
             Text("로그인")
                 .frame(maxWidth: .infinity)
@@ -61,14 +60,14 @@ struct LoginView: View {
                 .padding(13)
                 .background(.tint, in: RoundedRectangle(cornerRadius: 20))
         }
-        .alert("이메일 혹은 비밀번호를 입력해주세요.", isPresented: $viewModel.showAlert, actions: {
-            Button("확인", role: .cancel, action: {})
-        })
         Text("\(viewModel.statusMessage)")
             .foregroundStyle(.gray)
     }
 }
 
 #Preview {
-    LoginView(viewModel: .init())
+    let viewModel = LoginViewModel()
+        viewModel.email = "Blue1423@gmail.com" // 초기값 테스트
+        viewModel.password = "1234567"
+        return LoginView(viewModel: viewModel)
 }

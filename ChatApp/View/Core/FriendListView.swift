@@ -9,6 +9,7 @@ struct FriendListView: View {
     @State private var selectedUserData: Set<ChatUser>?
     @State private var chatRoom = ChatRoom()
     @State private var navigationChatLogView = false
+    @State private var friendCount: Int = 0
     @FocusState private var isTextFieldFocused: Bool
     @Binding var hideTabBar: Bool
     
@@ -31,6 +32,9 @@ struct FriendListView: View {
             }
             .onAppear {
                 hideTabBar = false
+            }
+            .onReceive(viewModel.$users) { users in
+                self.friendCount = users.filter { $0.uid != AuthManager.shared.id}.count
             }
         }
     }
@@ -69,6 +73,7 @@ struct FriendListView: View {
             //OtherUser
             Section(header: sectionHeader()) {
                 let users = viewModel.users.filter({$0.uid != AuthManager.shared.id})
+                
                 ForEach(users.filter { user in
                     searchText.isEmpty ||
                     user.displayName.contains(searchText) ||
@@ -90,7 +95,7 @@ struct FriendListView: View {
     @ViewBuilder
     func sectionHeader() -> some View {
         HStack {
-            Text("친구")
+            Text("친구 \(friendCount)")
                 .font(.system(size: 13))
             Spacer()
         }

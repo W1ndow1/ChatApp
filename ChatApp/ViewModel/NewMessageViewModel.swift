@@ -45,9 +45,7 @@ class NewMessageViewModel: ObservableObject {
             let request = URLRequest(url: url)
             let (data, _) = try await URLSession.shared.data(for: request)
             if let uiimage = UIImage(data: data) {
-                DispatchQueue.main.async {
-                    self.profileImage = uiimage
-                }
+                self.profileImage = uiimage
             }
         } catch {
             print("Failed to load Image", error)

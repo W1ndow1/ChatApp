@@ -32,8 +32,7 @@ class LoginViewModel: ObservableObject {
     }
     
     func loginButtonTap() {
-        if validateInputFields(email: email,
-                               password: password) {
+        if validateInputFields(email: email, password: password) {
             login()
         } else {
             statusMessage = "비어 있는 정보가 있습니다."
