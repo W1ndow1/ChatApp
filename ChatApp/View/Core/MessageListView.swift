@@ -125,7 +125,7 @@ struct MessageListView: View {
                         .overlay(RoundedRectangle(cornerRadius: 51).stroke(.opacity(0.3), lineWidth: 1))
                 } else {
                     if let uid = AuthManager.shared.id {
-                        let user = room.participants.filter({$0 != uid })
+                        let user = Array(room.participants.filter({$0 != uid }).prefix(4))
                         groupChatRoomImage(user: user)
                     }
                 }

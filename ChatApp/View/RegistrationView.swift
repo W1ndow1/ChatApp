@@ -13,6 +13,14 @@ struct RegistrationView: View {
     @ObservedObject var viewModel: LoginViewModel
     @State private var selectedItem: PhotosPickerItem?
     
+    enum Field {
+        case email
+        case displayName
+        case password
+        case passwordCheck
+    }
+    @FocusState private var focusFiled: Field?
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 15) {
@@ -61,7 +69,7 @@ struct RegistrationView: View {
                             .padding()
                     }
                 }
-                .overlay(Circle().stroke(Color.blue, lineWidth: 4))
+                .overlay(Circle().stroke(.tint, lineWidth: 4))
             }
             .onChange(of: selectedItem, { oldItem, newItem in
                 guard let newItem = newItem else { return }
@@ -78,15 +86,41 @@ struct RegistrationView: View {
             TextField("이메일" ,text: $viewModel.email)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.none)
+                .submitLabel(.next)
+                .focused($focusFiled, equals: .email)
+                .onSubmit {
+                    focusFiled = .displayName
+                }
+            
             TextField(text: $viewModel.displayName, label: {
-                Text("닉네임")
+                Text("이름")
             })
+            .keyboardType(.default)
+            .focused($focusFiled, equals: .displayName)
+            .submitLabel(.next)
+            .onSubmit {
+                focusFiled = .password
+            }
+            
             SecureField(text: $viewModel.password, label: {
                 Text("비밀번호")
             })
+            .textContentType(.none)
+            .focused($focusFiled, equals: .password)
+            .submitLabel(.next)
+            .onSubmit {
+                focusFiled = .passwordCheck
+            }
+            
             SecureField(text: $viewModel.passwordCheck, label: {
                 Text("비밀번호 확인")
             })
+            .textContentType(.none)
+            .focused($focusFiled, equals: .passwordCheck)
+            .submitLabel(.done)
+            .onSubmit {
+                focusFiled = nil
+            }
         }
         .padding(12)
         .overlay(content: {
@@ -101,15 +135,14 @@ struct RegistrationView: View {
     @ViewBuilder
     func registrationButtonView() -> some View {
         Button{
-            viewModel.isLoginMode = false
             viewModel.registrationButtonTap()
         } label: {
-            Text("확인")
+            Text("가입하기")
                 .frame(maxWidth: .infinity)
                 .font(.system(size: 18, weight: .none))
                 .foregroundStyle(.background)
                 .padding(15)
-                .background(.blue, in: RoundedRectangle(cornerRadius: 20))
+                .background(.tint, in: RoundedRectangle(cornerRadius: 20))
         }
     }
 }

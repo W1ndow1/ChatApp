@@ -13,7 +13,7 @@ class AuthManager: ObservableObject {
     
     static let shared = AuthManager()
     
-    var id: String? { Auth.auth().currentUser?.uid }
+    @Published private(set) var id = Auth.auth().currentUser?.uid
     
     func loginUser(email: String, password: String) -> Future<AuthDataResult, Error>{
         return Future { promise in
@@ -35,9 +35,21 @@ class AuthManager: ObservableObject {
                     promise(.failure(error))
                 } else if let result = result {
                     promise(.success(result))
+                    self.id = result.user.uid
                 }
             }
         }
+    }
+    
+    func loginUser(email: String, password: String) async throws -> AuthDataResult {
+        let result = try await Auth.auth().signIn(withEmail: email, password: password)
+        return result
+    }
+    
+    func regiserUser(email: String, password: String) async throws -> AuthDataResult {
+        let result = try await Auth.auth().createUser(withEmail: email, password: password)
+        id = result.user.uid
+        return result
     }
     
     func logoutUser() {

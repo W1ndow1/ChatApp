@@ -72,5 +72,15 @@ class StorageManager {
         }
         .eraseToAnyPublisher()
     }
+    
+    func uploadChatRoomImage(image: Data, chatRoom: ChatRoom) async throws -> URL {
+        let storageRef = self.storage.reference()
+        let imageRef = storageRef.child("images/room/\(chatRoom.chatRoomId)/\(UUID().uuidString).jpeg")
+        let metaData = StorageMetadata()
+        metaData.contentType = "image/jpeg"
+        _ = try await imageRef.putDataAsync(image, metadata: metaData)
+        return try await imageRef.downloadURL()
+        
+    }
 }
 

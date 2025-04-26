@@ -23,7 +23,9 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
+ 
         /*
+        migrationAllRoomMessageToAddType()
         renameField(completion: { result in
             switch result {
             case .success():
@@ -175,10 +177,11 @@ class MessageListViewModel: ObservableObject {
     
     func showLocalNotification(chatRoom: ChatRoom) {
         let msg = ChatMessage(messageId: "",
+                              type: .text,
                               senderId: chatRoom.lastMessageSenderId,
-                               text: chatRoom.lastMessage,
-                               timeStamp: chatRoom.lastMessageTimeStamp,
-                               readBy:[])
+                              text: chatRoom.lastMessage,
+                              timeStamp: chatRoom.lastMessageTimeStamp,
+                              readBy:[])
         guard currentUser?.uid != msg.senderId else { return }
         let content = UNMutableNotificationContent()
         content.title = usersIdInfo[msg.senderId]?.displayName ?? "새로운 메시지"
@@ -263,6 +266,7 @@ class MessageListViewModel: ObservableObject {
         guard let userInfo = currentUser else { return }
         let leaveText = "\(userInfo.displayName)님이 채팅방에서 나갔습니다."
         let resultMessage = ChatMessage(messageId: UUID().uuidString,
+                                        type: .leave,
                                         senderId: "leave",
                                         text: leaveText,
                                         timeStamp: Timestamp(date: Date()),
@@ -350,6 +354,59 @@ class MessageListViewModel: ObservableObject {
                 } else {
                     print("배치 업데이트 성공")
                     completion(.success(()))
+                }
+            }
+        }
+    }
+    
+    func migrationAllRoomMessageToAddType() {
+        let db = DatabaseManager.shared.db
+        let roomRef = db.collection("rooms")
+        
+        roomRef.getDocuments { snapshot, error in
+            if let error = error {
+                print("Firebase Error: \(error)")
+                return
+            }
+            guard let rooms = snapshot?.documents, !rooms.isEmpty else {
+                print("변환할 문서가 없습니다.")
+                return
+            }
+            for room in rooms {
+                let roomId = room.documentID
+                let messageRef = roomRef.document(roomId).collection("messages")
+                messageRef.getDocuments{ messagesSnapshot, error in
+                    if let error = error {
+                        print("Firebase Error: \(error)")
+                        return
+                    }
+                    guard let messages = messagesSnapshot?.documents, !messages.isEmpty else {
+                        print("변환할 문서가 없습니다.")
+                        return
+                    }
+                    for message in messages {
+                        let data = message.data()
+                        if data["type"] != nil {
+                            continue
+                        }
+                        
+                        let senderId = data["senderId"] as? String ?? ""
+                        var messageType = "text"
+                        
+                        if senderId == "leave" {
+                            messageType = "leave"
+                        } else if senderId == "join" {
+                            messageType = "join"
+                        }
+                        
+                        messageRef.document(message.documentID).updateData(["type": messageType]) { error in
+                            if let error = error {
+                                print("메시지 업데이트 실패: \(error)")
+                            } else {
+                                print("메시지\(message.documentID ) 타입 업데이트 성공")
+                            }
+                        }
+                    }
                 }
             }
         }

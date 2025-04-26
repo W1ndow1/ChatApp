@@ -26,7 +26,6 @@ struct ChatRoomSettingView: View {
             .navigationTitle("채팅방 환경설정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                
                 ToolbarItem(placement:.topBarTrailing) {
                     Button {
                         dismiss()

@@ -85,6 +85,7 @@ struct GroupChatRoomInfoSettingView: View {
                         chatRoomId: UUID().uuidString,
                         chatRoomMakerId: AuthManager.shared.id ?? "",
                         participants: participants.sorted(by: {$0 < $1}),
+                        isCustomName: true,
                         chatName: chatRoomName.count == 0
                         ? placeholder
                         : chatRoomName

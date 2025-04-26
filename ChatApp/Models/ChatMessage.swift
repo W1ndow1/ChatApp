@@ -11,6 +11,7 @@ import FirebaseCore
 struct ChatMessage: Identifiable, Codable {
     var id: String { messageId }
     var messageId: String
+    var type: ChatMessageType?
     var senderId: String
     var receiverId: String = ""
     var text: String = ""
@@ -21,23 +22,12 @@ struct ChatMessage: Identifiable, Codable {
     var isFromSameSender: Bool?
 }
 
-struct ChatRoom: Identifiable, Codable, Hashable {
-    var id: String { chatRoomId }
-    var chatRoomType: ChatRoomType?
-    var chatRoomId: String = ""
-    var chatRoomMakerId: String = ""
-    var participants: [String] = []
-    var participantsJoinDates: [String : Timestamp]?
-    var isCustomName: Bool = false
-    var chatName: String = ""
-    var lastMessage: String = ""
-    var lastMessageTimeStamp: Timestamp = Timestamp()
-    var lastMessageSenderId: String = ""
-}
 
-enum ChatRoomType: String, Codable, CaseIterable {
-    case direct = "direct"
-    case group = "group"
-    case selfChat = "selfChat"
-    case advertisement = "advertisement"
+enum ChatMessageType: String, Codable, CaseIterable {
+    case text = "text"
+    case image = "image"
+    case video = "video"
+    case leave = "leave"
+    case join = "join"
 }
+			

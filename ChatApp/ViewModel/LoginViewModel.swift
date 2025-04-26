@@ -19,7 +19,6 @@ class LoginViewModel: ObservableObject {
     @Published var passwordCheck = ""
     @Published var displayName = ""
     @Published var userName = ""
-    @Published var isLoginMode = false
     @Published var showAlert = false
     @Published var statusMessage = ""
     @Published var image: UIImage?

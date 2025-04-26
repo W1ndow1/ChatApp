@@ -18,6 +18,7 @@ struct ChatRoomSideMenuView: View {
     @State private var isShowSettingView = false
     @Binding var isShowSelectUserView: Bool
     
+    
     var body: some View {
         ZStack {
             if isShowSelectUserView {
@@ -84,6 +85,7 @@ struct ChatRoomSideMenuView: View {
         .padding(.vertical, 15)
         .padding(.leading, 10)
         .padding(.trailing, 20)
+        .padding(.top, 10)
         .background(Color.gray.opacity(0.1))
     }
     
@@ -141,12 +143,6 @@ struct ChatRoomSideMenuView: View {
                     }
                 }
             }
-            
-            /*
-             .alert("이미 채팅방에 있는 인원입니다.", isPresented: $validateAlert) {
-                Button("확인", role: .none) { }
-            }
-             */
             Spacer()
         }
         .background(Color.clear)
@@ -163,15 +159,6 @@ struct ChatRoomSideMenuView: View {
             .font(.system(size: 18, weight: .bold))
             .foregroundStyle(.tint)
         }
-        /*
-        .alert("채팅방을 나가시겠습니까?", isPresented: $leaveAlert) {
-            Button("확인", role: .destructive) {
-                viewModel.leaveChatRoom()
-                dismiss()
-            }
-        }
-         */
-        
     }
 }
 

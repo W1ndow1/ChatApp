@@ -1,4 +1,5 @@
 import SwiftUI
+import _PhotosUI_SwiftUI
 import SDWebImageSwiftUI
 
 struct ChatLogView: View {
@@ -10,10 +11,21 @@ struct ChatLogView: View {
     @State private var isTop = false
     @State private var fromMessageListView: Bool = false
     @State private var debounceTask: Task<Void, Never>?
-    @State private var showSideMenuView = false
+    @State private var showSideMenu = false
+    @State private var isBottomMenuVisible = false
+    @State private var hasOpenedBottomMenuOnce = false
     @Binding var hideTabBar: Bool
+    @FocusState private var isFocused: Bool
+    @StateObject var keyboardObserver = KeyboardStateObserver()
+    @State private var bottomMenuState: BottomMenuState =  .initial
     
     private var userData: Set<ChatUser>?
+    
+    enum BottomMenuState {
+        case initial
+        case visible
+        case hidden
+    }
     
     //새 채팅방 생성으로 들어온 경우
     init(_ userData: Set<ChatUser>?,
@@ -39,32 +51,36 @@ struct ChatLogView: View {
     var body: some View {
         ZStack {
             chatBubbleRow()
-                .onAppear {
-                    navigationTitleLengthCheck()
-                    guard let chatRoomId = viewModel.chatRoom?.chatRoomId else { return }
-                    viewModel.fetchInitialMessages(chatRoomId: chatRoomId)
-                }
-                .onDisappear {
-                    viewModel.stopListening()
-                }
-            ChatRoomSideMenuView(viewModel: viewModel, isShowSelectUserView: $showSideMenuView)
-                .onTapGesture {
-                    Task { await viewModel.refreshChatRoom(chatRoom?.chatRoomId ?? "") }
-                }
+            ChatRoomSideMenuView(
+                viewModel: viewModel,
+                isShowSelectUserView: $showSideMenu)
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(showSideMenu ? .hidden : .visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    self.showSideMenuView.toggle()
+                    hideKeyboard()
+                    showSideMenu = true
+                    Task {
+                        await viewModel.refreshChatRoom(chatRoom?.chatRoomId ?? "")
+                    }
                 }label: {
                     Image(systemName: "sidebar.right")
                 }
             }
         }
-        .toolbar(showSideMenuView ? .hidden: .visible, for: .navigationBar)
+        .onAppear {
+            navigationTitleLengthCheck()
+            guard let chatRoomId = viewModel.chatRoom?.chatRoomId else { return }
+            viewModel.fetchInitialMessages(chatRoomId: chatRoomId)
+        }
+        .onDisappear {
+            viewModel.stopListening()
+        }
     }
+    
     
     @ViewBuilder
     private func chatBubbleRow() -> some View {
@@ -72,22 +88,16 @@ struct ChatLogView: View {
             ScrollView(.vertical) {
                 LazyVStack {
                     GeometryReader { geo in
-                        Color.clear
-                            .preference(key: ScrollOffsetPreferenceKey.self, 
+                        Color
+                            .clear
+                            .preference(key: ScrollOffsetPreferenceKey.self,
                                         value: geo.frame(in: .named("scroll")).minY)}
                     ForEach(viewModel.chatMessages) { msg in
                         Section(header: chatSection(msg: msg)) {
                             HStack {
-                                switch msg.senderId {
-                                case "leave", "join":
-                                    chatRoomMemberStateMessage(msg: msg)
-                                case AuthManager.shared.id:
-                                    myMessage(msg: msg)
-                                default:
-                                    otherMessage(msg: msg)
-                                }
+                                messageContent(msg)
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 2)
                             .padding(.horizontal, 8)
                         }
                         .id(msg.id)
@@ -103,10 +113,20 @@ struct ChatLogView: View {
             }
             .defaultScrollAnchor(.top)
             .background(Color(white: 0.3, opacity: 0.1))
-            .onTapGesture { self.hideKeyboard() }
+            .onTapGesture {
+                if isBottomMenuVisible {
+                    isBottomMenuVisible = false
+                }
+                hasOpenedBottomMenuOnce = false
+                hideKeyboard()
+            }
             .rotationEffect(.degrees(180))
             .scaleEffect(x: -1)
-            .safeAreaInset(edge: .bottom) { viewBottom(proxy: proxy) }
+            .safeAreaInset(edge: .bottom){
+                bottomInputView()
+                    //.offset(y: viewModel.keyboardHeight > 0 && !isBottomMenuVisible ? -viewModel.keyboardHeight : 0 )
+            }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .coordinateSpace(name: "scroll")
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
                 debounceTask?.cancel()
@@ -123,6 +143,28 @@ struct ChatLogView: View {
                 }
             }
         }
+    }
+    
+    @ViewBuilder
+    private func messageContent(_ msg: ChatMessage) -> some View {
+        HStack {
+                switch msg.type {
+                case .text:
+                    if msg.senderId != AuthManager.shared.id {
+                        otherMessage(msg: msg)
+                    } else {
+                        myMessage(msg: msg)
+                    }
+                case .leave, .join:
+                    chatRoomMemberStateMessage(msg: msg)
+                case .image:
+                    imageMessage(msg: msg)
+                default:
+                    EmptyView()
+                }
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
     }
     
     @ViewBuilder
@@ -156,6 +198,36 @@ struct ChatLogView: View {
         }
     }
     
+    @ViewBuilder
+    private func imageMessage(msg: ChatMessage) -> some View {
+        HStack(alignment: .top) {
+            if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
+                WebImage(url: URL(string: viewModel.usersInfo?[msg.senderId]?.profileImageURL ?? ""))
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Rectangle()
+                    .foregroundStyle(Color.clear)
+                    .frame(width:35)
+            }
+            VStack(alignment: .leading) {
+                if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
+                    Text(viewModel.usersInfo?[msg.senderId]?.displayName ?? "")
+                        .font(.system(size: 10, weight: .light))
+                }
+                HStack(alignment: .bottom) {
+                    WebImage(url: URL(string: msg.text))
+                        .resizable()
+                        .scaledToFill()
+                    if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
+                        Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
+                            .font(.system(size: 10, weight: .light))
+                    }
+                    Spacer()
+                }
+            }
+        }
+    }
     
     @ViewBuilder
     private func otherMessage(msg: ChatMessage) -> some View {
@@ -191,7 +263,7 @@ struct ChatLogView: View {
                     }
                     Spacer()
                 }
-                .padding(.vertical, 5)
+                .padding(.vertical, 3)
             }
             .padding(.trailing, 30)
         }
@@ -216,62 +288,99 @@ struct ChatLogView: View {
                 .lineLimit(nil)
                 .multilineTextAlignment(.leading)
         }
-        .padding(.vertical, 5)
         .padding(.leading, 30)
     }
 
-    
+
     @ViewBuilder
-    private func viewBottom(proxy: ScrollViewProxy) -> some View {
-        HStack {
-            Button{
-                
-            } label: {
-                Image(systemName: "photo.on.rectangle.angled")
-                    .foregroundStyle(Color.primary)
-            }
-            TextField("메시지", text: $viewModel.chatText, axis: .vertical)
-                .foregroundStyle(Color.primary)
-                .padding(8)
-                .overlay(content: {
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.primary, lineWidth: 0.8)
-                })
-                .onAppear {
-                    viewModel.loadWritingMessages()
-                    
-                }
-                .onDisappear {
-                    if viewModel.chatText.count > 0 {
-                        viewModel.saveWritingMessages()
+    private func bottomInputView() -> some View {
+        VStack {
+            HStack {
+                Button {
+                    //메뉴를 활성화 하는 버튼
+                    if !hasOpenedBottomMenuOnce {
+                        hideKeyboard()
+                        isBottomMenuVisible = true
+                        hasOpenedBottomMenuOnce = true
                     } else {
-                        viewModel.clearWritingMessages()
+                        isFocused.toggle()
+                    }
+                    
+                } label: {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .foregroundStyle(Color.primary)
+                }
+                
+                TextField("메시지", text: $viewModel.chatText, axis: .vertical)
+                    .focused($isFocused)
+                    .foregroundStyle(Color.primary)
+                    .padding(8)
+                    .textFieldStyle(PlainTextFieldStyle())
+                    .overlay(content: {
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.primary, lineWidth: 0.8)
+                    })
+                    .onAppear {
+                        viewModel.loadWritingMessages()
+                        
+                    }
+                    .onDisappear {
+                        if viewModel.chatText.count > 0 {
+                            viewModel.saveWritingMessages()
+                        } else {
+                            viewModel.clearWritingMessages()
+                        }
+                    }
+                    .onChange(of: viewModel.chatText) { _, new in
+                        enterButtonText = new.count > 0 ? "⇧" : "#"
+                        isFocused = true
+                        
+                    }
+                    .onChange(of: keyboardObserver.isKeyboardVisible && !isBottomMenuVisible) { _, _ in
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            isBottomMenuVisible = keyboardObserver.keyboardHeight > 75
+                        }
+                    }
+                    .onSubmit {
+                        if !viewModel.chatText.isEmpty {
+                            let sendAction: () = fromMessageListView
+                            ? viewModel.sendMessageByRoomId()
+                            : viewModel.sendMessageBySelectedUser()
+                            sendAction
+                            isSendMessage.toggle()
+                            isFocused = true
+                        }
+                    }
+                Button {
+                    if !viewModel.chatText.isEmpty {
+                        let sendAction: () = fromMessageListView
+                        ? viewModel.sendMessageByRoomId()
+                        : viewModel.sendMessageBySelectedUser()
+                        sendAction
+                        isSendMessage.toggle()
+                    }
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .frame(width: 40, height: 40)
+                        Text(enterButtonText)
+                            .font(.system(size: 20, weight: .heavy))
+                            .foregroundStyle(Color.white)
                     }
                 }
-                .onChange(of: viewModel.chatText, { old, new in
-                    enterButtonText = viewModel.chatText.count > 0 ? "⇧" : "#"
-                })
-            Button { 
-                if !viewModel.chatText.isEmpty {
-                    let sendAction: () = fromMessageListView
-                    ? viewModel.sendMessageByRoomId()
-                    : viewModel.sendMessageBySelectedUser()
-                    sendAction
-                    isSendMessage.toggle()
-                }
-            } label: {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20)
-                        .frame(width: 40, height: 40)
-                    Text(enterButtonText)
-                        .font(.system(size: 20, weight: .heavy))
-                        .foregroundStyle(Color.white)
-                }
             }
+            .padding(.horizontal, 10)
+            .padding(.top, 5)
+            .padding(.bottom, 10)
+            .background(Color(.systemBackground))
+            
+            if isBottomMenuVisible {
+                ChatRoomBottomMenuView(viewModel: viewModel)
+                    .frame(height: 300)
+                    .transition(.move(edge: .bottom))
+            }
+            
         }
-        .padding(.horizontal, 10)
-        .padding(.top, 5)
-        .background(Color(.systemBackground))
     }
 }
 

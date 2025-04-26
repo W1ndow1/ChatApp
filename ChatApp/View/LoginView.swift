@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
-import PhotosUI
 
 struct LoginView: View {
     @ObservedObject var viewModel: LoginViewModel
-    @State private var selectedItem: PhotosPickerItem?
+    
+    enum Field {
+        case email
+        case password
+    }
+    @FocusState private var focusedField: Field?
     
     var body: some View {
         NavigationStack {
@@ -33,7 +37,10 @@ struct LoginView: View {
             .navigationBarTitleDisplayMode(.inline)
             .background(Color(white: 0, opacity: 0.05))
         }
-        .customAlert(title: "확인", message: "이메일 혹은 비밀번호를 입력해주세요.", isPresented: $viewModel.showAlert, actions: [AlertAction(title: "확인", role: .none, action: {})])
+        .customAlert(title: "확인",
+                     message: "이메일 혹은 비밀번호를 입력해주세요.",
+                     isPresented: $viewModel.showAlert,
+                     actions: [AlertAction(title: "확인", role: .none, action: {})])
     }
     
     @ViewBuilder
@@ -42,7 +49,18 @@ struct LoginView: View {
             TextField("이메일", text: $viewModel.email)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.none)
+                .submitLabel(.next)
+                .focused($focusedField, equals: .email)
+                .onSubmit {
+                    focusedField = .password
+                }
             SecureField("비밀번호", text: $viewModel.password)
+                .focused($focusedField, equals: .password)
+                .submitLabel(.done)
+                .onSubmit {
+                    focusedField = nil
+                    viewModel.loginButtonTap()
+                }
         }
         .padding(12)
         .overlay(content: {

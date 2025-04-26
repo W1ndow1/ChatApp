@@ -1,4 +1,5 @@
 import Foundation
+import _PhotosUI_SwiftUI
 import FirebaseFirestore
 import Combine
 import UserNotifications
@@ -9,6 +10,8 @@ class ChatLogViewModel: ObservableObject {
     @Published var chatRoom: ChatRoom?
     @Published var usersInfo: [String : ChatUser]?
     @Published var selectedUser: Set<ChatUser>?
+    @Published var selectedImage = [PhotosPickerItem]()
+    @Published var keyboardHeight: CGFloat = 0
     
     private var userData: Set<ChatUser>?
     private var cancellables = Set<AnyCancellable>()
@@ -23,6 +26,7 @@ class ChatLogViewModel: ObservableObject {
         self.userData = userData
         self.chatRoom = chatRoom
         fetchUsersInfoByRoom()
+        setupKeyboardObservers()
     }
 
     //채팅방 목록으로 들어온 경우
@@ -30,10 +34,12 @@ class ChatLogViewModel: ObservableObject {
         self.userData = .init()
         self.chatRoom = room
         fetchUsersInfoByRoom()
+        setupKeyboardObservers()
     }
 
     deinit {
         listener?.remove()
+        NotificationCenter.default.removeObserver(self)
     }
     
     //MARK: - 메시지 전송
@@ -66,6 +72,7 @@ class ChatLogViewModel: ObservableObject {
         
         let chatMessageData = ChatMessage(
             messageId: messageId,
+            type: .text,
             senderId: fromId,
             text: chatText,
             timeStamp: timestamp,
@@ -105,10 +112,11 @@ class ChatLogViewModel: ObservableObject {
         guard let chatRoomId = chatRoom?.chatRoomId else { return }
         guard let senderId = AuthManager.shared.id else { return }
         let chatMessageData = ChatMessage(messageId: UUID().uuidString,
-                                           senderId: senderId,
-                                           text: chatText,
-                                           timeStamp: Timestamp(date: Date()),
-                                           readBy: [])
+                                          type: .text,
+                                          senderId: senderId,
+                                          text: chatText,
+                                          timeStamp: Timestamp(date: Date()),
+                                          readBy: [])
 
         DispatchQueue.main.async {
             self.chatText = ""
@@ -128,6 +136,11 @@ class ChatLogViewModel: ObservableObject {
                 
             })
             .store(in: &cancellables)
+    }
+    
+    func sendImage() {
+        
+        
     }
     
     //MARK: - 공용 메서드
@@ -330,7 +343,7 @@ class ChatLogViewModel: ObservableObject {
         return true
     }
     
-    //MARK: - Concurrency로 변경해보기
+    //MARK: - Concurrency
     
     func fetchInitialMessages(chatRoomId: String) async {
         guard let uid = AuthManager.shared.id else { return }
@@ -359,44 +372,6 @@ class ChatLogViewModel: ObservableObject {
         }
     }
     
-    //수정해야함
-    func fetchMoreMessages() {
-        guard let chatRoomId = chatRoom?.chatRoomId else { return }
-        DatabaseManager.shared.collectionChatMessages(chatRoomId: chatRoomId)
-            .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { completion in
-                if case .failure(let error) = completion {
-                    print("Fetch initial Message Error :\(error)")
-                }
-                if case .finished = completion {
-                    return
-                }
-            }, receiveValue: { message in
-                self.chatMessages = self.addPropMessage(message)
-            })
-            .store(in: &cancellables)
-    }
-    
-    //수정해야함
-    func fetchStartRealTimeListener() {
-        guard let chatRoomId = chatRoom?.chatRoomId else { return }
-        listener = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
-            .collection("messages")
-            .whereField("timeStamp", isGreaterThan: Timestamp(date: Date()))
-            .order(by: "timeStamp", descending: true)
-            .addSnapshotListener { snapshot, error in
-                if error != nil {
-                    return
-                }
-                guard let snapshot = snapshot else { return }
-                snapshot.documentChanges.reversed().forEach { change in
-                    if change.type == .added, let msg = try? change.document.data(as: ChatMessage.self) {
-                        if !(self.chatMessages.contains(where: {$0.messageId == msg.messageId})) {
-                        }
-                    }
-                }
-            }
-    }
     
     //MARK: - 채팅방 인원 관리
     func leaveChatRoom() {
@@ -428,6 +403,7 @@ class ChatLogViewModel: ObservableObject {
               let userName = usersInfo[uid]?.displayName else { return }
         let leaveText = "\(userName)님이 채팅방에서 나갔습니다."
         let resultMessage = ChatMessage(messageId: UUID().uuidString,
+                                        type: .leave,
                                         senderId: "leave",
                                         text: leaveText,
                                         timeStamp: Timestamp(date: Date()),
@@ -506,6 +482,7 @@ class ChatLogViewModel: ObservableObject {
                       \(userName ?? "")님이 \(invitedUserNames.joined(separator: ","))님을 채팅방에 초대했습니다.
                       """
         let resultMessage = ChatMessage(messageId: UUID().uuidString,
+                                        type: .join,
                                         senderId: "join",
                                         text: addText,
                                         timeStamp: Timestamp(date: Date()),
@@ -523,4 +500,24 @@ class ChatLogViewModel: ObservableObject {
             })
             .store(in: &cancellables)
     }
+    
+    private func setupKeyboardObservers() {
+            NotificationCenter.default.addObserver(
+                forName: UIResponder.keyboardWillShowNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    self.keyboardHeight = keyboardFrame.height
+                }
+            }
+
+            NotificationCenter.default.addObserver(
+                forName: UIResponder.keyboardWillHideNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                self.keyboardHeight = 0
+            }
+        }
 }
