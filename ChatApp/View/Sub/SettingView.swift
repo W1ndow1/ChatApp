@@ -9,8 +9,8 @@ import SwiftUI
 import SDWebImageSwiftUI
 
 struct SettingView: View {
-    @EnvironmentObject var em: LoginViewModel
-    @StateObject var vm = SettingViewModel()
+    @EnvironmentObject var loginViewModel: LoginViewModel
+    @StateObject var viewModel = SettingViewModel()
     @State private var showingAlert = false
     
     var body: some View {
@@ -19,9 +19,9 @@ struct SettingView: View {
             accountSection()
         }
         .onAppear(){
-            vm.fetchCurrentUser()
+            viewModel.fetchCurrentUser()
         }
-        .fullScreenCover(isPresented: $vm.isUserCurrentlyLoggedOut, onDismiss: nil) {
+        .fullScreenCover(isPresented: $viewModel.isUserCurrentlyLoggedOut, onDismiss: nil) {
             HomeTabView()
         }
         .navigationTitle("설정")
@@ -32,8 +32,8 @@ struct SettingView: View {
     func userInfoSection() -> some View {
         Section {
             HStack {
-                if (vm.currentUser?.profileImageURL != nil) {
-                    WebImage(url: URL(string: vm.currentUser?.profileImageURL ?? ""))
+                if (viewModel.currentUser?.profileImageURL != nil) {
+                    WebImage(url: URL(string: viewModel.currentUser?.profileImageURL ?? ""))
                         .resizable()
                         .scaledToFill()
                         .frame(width: 50, height: 50)
@@ -41,7 +41,7 @@ struct SettingView: View {
                         .font(.system(size: 50))
                         .overlay(RoundedRectangle(cornerRadius: 44).stroke(.opacity(0.3), lineWidth: 1))
                 } else {
-                    Text(vm.currentUser?.displayName.prefix(2) ?? "")
+                    Text(viewModel.currentUser?.displayName.prefix(2) ?? "")
                         .font(.system(size: 35, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(width: 50, height: 50)
@@ -49,9 +49,9 @@ struct SettingView: View {
                         .clipShape(/*@START_MENU_TOKEN@*/Circle()/*@END_MENU_TOKEN@*/)
                 }
                 VStack(alignment:.leading) {
-                    Text(vm.currentUser?.displayName ?? "")
+                    Text(viewModel.currentUser?.displayName ?? "")
                         .font(.system(size: 18, weight: .semibold))
-                    Text(vm.currentUser?.email ?? "")
+                    Text(viewModel.currentUser?.email ?? "")
                         .font(.system(size: 13))
                         .foregroundStyle(.tint)
                 }
@@ -63,7 +63,7 @@ struct SettingView: View {
     func accountSection() -> some View {
         Section("계정") {
             NavigationLink {
-                EditUserInfoView(svm: vm)
+                EditUserInfoView(svm: viewModel)
             } label: {
                 Text("사용자 정보수정")
             }
@@ -77,8 +77,7 @@ struct SettingView: View {
                                 isPresented: $showingAlert,
                                 titleVisibility: .visible) {
                 Button("확인", role: .destructive) {
-                    vm.handleSignOut()
-                    em.isAuthenticated = false
+                    loginViewModel.logout()
                 }
                 Button("취소", role: .cancel) {
                 }

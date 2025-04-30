@@ -11,9 +11,7 @@ import FirebaseStorage
 import UIKit
 
 class StorageManager {
-    
     static let shared = StorageManager()
-    
     let storage = Storage.storage()
     
     func uploadProfilePhoto(uid: String, image: Data, metaData: StorageMetadata) -> Future<StorageMetadata, Error> {
@@ -29,7 +27,6 @@ class StorageManager {
         }
     }
     
-    
     func getDownloadURL(for id: String) -> Future<URL, Error> {
         return Future { promise in
             let ref = self.storage.reference(withPath: id)
@@ -41,13 +38,6 @@ class StorageManager {
                 }
             }
         }
-    }
-    
-    func getImage(url: URL) async throws -> UIImage {
-        let request = URLRequest(url: url)
-        let (data, _) = try await URLSession.shared.data(for: request)
-        guard let image = UIImage(data: data) else { throw URLError(.badServerResponse) }
-        return image
     }
     
     func uploadProfileImage(userId: String, image: UIImage) -> AnyPublisher<String, Error> {
@@ -73,9 +63,16 @@ class StorageManager {
         .eraseToAnyPublisher()
     }
     
-    func uploadChatRoomImage(image: Data, chatRoom: ChatRoom) async throws -> URL {
+    func getImage(url: URL) async throws -> UIImage {
+        let request = URLRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        guard let image = UIImage(data: data) else { throw URLError(.badServerResponse) }
+        return image
+    }
+    
+    func uploadChatRoomImage(image: Data, chatRoomId: String) async throws -> URL {
         let storageRef = self.storage.reference()
-        let imageRef = storageRef.child("images/room/\(chatRoom.chatRoomId)/\(UUID().uuidString).jpeg")
+        let imageRef = storageRef.child("images/room/\(chatRoomId)/\(UUID().uuidString).jpeg")
         let metaData = StorageMetadata()
         metaData.contentType = "image/jpeg"
         _ = try await imageRef.putDataAsync(image, metadata: metaData)

@@ -92,10 +92,10 @@ struct ChatLogView: View {
                             .clear
                             .preference(key: ScrollOffsetPreferenceKey.self,
                                         value: geo.frame(in: .named("scroll")).minY)}
-                    ForEach(viewModel.chatMessages) { msg in
-                        Section(header: chatSection(msg: msg)) {
+                    ForEach($viewModel.chatMessages) { $msg in
+                        Section(header: chatSection(msg: $msg)) {
                             HStack {
-                                messageContent(msg)
+                                messageContent($msg)
                             }
                             .padding(.vertical, 2)
                             .padding(.horizontal, 8)
@@ -124,7 +124,6 @@ struct ChatLogView: View {
             .scaleEffect(x: -1)
             .safeAreaInset(edge: .bottom){
                 bottomInputView()
-                    //.offset(y: viewModel.keyboardHeight > 0 && !isBottomMenuVisible ? -viewModel.keyboardHeight : 0 )
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .coordinateSpace(name: "scroll")
@@ -146,19 +145,13 @@ struct ChatLogView: View {
     }
     
     @ViewBuilder
-    private func messageContent(_ msg: ChatMessage) -> some View {
+    private func messageContent(_ msg: Binding<ChatMessage>) -> some View {
         HStack {
-                switch msg.type {
-                case .text:
-                    if msg.senderId != AuthManager.shared.id {
-                        otherMessage(msg: msg)
-                    } else {
-                        myMessage(msg: msg)
-                    }
+            switch msg.wrappedValue.type {
+                case .text, .image:
+                    ChatRoomMessageView(viewModel: viewModel, msg: msg)
                 case .leave, .join:
-                    chatRoomMemberStateMessage(msg: msg)
-                case .image:
-                    imageMessage(msg: msg)
+                chatRoomMemberStateMessage(msg: msg.wrappedValue)
                 default:
                     EmptyView()
                 }
@@ -182,10 +175,10 @@ struct ChatLogView: View {
     }
  
     @ViewBuilder
-    private func chatSection(msg: ChatMessage) -> some View {
-        if msg.isFirstInDayGroup ?? false {
+    private func chatSection(msg: Binding<ChatMessage>) -> some View {
+        if msg.wrappedValue.isFirstInDayGroup {
             HStack {
-                Text(msg.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일 (E)"))
+                Text(msg.wrappedValue.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일 (E)"))
                     .padding(10)
                     .font(.system(size: 12, weight: .light))
                     .background(Color.gray.opacity(0.5))
@@ -197,101 +190,6 @@ struct ChatLogView: View {
             }
         }
     }
-    
-    @ViewBuilder
-    private func imageMessage(msg: ChatMessage) -> some View {
-        HStack(alignment: .top) {
-            if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                WebImage(url: URL(string: viewModel.usersInfo?[msg.senderId]?.profileImageURL ?? ""))
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Rectangle()
-                    .foregroundStyle(Color.clear)
-                    .frame(width:35)
-            }
-            VStack(alignment: .leading) {
-                if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                    Text(viewModel.usersInfo?[msg.senderId]?.displayName ?? "")
-                        .font(.system(size: 10, weight: .light))
-                }
-                HStack(alignment: .bottom) {
-                    WebImage(url: URL(string: msg.text))
-                        .resizable()
-                        .scaledToFill()
-                    if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                        Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
-                            .font(.system(size: 10, weight: .light))
-                    }
-                    Spacer()
-                }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func otherMessage(msg: ChatMessage) -> some View {
-        HStack(alignment: .top) {
-            if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                WebImage(url: URL(string: viewModel.usersInfo?[msg.senderId]?.profileImageURL ?? ""))
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 35, height: 35)
-                    .clipShape(Circle())
-            } else {
-                Rectangle()
-                    .foregroundStyle(Color.clear)
-                    .frame(width:35)
-            }
-            VStack(alignment: .leading) {
-                if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                    Text(viewModel.usersInfo?[msg.senderId]?.displayName ?? "")
-                        .font(.system(size: 10, weight: .light))
-                }
-                HStack(alignment: .bottom) {
-                    Text(msg.text)
-                        .padding(8)
-                        .background(Color.white)
-                        .foregroundStyle(.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .frame(minWidth: 30, alignment: .leading)
-                        .lineLimit(nil)
-                        .multilineTextAlignment(.leading)
-                    if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                        Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
-                            .font(.system(size: 10, weight: .light))
-                    }
-                    Spacer()
-                }
-                .padding(.vertical, 3)
-            }
-            .padding(.trailing, 30)
-        }
-        Spacer()
-    }
-    
-    @ViewBuilder
-    private func myMessage(msg: ChatMessage) -> some View {
-        Spacer()
-        HStack(alignment: .bottom) {
-            Spacer()
-            if (msg.isFirstInTimeGroup ?? false) || !(msg.isFromSameSender ?? false) {
-                Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
-                    .font(.system(size: 10, weight: .light))
-            }
-            Text(msg.text)
-                .padding(8)
-                .foregroundStyle(Color.white)
-                .background(.tint)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .frame(minWidth: 30, alignment: .trailing)
-                .lineLimit(nil)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(.leading, 30)
-    }
-
-
     @ViewBuilder
     private func bottomInputView() -> some View {
         VStack {
@@ -330,6 +228,11 @@ struct ChatLogView: View {
                         } else {
                             viewModel.clearWritingMessages()
                         }
+                    }
+                
+                        
+                    .onChange(of: viewModel.captureIamge) { _ , new  in
+                        
                     }
                     .onChange(of: viewModel.chatText) { _, new in
                         enterButtonText = new.count > 0 ? "⇧" : "#"
@@ -370,8 +273,8 @@ struct ChatLogView: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.top, 5)
-            .padding(.bottom, 10)
+            .padding(.top, 3)
+            .padding(.bottom, 5)
             .background(Color(.systemBackground))
             
             if isBottomMenuVisible {

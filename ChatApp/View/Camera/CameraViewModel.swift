@@ -13,26 +13,35 @@ class CameraViewModel: ObservableObject {
     let camera = Camera()
     
     @Published var viewFinderImage: Image?
-    @Published var thumnailImage: Image?
+    @Published var capturedImage: UIImage?
     
     init() {
         Task {
             await handleCameraPreviews()
         }
+        Task {
+            await handleCameraPhotos()
+        }
     }
     
     func handleCameraPreviews() async {
         let imageStream = camera.previewStream.map { $0.image }
-        
         for await image in imageStream {
-            Task { @MainActor in
+            await MainActor.run {
                 viewFinderImage = image
             }
         }
     }
     
     func handleCameraPhotos() async {
-        
+        for await photo in camera.photoStream {
+            if let data = photo.fileDataRepresentation(),
+               let uiImage = UIImage(data: data) {
+                await MainActor.run {
+                    self.capturedImage = uiImage
+                }
+            }
+        }
     }
 }
 

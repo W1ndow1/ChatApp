@@ -6,12 +6,16 @@ import UserNotifications
 
 class ChatLogViewModel: ObservableObject {
     @Published var chatText = ""
-    @Published var chatMessages: [ChatMessage] = []
     @Published var chatRoom: ChatRoom?
+    @Published var chatMessages: [ChatMessage] = []
     @Published var usersInfo: [String : ChatUser]?
     @Published var selectedUser: Set<ChatUser>?
+    @Published var captureIamge: UIImage?
+    @Published var isCaptureIamge: Bool = false
     @Published var selectedImage = [PhotosPickerItem]()
-    @Published var keyboardHeight: CGFloat = 0
+    
+    private var localMessages: [ChatMessage] = []
+    private var serverMessages: [ChatMessage] = []
     
     private var userData: Set<ChatUser>?
     private var cancellables = Set<AnyCancellable>()
@@ -26,7 +30,6 @@ class ChatLogViewModel: ObservableObject {
         self.userData = userData
         self.chatRoom = chatRoom
         fetchUsersInfoByRoom()
-        setupKeyboardObservers()
     }
 
     //채팅방 목록으로 들어온 경우
@@ -34,7 +37,6 @@ class ChatLogViewModel: ObservableObject {
         self.userData = .init()
         self.chatRoom = room
         fetchUsersInfoByRoom()
-        setupKeyboardObservers()
     }
 
     deinit {
@@ -43,7 +45,6 @@ class ChatLogViewModel: ObservableObject {
     }
     
     //MARK: - 메시지 전송
-    //새롭게 채팅방을 시작한 경우 여기서 부터 수정
     func sendMessageBySelectedUser() {
         guard let fromId = AuthManager.shared.id,
               let selectedUserIds = userData?.map({$0.uid})
@@ -139,8 +140,81 @@ class ChatLogViewModel: ObservableObject {
     }
     
     func sendImage() {
+        guard let chatRoomId = chatRoom?.chatRoomId,
+              let senderId = AuthManager.shared.id,
+              let resizeImage = captureIamge?.resizeMaintainningRatio(toWidth: 1200),
+              let imageData = resizeImage.jpegData(compressionQuality: 0.4) else { return }
         
+        let tempMessageId = UUID().uuidString
+        var sendingMessage = ChatMessage(
+            messageId: tempMessageId,
+            type: .image,
+            senderId: senderId,
+            text: "",
+            timeStamp: Timestamp(date: Date()),
+            readBy: [],
+            sendState: .sending
+            )
         
+        localMessages.append(sendingMessage)
+        updateChatMessages()
+        
+        //이미지 전송 및 URL받기
+        Task {
+            do {
+                let imageURL = try await StorageManager.shared.uploadChatRoomImage(image: imageData , chatRoomId: chatRoomId)
+                //메시지 내용
+                sendingMessage.text = imageURL.absoluteString
+                sendingMessage.sendState = .sent
+                
+                let ref = DatabaseManager.shared.db
+                    .collection("rooms").document(chatRoomId)
+                    .collection("messages").document(sendingMessage.messageId)
+                _ = ref.setData(from: sendingMessage)
+                
+                if let index = localMessages.firstIndex(where: { $0.messageId == tempMessageId }) {
+                    localMessages.remove(at: index)
+                    updateChatMessages()
+                }
+            } catch {
+                print("이미지 전송 에러 \(error.localizedDescription)")
+                if let index = localMessages.firstIndex(where: { $0.messageId == tempMessageId }) {
+                    localMessages[index].sendState = .failed
+                    updateChatMessages()
+                }
+            }
+        }
+    }
+    
+    //이미지 여러장 올리기
+    func sendImages() {
+        guard let chatRoomId = chatRoom?.chatRoomId,
+              //let imageData = selectedImage.map(\.jpegData(compressionQuality: 0.4)),
+              let senderId = AuthManager.shared.id,
+              let resizeImage = captureIamge?.resizeMaintainningRatio(toWidth: 1200),
+              let imageData = resizeImage.jpegData(compressionQuality: 0.4) else { return }
+        
+        Task {
+            do {
+                let urls = try await withThrowingTaskGroup(of: URL.self) { group in
+//                    for imageData in imagesData {
+//                        group.addTask {
+//                            return try await StorageManager.shared.uploadChatRoomImage(image: imageData, chatRoomId: chatRoomId)
+//                        }
+//                    }
+                    
+                }
+            }
+        }
+    }
+    
+    //메시지 처리
+    func updateChatMessages() {
+        let merged = (serverMessages + localMessages)
+            .sorted(by: { $0.timeStamp.dateValue() < $1.timeStamp.dateValue() })
+        DispatchQueue.main.async {
+            self.chatMessages = self.addPropMessage(merged)
+        }
     }
     
     //MARK: - 공용 메서드
@@ -291,7 +365,9 @@ class ChatLogViewModel: ObservableObject {
             guard let documents = snapshot?.documents else { return }
             self.lastDocument = documents.last
             let message = Array(documents.compactMap({ try? $0.data(as: ChatMessage.self) }).reversed())
-            self.chatMessages = self.addPropMessage(message)
+            //self.chatMessages = self.addPropMessage(message)
+            self.serverMessages.append(contentsOf: message)
+            self.updateChatMessages()
             self.fetchMessagesStartListener(chatRoomId: chatRoomId)
         }
     }
@@ -312,7 +388,9 @@ class ChatLogViewModel: ObservableObject {
                         switch change.type {
                         case .added:
                             if !(self.chatMessages.contains(where: {$0.messageId == msg.messageId})) {
-                                self.addPropMessage(msg)
+                                //self.addPropMessage(msg)
+                                self.serverMessages.append(msg)
+                                self.updateChatMessages()
                             }
                         case .modified:
                             break
@@ -337,8 +415,10 @@ class ChatLogViewModel: ObservableObject {
         
         await MainActor.run(body: {
             let newMessages = snapshot.documents.compactMap({ try? $0.data(as: ChatMessage.self) }).reversed()
-            chatMessages.insert(contentsOf: newMessages, at: 0)
-            chatMessages = addPropMessage(chatMessages)
+            //chatMessages.insert(contentsOf: newMessages, at: 0)
+            //chatMessages = addPropMessage(chatMessages)
+            serverMessages.insert(contentsOf: newMessages, at: 0)
+            updateChatMessages()
         })
         return true
     }
@@ -500,24 +580,4 @@ class ChatLogViewModel: ObservableObject {
             })
             .store(in: &cancellables)
     }
-    
-    private func setupKeyboardObservers() {
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillShowNotification,
-                object: nil,
-                queue: .main
-            ) { notification in
-                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                    self.keyboardHeight = keyboardFrame.height
-                }
-            }
-
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillHideNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                self.keyboardHeight = 0
-            }
-        }
 }

@@ -16,16 +16,9 @@ class SettingViewModel: ObservableObject {
     
     init() {
         fetchCurrentUser()
-        DispatchQueue.main.async {
-           self.isUserCurrentlyLoggedOut = AuthManager.shared.id == nil
-        }
     }
     
-    func handleSignOut() {
-        isUserCurrentlyLoggedOut.toggle()
-        AuthManager.shared.logoutUser()
-    }
-    
+
     func fetchCurrentUser() {
         guard let uid = AuthManager.shared.id else { return }
         DatabaseManager.shared.collectionUsers(userId: uid)

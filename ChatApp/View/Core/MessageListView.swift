@@ -3,6 +3,7 @@ import SDWebImageSwiftUI
 import FirebaseCore
 
 struct MessageListView: View {
+    @EnvironmentObject var loginViewModel: LoginViewModel
     @StateObject private var viewModel = MessageListViewModel()
     @StateObject private var swipe = SwipeState()
     @FocusState private var isTextFieldFocused: Bool
@@ -241,6 +242,7 @@ struct MessageListView: View {
                 
                 NavigationLink {
                     SettingView()
+                        .environmentObject(loginViewModel)
                 } label: {
                     Image(systemName: "gearshape")
                         .foregroundStyle(Color(.label))

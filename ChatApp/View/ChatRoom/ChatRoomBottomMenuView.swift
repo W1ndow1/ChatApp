@@ -18,7 +18,6 @@ struct ChatRoomBottomMenuView: View {
         ScrollView {
             LazyVStack {
                 HStack(spacing: 20) {
-                    
                     Button {
                         isPresentedImagePicker.toggle()
                     } label: {
@@ -36,7 +35,7 @@ struct ChatRoomBottomMenuView: View {
                         }
                     }
                     .sheet(isPresented: $isPresentedImagePicker) {
-                        ChatRoomPhotosPciker(viewModel: viewModel)
+                        ChatRoomPhotosPicker(viewModel: viewModel)
                             .presentationDetents([.height(300), .large])
                             .presentationDragIndicator(.visible)
                             .presentationBackgroundInteraction(.enabled)
@@ -58,7 +57,12 @@ struct ChatRoomBottomMenuView: View {
                         }
                     }
                     .fullScreenCover(isPresented: $isPresentedCamera) {
-                        CameraView()
+                        CameraView() { image in
+                            viewModel.captureIamge = image
+                            //viewModel.dummySendMessage()
+                            viewModel.sendImage()
+                            
+                        }
                     }
                     Spacer()
                 }
@@ -85,12 +89,12 @@ struct ChatRoomBottomMenuView: View {
         lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")))
 }
 
-struct ChatRoomPhotosPciker: View {
+struct ChatRoomPhotosPicker: View {
     @ObservedObject var viewModel: ChatLogViewModel
     var body: some View {
         PhotosPicker (
             selection: $viewModel.selectedImage,
-            selectionBehavior: .continuousAndOrdered,
+            selectionBehavior: .continuous,
             matching: .images,
             preferredItemEncoding: .current,
             photoLibrary: .shared()
@@ -98,6 +102,6 @@ struct ChatRoomPhotosPciker: View {
             
         }
         .photosPickerStyle(.inline)
-        .photosPickerDisabledCapabilities(.selectionActions)
+        .ignoresSafeArea()
     }
 }

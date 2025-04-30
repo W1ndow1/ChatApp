@@ -9,12 +9,12 @@ import SwiftUI
 
 struct LoginView: View {
     @ObservedObject var viewModel: LoginViewModel
+    @FocusState private var focusedField: Field?
     
     enum Field {
         case email
         case password
     }
-    @FocusState private var focusedField: Field?
     
     var body: some View {
         NavigationStack {
@@ -84,8 +84,9 @@ struct LoginView: View {
 }
 
 #Preview {
-    let viewModel = LoginViewModel()
-        viewModel.email = "Blue1423@gmail.com" // 초기값 테스트
-        viewModel.password = "1234567"
-        return LoginView(viewModel: viewModel)
+//    let viewModel = LoginViewModel()
+//        viewModel.email = "Blue1423@gmail.com" // 초기값 테스트
+//        viewModel.password = "1234567"
+//        return LoginView(viewModel: viewModel)
+    LoginView(viewModel: .init())
 }

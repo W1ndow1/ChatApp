@@ -32,7 +32,6 @@ struct HomeTabView: View {
         } else {
             LoginView(viewModel: viewModel)
         }
-        
     }
 }
 

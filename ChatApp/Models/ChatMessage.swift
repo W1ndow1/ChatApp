@@ -17,9 +17,16 @@ struct ChatMessage: Identifiable, Codable {
     var text: String = ""
     var timeStamp: Timestamp
     var readBy: [String]
-    var isFirstInDayGroup: Bool?
-    var isFirstInTimeGroup: Bool?
-    var isFromSameSender: Bool?
+    
+    //UI에서만 사용
+    var isFirstInDayGroup: Bool = false
+    var isFirstInTimeGroup: Bool = false
+    var isFromSameSender: Bool = false
+    var sendState: MessageSendState = .sent
+    
+    enum CodingKeys: String, CodingKey {
+        case messageId, type, senderId, receiverId, text, timeStamp, readBy
+    }
 }
 
 
@@ -31,3 +38,8 @@ enum ChatMessageType: String, Codable, CaseIterable {
     case join = "join"
 }
 			
+enum MessageSendState: Codable, CaseIterable {
+    case sending
+    case sent
+    case failed
+}

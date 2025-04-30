@@ -10,11 +10,18 @@ import SwiftUI
 struct CameraView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject var viewModel = CameraViewModel()
+    @State private var isShowEditPhotoView: Bool = false
+    @State private var isSwitchingCamera: Bool = false
+    
+    var onComplete: (UIImage) -> ()
+    
     private static let barHeightFactor = 0.15
+    
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
                 ViewfinderView(image: $viewModel.viewFinderImage)
+                    .blur(radius: isSwitchingCamera ? 10 : 0)
                     .overlay(alignment: .top) {
                         ZStack {
                             Color.black
@@ -23,6 +30,7 @@ struct CameraView: View {
                             HStack {
                                 Spacer()
                                 Button {
+                                    viewModel.camera.stop()
                                     dismiss()
                                 } label: {
                                     Text("완료")
@@ -43,28 +51,30 @@ struct CameraView: View {
                             .accessibilityElement()
                             .accessibilityAddTraits([.isImage])
                     }
-                    .background(.white)
+                    .background(.black)
             }
+            .animation(.easeInOut(duration: 0.3), value: isSwitchingCamera)
             .task {
                 await viewModel.camera.start()
+            }
+            .onChange(of: viewModel.capturedImage) { _, new in
+                if new != nil {
+                    isShowEditPhotoView = true
+                }
+            }
+            .navigationDestination(isPresented: $isShowEditPhotoView) {
+                EditPhotoView(viewModel: viewModel) {
+                    if let image = viewModel.capturedImage {
+                        onComplete(image)
+                    }
+                    dismiss()
+                }
             }
             .navigationTitle("카메라")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarHidden(true)
             .ignoresSafeArea()
             .statusBar(hidden: true)
-            /*
-            .toolbar{
-                ToolbarItem(placement:.topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("완료")
-                            .foregroundStyle(.yellow)
-                    }
-                }
-            }
-             */
         }
     }
     @ViewBuilder
@@ -72,7 +82,7 @@ struct CameraView: View {
         HStack(spacing: 60) {
             Spacer()
             Button {
-                
+                print("globe")
             } label: {
                 Label("하이요", systemImage: "globe")
                     .font(.system(size: 36, weight: .bold))
@@ -91,8 +101,21 @@ struct CameraView: View {
                         .frame(width: 50, height: 50)
                 }
             }
+            
             Button {
+                Task {
+                    withAnimation(.easeIn(duration: 0.3)) {
+                        isSwitchingCamera = true
+                    }
+                    try? await Task.sleep(nanoseconds: 300_000_000) // 0.5초
+                }
                 viewModel.camera.switchCaptureDevice()
+                Task {
+                    try? await Task.sleep(nanoseconds: 300_000_000) // 0.5초
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isSwitchingCamera = false
+                    }
+                }
             } label: {
                 Label("Switch Camera", systemImage: "arrow.triangle.2.circlepath")
                     .font(.system(size: 36, weight: .bold))
@@ -107,7 +130,7 @@ struct CameraView: View {
 }
 
 #Preview {
-    CameraView()
+    CameraView(onComplete: { _ in })
 }
 
 struct ViewfinderView: View {

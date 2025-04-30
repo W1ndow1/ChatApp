@@ -35,11 +35,12 @@
 		A83F6F5E2DB62DCC00FBE447 /* ChatRoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83F6F5D2DB62DCB00FBE447 /* ChatRoom.swift */; };
 		A84A89CE2D72D4D300EA053F /* EditUserInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84A89CD2D72D4D200EA053F /* EditUserInfoView.swift */; };
 		A8670B602D833222007692FC /* DateFotmat.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B5D2D833222007692FC /* DateFotmat.swift */; };
-		A8670B612D833222007692FC /* ScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B5E2D833222007692FC /* ScrollView.swift */; };
+		A8670B612D833222007692FC /* ScrollView+Keyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B5E2D833222007692FC /* ScrollView+Keyboard.swift */; };
 		A8670B632D833253007692FC /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B622D833253007692FC /* ChatMessage.swift */; };
 		A8670B672D83326C007692FC /* SettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B642D83326C007692FC /* SettingView.swift */; };
 		A8670B682D83326C007692FC /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B652D83326C007692FC /* ProfileView.swift */; };
 		A8670B692D83326C007692FC /* NewMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B662D83326C007692FC /* NewMessageView.swift */; };
+		A870755D2DC1A726008FDA02 /* ImageEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A870755C2DC1A726008FDA02 /* ImageEdit.swift */; };
 		A8CD43172D8F1E8E00035EC9 /* TextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD43162D8F1E8E00035EC9 /* TextField.swift */; };
 		A8CD43192D94E9AC00035EC9 /* ChatRoomSettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */; };
 		A8CD431B2D9CF43800035EC9 /* CustomAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */; };
@@ -47,6 +48,8 @@
 		A8E511D92DBBBD63002C75EA /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511D82DBBBD50002C75EA /* CameraView.swift */; };
 		A8E511DB2DBBDDCF002C75EA /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511DA2DBBDDCF002C75EA /* CameraViewModel.swift */; };
 		A8E511DD2DBCD05D002C75EA /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511DC2DBCD05D002C75EA /* Camera.swift */; };
+		A8E511E12DBDD52B002C75EA /* EditPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511E02DBDD52B002C75EA /* EditPhotoView.swift */; };
+		A8E511E32DBFEDFB002C75EA /* ChatRoomMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511E22DBFEDFB002C75EA /* ChatRoomMessageView.swift */; };
 		A8E60A842D57B2230030A203 /* NewMessageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A832D57B2230030A203 /* NewMessageViewModel.swift */; };
 		A8E60A872D58F42A0030A203 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A862D58F42A0030A203 /* SDWebImage */; };
 		A8E60A892D58F42A0030A203 /* SDWebImageMapKit in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A882D58F42A0030A203 /* SDWebImageMapKit */; };
@@ -83,11 +86,12 @@
 		A83F6F5D2DB62DCB00FBE447 /* ChatRoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoom.swift; sourceTree = "<group>"; };
 		A84A89CD2D72D4D200EA053F /* EditUserInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditUserInfoView.swift; sourceTree = "<group>"; };
 		A8670B5D2D833222007692FC /* DateFotmat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DateFotmat.swift; sourceTree = "<group>"; };
-		A8670B5E2D833222007692FC /* ScrollView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScrollView.swift; sourceTree = "<group>"; };
+		A8670B5E2D833222007692FC /* ScrollView+Keyboard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ScrollView+Keyboard.swift"; sourceTree = "<group>"; };
 		A8670B622D833253007692FC /* ChatMessage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		A8670B642D83326C007692FC /* SettingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingView.swift; sourceTree = "<group>"; };
 		A8670B652D83326C007692FC /* ProfileView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		A8670B662D83326C007692FC /* NewMessageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NewMessageView.swift; sourceTree = "<group>"; };
+		A870755C2DC1A726008FDA02 /* ImageEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEdit.swift; sourceTree = "<group>"; };
 		A8CD43162D8F1E8E00035EC9 /* TextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextField.swift; sourceTree = "<group>"; };
 		A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomSettingView.swift; sourceTree = "<group>"; };
 		A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAlert.swift; sourceTree = "<group>"; };
@@ -95,6 +99,8 @@
 		A8E511D82DBBBD50002C75EA /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		A8E511DA2DBBDDCF002C75EA /* CameraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModel.swift; sourceTree = "<group>"; };
 		A8E511DC2DBCD05D002C75EA /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
+		A8E511E02DBDD52B002C75EA /* EditPhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditPhotoView.swift; sourceTree = "<group>"; };
+		A8E511E22DBFEDFB002C75EA /* ChatRoomMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomMessageView.swift; sourceTree = "<group>"; };
 		A8E60A832D57B2230030A203 /* NewMessageViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewMessageViewModel.swift; sourceTree = "<group>"; };
 		A8E60A8A2D5900640030A203 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
 		A8E60A8F2D5BCC0B0030A203 /* ChatLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatLogView.swift; sourceTree = "<group>"; };
@@ -129,6 +135,7 @@
 		A806E54F2DB787800043ED1B /* ChatRoom */ = {
 			isa = PBXGroup;
 			children = (
+				A8E511E22DBFEDFB002C75EA /* ChatRoomMessageView.swift */,
 				A806E5502DB7888C0043ED1B /* ChatRoomBottomMenuView.swift */,
 				A8F550252D891631006B8644 /* ChatRoomSideMenuView.swift */,
 				A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */,
@@ -237,11 +244,12 @@
 			isa = PBXGroup;
 			children = (
 				A8670B5D2D833222007692FC /* DateFotmat.swift */,
-				A8670B5E2D833222007692FC /* ScrollView.swift */,
+				A8670B5E2D833222007692FC /* ScrollView+Keyboard.swift */,
 				A83355D52D85B5DE000B1ECA /* SwipeAction.swift */,
 				A8CD43162D8F1E8E00035EC9 /* TextField.swift */,
 				A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */,
 				A8CD431C2D9D6B5700035EC9 /* Popup.swift */,
+				A870755C2DC1A726008FDA02 /* ImageEdit.swift */,
 			);
 			name = "Extension+Util";
 			path = "ChatApp/Extension+Util";
@@ -262,9 +270,10 @@
 		A8E511D52DBB8EE6002C75EA /* Camera */ = {
 			isa = PBXGroup;
 			children = (
-				A8E511D82DBBBD50002C75EA /* CameraView.swift */,
-				A8E511DA2DBBDDCF002C75EA /* CameraViewModel.swift */,
 				A8E511DC2DBCD05D002C75EA /* Camera.swift */,
+				A8E511DA2DBBDDCF002C75EA /* CameraViewModel.swift */,
+				A8E511D82DBBBD50002C75EA /* CameraView.swift */,
+				A8E511E02DBDD52B002C75EA /* EditPhotoView.swift */,
 			);
 			path = Camera;
 			sourceTree = "<group>";
@@ -364,6 +373,8 @@
 				A84A89CE2D72D4D300EA053F /* EditUserInfoView.swift in Sources */,
 				A8CD43172D8F1E8E00035EC9 /* TextField.swift in Sources */,
 				A8CD43192D94E9AC00035EC9 /* ChatRoomSettingView.swift in Sources */,
+				A8E511E32DBFEDFB002C75EA /* ChatRoomMessageView.swift in Sources */,
+				A870755D2DC1A726008FDA02 /* ImageEdit.swift in Sources */,
 				A80AA1B92D44B60000402AE6 /* DatabaseManager.swift in Sources */,
 				A80AA1AB2D3B657600402AE6 /* AuthManager.swift in Sources */,
 				A806E5512DB7888C0043ED1B /* ChatRoomBottomMenuView.swift in Sources */,
@@ -375,9 +386,10 @@
 				A8E60A922D5FA0CA0030A203 /* ChatLogViewModel.swift in Sources */,
 				A8670B632D833253007692FC /* ChatMessage.swift in Sources */,
 				A8670B692D83326C007692FC /* NewMessageView.swift in Sources */,
+				A8E511E12DBDD52B002C75EA /* EditPhotoView.swift in Sources */,
 				A80AA18E2D32740300402AE6 /* LoginView.swift in Sources */,
 				A8E60A8B2D5900640030A203 /* RegistrationView.swift in Sources */,
-				A8670B612D833222007692FC /* ScrollView.swift in Sources */,
+				A8670B612D833222007692FC /* ScrollView+Keyboard.swift in Sources */,
 				A8E511DB2DBBDDCF002C75EA /* CameraViewModel.swift in Sources */,
 				A8E60A902D5BCC0B0030A203 /* ChatLogView.swift in Sources */,
 				A83F6F5E2DB62DCC00FBE447 /* ChatRoom.swift in Sources */,
@@ -532,6 +544,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "촬영을 위해 권한 승인이 필요합니다.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "사진을 찾기 위해 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -559,10 +572,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"ChatApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = AK7S865VNK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "촬영을 위해 권한 승인이 필요합니다.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "사진을 찾기 위해 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

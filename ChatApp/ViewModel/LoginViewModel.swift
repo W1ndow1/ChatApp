@@ -27,7 +27,7 @@ class LoginViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     init() {
-        self.isAuthenticated = AuthManager.shared.id != nil
+        isAuthenticated = (AuthManager.shared.id != nil)
     }
     
     func loginButtonTap() {
@@ -78,7 +78,32 @@ class LoginViewModel: ObservableObject {
         return true
     }
     
-    /// 계정생성(Combine)
+    //로그인
+    func login() {
+        AuthManager.shared.loginUser(email: email, password: password)
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { [weak self] completion in
+                switch completion {
+                case .failure(let error):
+                    self?.statusMessage = self?.errorMessage(error: error.localizedDescription) ?? ""
+                case .finished:
+                    break;
+                }
+            }, receiveValue: { [weak self] authDataResult in
+                self?.statusMessage = "User Uid : \(authDataResult.user.uid)"
+                self?.isAuthenticated = true
+            })
+            .store(in: &cancellables)
+    }
+    
+    //로그아웃
+    func logout() {
+        AuthManager.shared.signOut()
+        resetFields()
+        isAuthenticated = false
+    }
+    
+    //계정생성
     func createAccount() {
         AuthManager.shared.registerUser(email: email, password: password)
             .receive(on: DispatchQueue.main)
@@ -97,26 +122,8 @@ class LoginViewModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    /// 로그인(Combine)
-    func login() {
-        AuthManager.shared.loginUser(email: email, password: password)
-            .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { [weak self] completion in
-                switch completion {
-                case .failure(let error):
-                    self?.statusMessage = self?.errorMessage(error: error.localizedDescription) ?? ""
-                case .finished:
-                    break;
-                }
-            }, receiveValue: { [weak self] authDataResult in
-                self?.statusMessage = "User Uid : \(authDataResult.user.uid)"
-                self?.isAuthenticated = true
-                
-                
-            })
-            .store(in: &cancellables)
-    }
-    /// 이미지 업로드(Combine)
+    
+    //이미지 업로드
     func uploadImage(uid: String) {
         guard let imageData = self.image?.jpegData(compressionQuality: 0.2) else { return }
         let metadata = StorageMetadata()
@@ -155,7 +162,7 @@ class LoginViewModel: ObservableObject {
                     self.statusMessage = "Success upload userData"
                 }
                 
-            }, receiveValue: {_ in
+            }, receiveValue: { _ in
                 
             })
             .store(in: &cancellables)
@@ -173,25 +180,18 @@ class LoginViewModel: ObservableObject {
     }
     
     
-    func storeUserInfomation(imageProfileURL: URL) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let userData = [
-            "email": self.email,
-            "uid": uid,
-            "profileImageURL": imageProfileURL.absoluteString
-        ]
-        Firestore.firestore().collection("users")
-            .document(uid).setData(userData) { error in
-                if let error = error {
-                    self.statusMessage = error.localizedDescription
-                    return
-                }
-                print("Success upload userData")
-            }
+    func resetFields() {
+        email = ""
+        password = ""
+        passwordCheck = ""
+        displayName = ""
+        userName = ""
+        showAlert = false
+        statusMessage = ""
+        image = nil
     }
     
-    
-    
+
     func editUserInfoButtonTap() {
         guard let userId = AuthManager.shared.id else { return }
         guard !displayName.isEmpty else {

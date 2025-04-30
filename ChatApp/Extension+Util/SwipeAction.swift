@@ -67,7 +67,6 @@ struct SwipeActionsView : View {
         .padding(.vertical, 10)
         .background(color.gradient)
     }
-    
 }
 
 struct SwipeAction<Content: View>: View {
