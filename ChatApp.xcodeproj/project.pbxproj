@@ -41,6 +41,13 @@
 		A8670B682D83326C007692FC /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B652D83326C007692FC /* ProfileView.swift */; };
 		A8670B692D83326C007692FC /* NewMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B662D83326C007692FC /* NewMessageView.swift */; };
 		A870755D2DC1A726008FDA02 /* ImageEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A870755C2DC1A726008FDA02 /* ImageEdit.swift */; };
+		A87075602DC33303008FDA02 /* ChatRoomGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A870755F2DC33303008FDA02 /* ChatRoomGalleryView.swift */; };
+		A87075682DC3A450008FDA02 /* ChatApp04_ChatRoomGallery.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075652DC3A450008FDA02 /* ChatApp04_ChatRoomGallery.jpeg */; };
+		A87075692DC3A450008FDA02 /* ChatApp02_ChatRoomMessageList.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075632DC3A450008FDA02 /* ChatApp02_ChatRoomMessageList.jpeg */; };
+		A870756A2DC3A450008FDA02 /* ChatApp01_ChatRoomList.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075622DC3A450008FDA02 /* ChatApp01_ChatRoomList.jpeg */; };
+		A870756B2DC3A450008FDA02 /* ChatApp05_FriendList.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075662DC3A450008FDA02 /* ChatApp05_FriendList.jpeg */; };
+		A870756C2DC3A450008FDA02 /* ChatApp03_ChatRoomBottomMenu.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075642DC3A450008FDA02 /* ChatApp03_ChatRoomBottomMenu.jpeg */; };
+		A870756D2DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075672DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg */; };
 		A8CD43172D8F1E8E00035EC9 /* TextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD43162D8F1E8E00035EC9 /* TextField.swift */; };
 		A8CD43192D94E9AC00035EC9 /* ChatRoomSettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */; };
 		A8CD431B2D9CF43800035EC9 /* CustomAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */; };
@@ -92,6 +99,14 @@
 		A8670B652D83326C007692FC /* ProfileView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		A8670B662D83326C007692FC /* NewMessageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NewMessageView.swift; sourceTree = "<group>"; };
 		A870755C2DC1A726008FDA02 /* ImageEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEdit.swift; sourceTree = "<group>"; };
+		A870755F2DC33303008FDA02 /* ChatRoomGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomGalleryView.swift; sourceTree = "<group>"; };
+		A87075612DC36E8F008FDA02 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		A87075622DC3A450008FDA02 /* ChatApp01_ChatRoomList.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp01_ChatRoomList.jpeg; sourceTree = "<group>"; };
+		A87075632DC3A450008FDA02 /* ChatApp02_ChatRoomMessageList.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp02_ChatRoomMessageList.jpeg; sourceTree = "<group>"; };
+		A87075642DC3A450008FDA02 /* ChatApp03_ChatRoomBottomMenu.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp03_ChatRoomBottomMenu.jpeg; sourceTree = "<group>"; };
+		A87075652DC3A450008FDA02 /* ChatApp04_ChatRoomGallery.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp04_ChatRoomGallery.jpeg; sourceTree = "<group>"; };
+		A87075662DC3A450008FDA02 /* ChatApp05_FriendList.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp05_FriendList.jpeg; sourceTree = "<group>"; };
+		A87075672DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp06_ProfileView.jpeg; sourceTree = "<group>"; };
 		A8CD43162D8F1E8E00035EC9 /* TextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextField.swift; sourceTree = "<group>"; };
 		A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomSettingView.swift; sourceTree = "<group>"; };
 		A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAlert.swift; sourceTree = "<group>"; };
@@ -139,6 +154,7 @@
 				A806E5502DB7888C0043ED1B /* ChatRoomBottomMenuView.swift */,
 				A8F550252D891631006B8644 /* ChatRoomSideMenuView.swift */,
 				A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */,
+				A870755F2DC33303008FDA02 /* ChatRoomGalleryView.swift */,
 			);
 			path = ChatRoom;
 			sourceTree = "<group>";
@@ -146,6 +162,7 @@
 		A80AA17F2D32740300402AE6 = {
 			isa = PBXGroup;
 			children = (
+				A87075612DC36E8F008FDA02 /* README.md */,
 				A80AA18A2D32740300402AE6 /* ChatApp */,
 				A80AA1892D32740300402AE6 /* Products */,
 			);
@@ -167,6 +184,7 @@
 				A80AA19A2D32743500402AE6 /* Models */,
 				A80AA1A72D373DCF00402AE6 /* ViewModel */,
 				A80AA1992D32742500402AE6 /* View */,
+				A870755E2DC30B99008FDA02 /* Sceenshots */,
 				A80AA18B2D32740300402AE6 /* ChatAppApp.swift */,
 				A80AA18F2D32740400402AE6 /* Assets.xcassets */,
 				A80AA1A52D369BEB00402AE6 /* GoogleService-Info.plist */,
@@ -267,6 +285,19 @@
 			path = Sub;
 			sourceTree = "<group>";
 		};
+		A870755E2DC30B99008FDA02 /* Sceenshots */ = {
+			isa = PBXGroup;
+			children = (
+				A87075622DC3A450008FDA02 /* ChatApp01_ChatRoomList.jpeg */,
+				A87075632DC3A450008FDA02 /* ChatApp02_ChatRoomMessageList.jpeg */,
+				A87075642DC3A450008FDA02 /* ChatApp03_ChatRoomBottomMenu.jpeg */,
+				A87075652DC3A450008FDA02 /* ChatApp04_ChatRoomGallery.jpeg */,
+				A87075662DC3A450008FDA02 /* ChatApp05_FriendList.jpeg */,
+				A87075672DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg */,
+			);
+			path = Sceenshots;
+			sourceTree = "<group>";
+		};
 		A8E511D52DBB8EE6002C75EA /* Camera */ = {
 			isa = PBXGroup;
 			children = (
@@ -356,6 +387,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				A80AA1932D32740400402AE6 /* Preview Assets.xcassets in Resources */,
+				A87075682DC3A450008FDA02 /* ChatApp04_ChatRoomGallery.jpeg in Resources */,
+				A87075692DC3A450008FDA02 /* ChatApp02_ChatRoomMessageList.jpeg in Resources */,
+				A870756A2DC3A450008FDA02 /* ChatApp01_ChatRoomList.jpeg in Resources */,
+				A870756B2DC3A450008FDA02 /* ChatApp05_FriendList.jpeg in Resources */,
+				A870756C2DC3A450008FDA02 /* ChatApp03_ChatRoomBottomMenu.jpeg in Resources */,
+				A870756D2DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg in Resources */,
 				A80AA1A62D369BEB00402AE6 /* GoogleService-Info.plist in Resources */,
 				A80AA1902D32740400402AE6 /* Assets.xcassets in Resources */,
 			);
@@ -405,6 +442,7 @@
 				A8E511D92DBBBD63002C75EA /* CameraView.swift in Sources */,
 				A8CD431D2D9D6B5700035EC9 /* Popup.swift in Sources */,
 				A8670B602D833222007692FC /* DateFotmat.swift in Sources */,
+				A87075602DC33303008FDA02 /* ChatRoomGalleryView.swift in Sources */,
 				A80AA19C2D335F2B00402AE6 /* ChatUser.swift in Sources */,
 				A83355D62D85B5DE000B1ECA /* SwipeAction.swift in Sources */,
 			);

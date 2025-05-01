@@ -12,7 +12,14 @@ class ChatLogViewModel: ObservableObject {
     @Published var selectedUser: Set<ChatUser>?
     @Published var captureIamge: UIImage?
     @Published var isCaptureIamge: Bool = false
-    @Published var selectedImage = [PhotosPickerItem]()
+    @Published var resizeData = [Data]()
+    @Published var selectedImage = [PhotosPickerItem]() {
+        didSet {
+            Task {
+                await prepareImage()
+            }
+        }
+    }
     
     private var localMessages: [ChatMessage] = []
     private var serverMessages: [ChatMessage] = []
@@ -189,24 +196,64 @@ class ChatLogViewModel: ObservableObject {
     //이미지 여러장 올리기
     func sendImages() {
         guard let chatRoomId = chatRoom?.chatRoomId,
-              //let imageData = selectedImage.map(\.jpegData(compressionQuality: 0.4)),
               let senderId = AuthManager.shared.id,
               let resizeImage = captureIamge?.resizeMaintainningRatio(toWidth: 1200),
               let imageData = resizeImage.jpegData(compressionQuality: 0.4) else { return }
         
         Task {
             do {
-                let urls = try await withThrowingTaskGroup(of: URL.self) { group in
-//                    for imageData in imagesData {
-//                        group.addTask {
-//                            return try await StorageManager.shared.uploadChatRoomImage(image: imageData, chatRoomId: chatRoomId)
-//                        }
-//                    }
-                    
+                let uploadURLs = try await withThrowingTaskGroup(of: URL.self) { group in
+                    for imageData in resizeData {
+                        group.addTask {
+                            return try await StorageManager.shared.uploadChatRoomImage(image: imageData, chatRoomId: chatRoomId)
+                        }
+                    }
+                    var result: [URL] = []
+                    for try await url in group {
+                        result.append(url)
+                    }
+                    return result
                 }
+                print("모든 이미지 업로드 성공:\(uploadURLs)")
+                
+                for imageURL in uploadURLs {
+                    let message = ChatMessage(
+                        messageId: UUID().uuidString,
+                        type:.image,
+                        senderId: senderId,
+                        text: imageURL.absoluteString,
+                        timeStamp: Timestamp(date: Date()),
+                        readBy: []
+                    )
+                    self.chatMessages.append(message)
+                    self.updateChatMessages()
+                }
+                
+            } catch {
+                print("이미지 업로드 실패 : \(error.localizedDescription)")
             }
         }
     }
+    
+
+    func prepareImage() async {
+        var newDatas: [Data] = []
+        for item in selectedImage {
+            do {
+                if let data = try await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    let resized = image.resizeMaintainningRatio(toWidth: 1200)
+                    if let jpegData = resized.jpegData(compressionQuality: 0.4) {
+                        newDatas.append(jpegData)
+                    }
+                }
+            } catch {
+                print("이미지 변환 실패 :\(error.localizedDescription)")
+            }
+        }
+        self.resizeData = newDatas
+    }
+    
     
     //메시지 처리
     func updateChatMessages() {
