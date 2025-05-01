@@ -19,7 +19,12 @@ A chat application built with SwiftUI.
 
 ## Screenshot
 <p float="left">
-  <img src="Screenshots/ChatApp01_ChatRoomList.jpeg" width="30%" alt="Chat Room List" />
-  <img src="Screenshots/ChatApp02_ChatRoomMessageList.jpeg" width="30%" alt="Chat Room Message List" />
-  <img src="Screenshots/ChatApp03_ChatRoomBottomMenu.jpeg" width="30%" alt="Chat Room Bottom Menu" />
+  <img src="ChatApp/Sceenshots/ChatApp01_ChatRoomList.jpeg" width="30%" alt="Chat Room List" />
+  <img src="ChatApp/Sceenshots/ChatApp02_ChatRoomMessageList.jpeg" width="30%" alt="Chat Room Message List" />
+  <img src="ChatApp/Sceenshots/ChatApp03_ChatRoomBottomMenu.jpeg" width="30%" alt="Chat Room Bottom Menu" />
+</p>
+<p float="left">
+  <img src="ChatApp/Sceenshots/ChatApp04_ChatRoomGallery.jpeg" width="30%" alt="Chat Room Gallery" />
+  <img src="ChatApp/Sceenshots/ChatApp05_FriendList.jpeg" width="30%" alt="FriendList" />
+  <img src="ChatApp/Sceenshots/ChatApp06_ProfileView.jpeg" width="30%" alt="Profileview" />
 </p>
