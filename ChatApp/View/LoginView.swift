@@ -84,9 +84,9 @@ struct LoginView: View {
 }
 
 #Preview {
-//    let viewModel = LoginViewModel()
-//        viewModel.email = "Blue1423@gmail.com" // 초기값 테스트
-//        viewModel.password = "1234567"
-//        return LoginView(viewModel: viewModel)
-    LoginView(viewModel: .init())
+    let viewModel = LoginViewModel()
+    viewModel.email = "Blue1423@gmail.com" // 초기값 테스트
+    viewModel.password = "1234567"
+    return LoginView(viewModel: viewModel)
+
 }

@@ -1,135 +1,188 @@
 import SwiftUI
+import FirebaseCore
+import SDWebImageSwiftUI
 
 struct ChatRoomGalleryView: View {
-    @StateObject var viewModel = ImageViewerViewModel()
-    @State private var dragOffset: CGSize = .zero
-    @GestureState private var isDragging: Bool = false
+    var images: [ChatMessage]
+    var startIndex: Int
+    var namespace: Namespace.ID
+    
+    @Binding var isPresented: Bool
+    @State private var currentIndex = 0
+    @GestureState private var dragOffset: CGSize = .zero
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
-    @State private var showUI: Bool = true
-
+    @State private var offset: CGSize = .zero
+    @State private var lastoffset: CGSize = .zero
+    @State private var tapPosition: CGPoint = .zero
+    
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.5)
-                .ignoresSafeArea()
-
-            TabView(selection: $viewModel.currentIndex) {
-                ForEach(viewModel.sampleImages.indices, id: \.self) { index in
-                    ZoomableImageView(
-                        image: viewModel.sampleImages[index],
-                        showUI: $showUI,
-                        onDismiss: {
-                            viewModel.isDismissed = true
+        GeometryReader { geo in
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                TabView(selection: $currentIndex) {
+                    ForEach(images.indices, id: \.self) { index in
+                        VStack{
+                            Spacer()
+                            galleryImage(for: index, geo: geo)
+                                .tag(index)
+                            Spacer()
                         }
-                    )
-                    .tag(index)
-                }
-            }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .opacity(viewModel.isDismissed ? 0 : 1)
-            .animation(.easeInOut, value: viewModel.isDismissed)
-
-            if showUI {
-                VStack {
-                    HStack {
-                        Button {
-                            viewModel.isDismissed = true
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.title2)
-                                .padding()
-                                .background(Color.black.opacity(0.6))
-                                .clipShape(Circle())
-                        }
-                        Spacer()
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 40)
-
-                    Spacer()
-
-                    Text("\(viewModel.currentIndex + 1) / \(viewModel.sampleImages.count)")
-                        .font(.headline)
-                        .padding(.bottom, 30)
-                        .foregroundColor(.white)
-                        .background(Color.black.opacity(0.4))
-                        .cornerRadius(10)
                 }
-                .transition(.opacity)
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                .gesture(verticalDragGesture().simultaneously(with: dragGesture()))
+                .gesture(scale == 1.0 ? horizontalDragGesture() : nil)
+                .simultaneousGesture(magnificationGesture())
+                .simultaneousGesture(tapGesture(geo: geo).simultaneously(with: recordTapPosition()))
+                .onAppear {
+                    currentIndex = startIndex
+                }
+                topBar()
             }
         }
-        .fullScreenCover(isPresented: $viewModel.isDismissed) {
-            // ChatRoomView로 돌아가는 것처럼 처리 가능
+    }
+    
+    @ViewBuilder
+    private func topBar() -> some View {
+        VStack {
+            HStack {
+                Button {
+                    withAnimation(.spring) {
+                        isPresented = false
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.title2)
+                        .padding()
+                        .background(Color.black.opacity(0.6))
+                        .clipShape(Circle())
+                }
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.top, 40)
+            
+            Spacer()
         }
+        .foregroundStyle(.white)
+    }
+    
+    @ViewBuilder
+    private func galleryImage(for index: Int, geo: GeometryProxy) -> some View {
+        WebImage(url: URL(string: images[index].text))
+            .resizable()
+            .scaledToFit()
+            .matchedGeometryEffect(id: images[index].id, in: namespace)
+            .scaleEffect(currentIndex == index ? scale : 1.0)
+            .offset(currentIndex == index ? CGSize(width: dragOffset.width + offset.width,
+                                                   height: dragOffset.height + offset.height) : .zero)
+            .ignoresSafeArea()
+    }
+    
+    //상하 좌우 이동(배율있을때만)
+    private func dragGesture() -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if scale > 1.0 {
+                    offset = CGSize (
+                        width: lastoffset.width + value.translation.width,
+                        height: lastoffset.height + value.translation.height
+                        )
+                }
+            }
+            .onEnded { value in
+                if scale > 1.0 {
+                    lastoffset = offset
+                }
+            }
+    }
+    //상하 이동시 닫기(배율없을때만)
+    private func verticalDragGesture() -> some Gesture {
+        DragGesture()
+            .updating($dragOffset) { value, state, _ in
+                if scale == 1.0 {
+                    if abs(value.translation.height) > abs(value.translation.width) {
+                        state = value.translation
+                    }
+                }
+            }
+            .onEnded { value in
+                if scale == 1.0 {
+                    
+                    if (abs(value.translation.height) > 200 || abs(value.translation.height) < -200) {
+                        withAnimation(.spring) {
+                            isPresented = false
+                        }
+                    }
+                }
+            }
+    }
+    //좌우 이동
+    private func horizontalDragGesture() -> some Gesture {
+        DragGesture()
+            .onChanged { _ in }
+            .onEnded { _ in }
+    }
+    
+    //핀치 확대
+    private func magnificationGesture() -> some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                self.scale = max(value, 1.0)
+            }
+            .onEnded { _ in
+                if scale < 1.0 {
+                    withAnimation{
+                        scale = 1.0
+                        offset = .zero
+                    }
+                } else {
+                    lastoffset = offset
+                }
+            }
+    }
+    //더블탭시 확대
+    private func tapGesture(geo: GeometryProxy) -> some Gesture {
+        TapGesture(count: 2)
+            .onEnded {
+                withAnimation(.spring()) {
+                    if scale == 1.0 {
+                        scale = 3.0
+                        let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+                        let deltaX = (center.x - tapPosition.x)
+                        let deltaY = (center.y - tapPosition.y)
+                        offset = CGSize(width: deltaX * 2, height: deltaY * 2)
+                    } else{
+                        scale = 1.0
+                        offset = .zero
+                        lastoffset = .zero
+                    }
+                }
+            }
+    }
+    
+    private func recordTapPosition() -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onEnded { value in
+                tapPosition = value.location
+            }
     }
 }
 
 #Preview {
-    ChatRoomGalleryView()
-}
-
-struct ZoomableImageView: View {
-    let image: UIImage
-    @Binding var showUI: Bool
-    var onDismiss: () -> Void
-
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @GestureState private var dragOffset: CGSize = .zero
-
-    var body: some View {
-        GeometryReader { geometry in
-            Circle()
-                .frame(width: 30, height: 30)
-                .foregroundStyle(.blue)
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .scaleEffect(scale)
-                .offset(y: dragOffset.height)
-                .gesture(
-                    TapGesture()
-                        .onEnded {
-                            withAnimation {
-                                showUI.toggle()
-                            }
-                        }
-                )
-                .gesture(
-                    MagnificationGesture()
-                        .onChanged { value in
-                            scale = lastScale * value
-                        }
-                        .onEnded { _ in
-                            lastScale = scale
-                        }
-                )
-                .simultaneousGesture(
-                    DragGesture()
-                        .updating($dragOffset) { value, state, _ in
-                            // 상하 이동만
-                            if abs(value.translation.width) < abs(value.translation.height) {
-                                state = value.translation
-                            }
-                        }
-                        .onEnded { value in
-                            if abs(value.translation.height) > 150 {
-                                onDismiss()
-                            }
-                        }
-                )
-                .frame(width: geometry.size.width, height: geometry.size.height)
-        }
-    }
-}
-
-class ImageViewerViewModel: ObservableObject {
-    @Published var sampleImages: [UIImage] = [
-        UIImage(systemName: "photo")!,
-        UIImage(systemName: "photo.fill")!,
-        UIImage(systemName: "photo.circle")!
-    ]
-
-    @Published var currentIndex: Int = 0
-    @Published var isDismissed: Bool = false
+    @Previewable @Namespace var imageNamespace
+    return ChatRoomGalleryView(
+        images: [
+            ChatMessage(
+                messageId: "123",
+                senderId: "https://firebasestorage.googleapis.com:443/v0/b/swiftui-firebase-chetapp.firebasestorage.app/o/images%2Froom%2F64F62C44-3887-4190-8DB5-526AAA6C3702%2F6CA60880-0FF0-4E1A-9C54-34F79ABD970E.jpeg?alt=media&token=1894fc59-5732-4e94-941e-fc29a3fac677",
+                timeStamp: Timestamp(date: Date()),
+                readBy: []
+            )
+        ],
+        startIndex: 0,
+        namespace: imageNamespace,
+        isPresented: .constant(true))
 }

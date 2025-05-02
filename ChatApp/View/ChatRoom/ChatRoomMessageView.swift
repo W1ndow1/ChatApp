@@ -12,6 +12,9 @@ import FirebaseCore
 struct ChatRoomMessageView: View {
     @ObservedObject var viewModel: ChatLogViewModel
     @Binding var msg: ChatMessage
+    var imageNameSpace: Namespace.ID
+    var onImageTap: ([ChatMessage], Int) -> ()
+    
     var body: some View {
         if msg.senderId != AuthManager.shared.id {
             otherMessage(msg: msg)
@@ -45,8 +48,16 @@ struct ChatRoomMessageView: View {
                             .resizable()
                             .retryOnAppear(true)
                             .scaledToFit()
-                            .frame(width: 230)
+                            .frame(width: 210)
+                            .background(.tint)
                             .clipShape(RoundedRectangle(cornerRadius: 15))
+                            .matchedGeometryEffect(id: msg.id, in: imageNameSpace)
+                            .onTapGesture {
+                                let images = viewModel.chatMessages.filter { $0.type == .image }
+                                if let index = images.firstIndex(where: { $0.id == msg.id}) {
+                                    onImageTap(images, index)
+                                }
+                            }
                     } else {
                         Text(msg.text)
                             .padding(8)
@@ -63,7 +74,6 @@ struct ChatRoomMessageView: View {
                     }
                     Spacer()
                 }
-                .padding(.vertical, 3)
             }
             .padding(.trailing, 30)
         }
@@ -92,6 +102,13 @@ struct ChatRoomMessageView: View {
                         .frame(width: 230)
                         .background(.tint)
                         .clipShape(RoundedRectangle(cornerRadius: 15))
+                        .matchedGeometryEffect(id: msg.id, in: imageNameSpace)
+                        .onTapGesture {
+                            let images = viewModel.chatMessages.filter { $0.type == .image }
+                            if let index = images.firstIndex(where: { $0.id == msg.id}) {
+                                onImageTap(images, index)
+                            }
+                        }
                 case .failed:
                     Button {
                         if viewModel.captureIamge != nil {
@@ -117,30 +134,4 @@ struct ChatRoomMessageView: View {
         }
         .padding(.leading, 30)
     }
-}
-
-#Preview {
-    ChatRoomMessageView(viewModel: .init(chatRoom: ChatRoom(
-        chatRoomType: .group,
-        chatRoomId: """
-                    UyZOQtY9occyvmxpP82jr7QdEP12_
-                    WDznGLHspLevJ0kgC9m783bUtWB3_
-                    Wv5HZZ3NMOQysA9VqEUdgdGQs713_
-                    uBzmBwnRmdbkCFoBls9DHa4uC8j2
-                    """,
-        chatRoomMakerId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
-        participants: ["Wv5HZZ3NMOQysA9VqEUdgdGQs713",
-                       "uBzmBwnRmdbkCFoBls9DHa4uC8j2"],
-        chatName: "Malone,지구본,Time",
-        lastMessageTimeStamp: .init(date: Date()),
-        lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")
-    ), msg: .constant(ChatMessage(
-        messageId: "123123",
-        type: .image,
-        senderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713",
-        text: "https://firebasestorage.googleapis.com:443/v0/b/swiftui-firebase-chetapp.firebasestorage.app/o/images%2FsGh4Gxdz6sQ4OtoFAg1RLZNFH893.jpeg?alt=media&token=7e2d3186-cf5b-4932-9d37-86bb664831db",
-        timeStamp: Timestamp(date: Date()),
-        readBy: [],
-        sendState: .sending
-    )))
 }

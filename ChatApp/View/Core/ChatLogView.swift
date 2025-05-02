@@ -3,7 +3,14 @@ import _PhotosUI_SwiftUI
 import SDWebImageSwiftUI
 
 struct ChatLogView: View {
+    @Namespace private var imageNamespace
+    @State private var isGalleryPresented = false
+    @State private var galleryImages: [ChatMessage] = []
+    @State private var galleryStartIndex: Int = 0
+    @State private var showNaviBar = false
+    
     @StateObject var viewModel: ChatLogViewModel
+    @StateObject var keyboardObserver = KeyboardStateObserver()
     @State private var navigationTitle = ""
     @State private var enterButtonText = "#"
     @State private var chatRoom: ChatRoom?
@@ -16,16 +23,10 @@ struct ChatLogView: View {
     @State private var hasOpenedBottomMenuOnce = false
     @Binding var hideTabBar: Bool
     @FocusState private var isFocused: Bool
-    @StateObject var keyboardObserver = KeyboardStateObserver()
-    @State private var bottomMenuState: BottomMenuState =  .initial
+    
     
     private var userData: Set<ChatUser>?
     
-    enum BottomMenuState {
-        case initial
-        case visible
-        case hidden
-    }
     
     //새 채팅방 생성으로 들어온 경우
     init(_ userData: Set<ChatUser>?,
@@ -53,11 +54,31 @@ struct ChatLogView: View {
             chatBubbleRow()
             ChatRoomSideMenuView(
                 viewModel: viewModel,
-                isShowSelectUserView: $showSideMenu)
+                isShowSelectUserView: $showSideMenu
+            )
+            if isGalleryPresented {
+                ChatRoomGalleryView(
+                    images: galleryImages,
+                    startIndex: galleryStartIndex,
+                    namespace: imageNamespace,
+                    isPresented: $isGalleryPresented
+                )
+                .transition(.opacity)
+                .onAppear {
+                    withAnimation {
+                        showNaviBar = true
+                    }
+                }
+                .onDisappear {
+                    withAnimation {
+                        showNaviBar = false
+                    }
+                }
+            }
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(showSideMenu ? .hidden : .visible, for: .navigationBar)
+        .toolbar(showSideMenu || showNaviBar ? .hidden : .visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -97,8 +118,6 @@ struct ChatLogView: View {
                             HStack {
                                 messageContent($msg)
                             }
-                            .padding(.vertical, 2)
-                            .padding(.horizontal, 8)
                         }
                         .id(msg.id)
                         .onAppear {
@@ -143,23 +162,30 @@ struct ChatLogView: View {
             }
         }
     }
-    
     @ViewBuilder
     private func messageContent(_ msg: Binding<ChatMessage>) -> some View {
         HStack {
             switch msg.wrappedValue.type {
-                case .text, .image:
-                    ChatRoomMessageView(viewModel: viewModel, msg: msg)
-                case .leave, .join:
+            case .text, .image:
+                ChatRoomMessageView(
+                    viewModel: viewModel,
+                    msg: msg,
+                    imageNameSpace: imageNamespace) { images, startIndex in
+                        galleryImages = images
+                        galleryStartIndex = startIndex
+                        withAnimation(.spring) {
+                            isGalleryPresented = true
+                        }
+                    }
+            case .leave, .join:
                 chatRoomMemberStateMessage(msg: msg.wrappedValue)
-                default:
-                    EmptyView()
-                }
+            default:
+                EmptyView()
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
     }
-    
     @ViewBuilder
     private func chatRoomMemberStateMessage(msg: ChatMessage) -> some View {
         HStack(alignment: .center) {
@@ -173,7 +199,6 @@ struct ChatLogView: View {
                 .frame(maxWidth: .infinity)
         }
     }
- 
     @ViewBuilder
     private func chatSection(msg: Binding<ChatMessage>) -> some View {
         if msg.wrappedValue.isFirstInDayGroup {
