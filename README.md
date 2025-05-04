@@ -28,5 +28,8 @@ A chat application built with SwiftUI.
   <img src="ChatApp/Sceenshots/ChatApp05_FriendList.jpeg" width="30%" alt="FriendList" />
   <img src="ChatApp/Sceenshots/ChatApp06_ProfileView.jpeg" width="30%" alt="Profileview" />
 </p>
+<p float="left">
+  <img src="ChatApp/Sceenshots/ChatApp07_ImageGroup.jpeg" width="30%" alt="ImageGroup" />
+</p>
 
 [![ChatRoomGalleryView](https://img.youtube.com/vi/B1UBGnX2C_M/0.jpg)](https://youtube.com/shorts/B1UBGnX2C_M?feature=share)
