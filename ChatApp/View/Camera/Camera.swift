@@ -122,6 +122,7 @@ class Camera: NSObject {
                                                name: UIDevice.orientationDidChangeNotification,object: nil)
     }
     
+
     func start() async {
         let authorized = await checkAuthorizationStatus()
         guard authorized else {

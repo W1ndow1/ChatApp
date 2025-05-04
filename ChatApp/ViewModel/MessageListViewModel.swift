@@ -24,17 +24,8 @@ class MessageListViewModel: ObservableObject {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
  
-        /*
-        migrationAllRoomMessageToAddType()
-        renameField(completion: { result in
-            switch result {
-            case .success():
-                print("필드 이름 변경 성공")
-            case .failure(let error):
-                print("Error: \(error)")
-            }
-        })
-         */
+
+        //migrationAllRoomMessageAddType3()
     }
     
 
@@ -181,7 +172,8 @@ class MessageListViewModel: ObservableObject {
                               senderId: chatRoom.lastMessageSenderId,
                               text: chatRoom.lastMessage,
                               timeStamp: chatRoom.lastMessageTimeStamp,
-                              readBy:[])
+                              readBy:[],
+                              imageURLs: [])
         guard currentUser?.uid != msg.senderId else { return }
         let content = UNMutableNotificationContent()
         content.title = usersIdInfo[msg.senderId]?.displayName ?? "새로운 메시지"
@@ -270,7 +262,8 @@ class MessageListViewModel: ObservableObject {
                                         senderId: "leave",
                                         text: leaveText,
                                         timeStamp: Timestamp(date: Date()),
-                                        readBy: [])
+                                        readBy: [],
+                                        imageURLs: [])
         DatabaseManager.shared.storeChatMessageData(chatRoomId: chatRoom.chatRoomId , chatMessageData: resultMessage)
             .sink(receiveCompletion: { completion in
                 switch completion {
@@ -404,6 +397,111 @@ class MessageListViewModel: ObservableObject {
                                 print("메시지 업데이트 실패: \(error)")
                             } else {
                                 print("메시지\(message.documentID ) 타입 업데이트 성공")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    private func migrationAllRoomMessageAddType2() {
+        let db = DatabaseManager.shared.db
+        let roomRef = db.collection("rooms")
+        
+        roomRef.getDocuments { snapshot, error in
+            if let error = error {
+                print("Error getting documents: \(error)")
+                return
+            }
+            guard let rooms = snapshot?.documents, !rooms.isEmpty else {
+                print("변환할 문서가 없습니다.")
+                return
+            }
+            for room in rooms {
+                let messageRef = room.reference.collection("messages")
+                messageRef.getDocuments { messageSnapshot, error in
+                    if let error = error {
+                        print("Error getting documents: \(error)")
+                        return
+                    }
+                    guard let messages = messageSnapshot?.documents, !messages.isEmpty else {
+                        print("변환할 문서가 없습니다.")
+                        return
+                    }
+                    for message in messages {
+                        if message.data()["imageURLs"] != nil {
+                            continue
+                        }
+                        message.reference.updateData(["imageURLs": [String]()]) { error in
+                            if let error = error {
+                                print("Error updating document: \(error)")
+                            } else {
+                                print("메시지\(message.documentID)에 imageURLs 필드 추가 성공")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    private func migrationAllRoomMessageAddType3() {
+        let db = DatabaseManager.shared.db
+        let roomRef = db.collection("rooms")
+        
+        roomRef.getDocuments { snapshot, error in
+            if let error = error {
+                print("Error getting rooms: \(error)")
+                return
+            }
+            
+            guard let rooms = snapshot?.documents, !rooms.isEmpty else {
+                print("변환할 room 문서가 없습니다.")
+                return
+            }
+            for room in rooms {
+                let messageRef = room.reference.collection("messages")
+                messageRef.getDocuments { msgSnapshot, error in
+                    if let error = error {
+                        print("Error getting messages: \(error)")
+                        return
+                    }
+                    
+                    guard let messages = msgSnapshot?.documents, !messages.isEmpty else {
+                        print("변환할 message 문서가 없습니다.")
+                        return
+                    }
+                    
+                    var batch = db.batch()
+                    var operationCount = 0
+                    var batches: [WriteBatch] = []
+                    
+                    for message in messages {
+                        if message.data()["imageURLs"] != nil {
+                            continue
+                        }
+                        batch.updateData(["imageURLs": [String]()], forDocument: message.reference)
+                        operationCount += 1
+                        
+                        if operationCount == 500 {
+                            batches.append(batch)
+                            batch = db.batch()
+                            operationCount = 0
+                        }
+                    }
+                    if operationCount > 0 {
+                        batches.append(batch)
+                    }
+                    
+                    for(index, batch) in batches.enumerated() {
+                        batch.commit { error in
+                            if let error = error {
+                                print("Batch \(index) commit error: \(error)")
+                            } else {
+                                print("Batch \(index) commit 성공")
                             }
                         }
                     }

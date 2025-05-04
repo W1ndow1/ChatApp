@@ -2,8 +2,13 @@ import SwiftUI
 import FirebaseCore
 import SDWebImageSwiftUI
 
+struct GalleryImageItem: Identifiable {
+    let id: String
+    let url: String
+}
+
 struct ChatRoomGalleryView: View {
-    var images: [ChatMessage]
+    var images: [GalleryImageItem]
     var startIndex: Int
     var namespace: Namespace.ID
     
@@ -71,7 +76,7 @@ struct ChatRoomGalleryView: View {
     
     @ViewBuilder
     private func galleryImage(for index: Int, geo: GeometryProxy) -> some View {
-        WebImage(url: URL(string: images[index].text))
+        WebImage(url: URL(string: images[index].url))
             .resizable()
             .scaledToFit()
             .matchedGeometryEffect(id: images[index].id, in: namespace)
@@ -125,7 +130,6 @@ struct ChatRoomGalleryView: View {
             .onChanged { _ in }
             .onEnded { _ in }
     }
-    
     //핀치 확대
     private func magnificationGesture() -> some Gesture {
         MagnificationGesture()
@@ -171,18 +175,3 @@ struct ChatRoomGalleryView: View {
     }
 }
 
-#Preview {
-    @Previewable @Namespace var imageNamespace
-    return ChatRoomGalleryView(
-        images: [
-            ChatMessage(
-                messageId: "123",
-                senderId: "https://firebasestorage.googleapis.com:443/v0/b/swiftui-firebase-chetapp.firebasestorage.app/o/images%2Froom%2F64F62C44-3887-4190-8DB5-526AAA6C3702%2F6CA60880-0FF0-4E1A-9C54-34F79ABD970E.jpeg?alt=media&token=1894fc59-5732-4e94-941e-fc29a3fac677",
-                timeStamp: Timestamp(date: Date()),
-                readBy: []
-            )
-        ],
-        startIndex: 0,
-        namespace: imageNamespace,
-        isPresented: .constant(true))
-}

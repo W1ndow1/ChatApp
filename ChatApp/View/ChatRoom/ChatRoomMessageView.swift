@@ -11,9 +11,9 @@ import FirebaseCore
 
 struct ChatRoomMessageView: View {
     @ObservedObject var viewModel: ChatLogViewModel
-    @Binding var msg: ChatMessage
+    var msg: ChatMessage
     var imageNameSpace: Namespace.ID
-    var onImageTap: ([ChatMessage], Int) -> ()
+    var onImageTap: ([GalleryImageItem], Int) -> ()
     
     var body: some View {
         if msg.senderId != AuthManager.shared.id {
@@ -26,6 +26,7 @@ struct ChatRoomMessageView: View {
     @ViewBuilder
     private func otherMessage(msg: ChatMessage) -> some View {
         HStack(alignment: .top) {
+            //보낸이 이미지
             if (msg.isFirstInTimeGroup) || !(msg.isFromSameSender) {
                 WebImage(url: URL(string: viewModel.usersInfo?[msg.senderId]?.profileImageURL ?? ""))
                     .resizable()
@@ -38,26 +39,16 @@ struct ChatRoomMessageView: View {
                     .frame(width:35)
             }
             VStack(alignment: .leading) {
+                //보낸이 이름
                 if (msg.isFirstInTimeGroup) || !(msg.isFromSameSender) {
                     Text(viewModel.usersInfo?[msg.senderId]?.displayName ?? "")
                         .font(.system(size: 10, weight: .light))
                 }
                 HStack(alignment: .bottom) {
-                    if msg.type == .image {
-                        WebImage(url: URL(string: msg.text))
-                            .resizable()
-                            .retryOnAppear(true)
-                            .scaledToFit()
-                            .frame(width: 210)
-                            .background(.tint)
-                            .clipShape(RoundedRectangle(cornerRadius: 15))
-                            .matchedGeometryEffect(id: msg.id, in: imageNameSpace)
-                            .onTapGesture {
-                                let images = viewModel.chatMessages.filter { $0.type == .image }
-                                if let index = images.firstIndex(where: { $0.id == msg.id}) {
-                                    onImageTap(images, index)
-                                }
-                            }
+                    //이미지
+                    if msg.type == .image || msg.type == .images {
+                        imageMessage(msg: msg)
+                        //텍스트
                     } else {
                         Text(msg.text)
                             .padding(8)
@@ -68,6 +59,7 @@ struct ChatRoomMessageView: View {
                             .lineLimit(nil)
                             .multilineTextAlignment(.leading)
                     }
+                    //전송시간
                     if (msg.isFirstInTimeGroup) || !(msg.isFromSameSender) {
                         Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
                             .font(.system(size: 10, weight: .light))
@@ -85,43 +77,17 @@ struct ChatRoomMessageView: View {
         Spacer()
         HStack(alignment: .bottom) {
             Spacer()
+            //전송시간
             if (msg.isFirstInTimeGroup) || !(msg.isFromSameSender) {
                 Text(msg.timeStamp.dateValue().toString(dateFormat: "a h:mm"))
                     .font(.system(size: 10, weight: .light))
             }
-            if msg.type == .image {
-                switch msg.sendState {
-                case .sending:
-                    ProgressView()
-                        .foregroundStyle(.tint)
-                case .sent:
-                    WebImage(url: URL(string: msg.text))
-                        .resizable()
-                        .retryOnAppear(true)
-                        .scaledToFit()
-                        .frame(width: 230)
-                        .background(.tint)
-                        .clipShape(RoundedRectangle(cornerRadius: 15))
-                        .matchedGeometryEffect(id: msg.id, in: imageNameSpace)
-                        .onTapGesture {
-                            let images = viewModel.chatMessages.filter { $0.type == .image }
-                            if let index = images.firstIndex(where: { $0.id == msg.id}) {
-                                onImageTap(images, index)
-                            }
-                        }
-                case .failed:
-                    Button {
-                        if viewModel.captureIamge != nil {
-                            viewModel.sendImage()
-                        }
-                    } label: {
-                        Image(systemName: "paperplane.circle")
-                            .font(.system(size: 15))
-                            .foregroundStyle(.tint)
-                    }
-                }
-                
-            } else {
+            //이미지
+            if msg.type == .image || msg.type == .images {
+                imageMessage(msg: msg)
+            }
+            //텍스트
+            else {
                 Text(msg.text)
                     .padding(8)
                     .foregroundStyle(Color.white)
@@ -134,4 +100,95 @@ struct ChatRoomMessageView: View {
         }
         .padding(.leading, 30)
     }
+    @ViewBuilder
+    private func imageMessage(msg: ChatMessage) -> some View {
+        switch msg.sendState {
+        case .sending:
+            ProgressView()
+                .foregroundStyle(.tint)
+        case .sent:
+            if msg.type == .image {
+                WebImage(url: URL(string: msg.text))
+                    .resizable()
+                    .retryOnAppear(true)
+                    .scaledToFit()
+                    .frame(width: 210)
+                    .background(.tint)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .matchedGeometryEffect(id: msg.id, in: imageNameSpace)
+                    .onTapGesture {
+                        var allImages: [GalleryImageItem] = []
+                        for message in viewModel.chatMessages {
+                            if message.type == .image {
+                                allImages.append(GalleryImageItem(id: message.id, url: message.text))
+                            } else if message.type == .images {
+                                for url in message.imageURLs {
+                                    allImages.append(GalleryImageItem(id: message.id, url: url))
+                                }
+                            }
+                        }
+                        if let index = allImages.firstIndex(where: { $0.url == msg.text}) {
+                            onImageTap(allImages, index)
+                        }
+                    }
+                    .onLongPressGesture(perform: {
+                        
+                    })
+            } else if msg.type == .images {
+                groupImageView(msg: msg)
+                    .frame(maxWidth: 210, maxHeight: 350)
+            }
+        case .failed:
+            Button {
+                if viewModel.captureIamge != nil {
+                    viewModel.sendImage()
+                }
+            } label: {
+                Image(systemName: "paperplane.circle")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.tint)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func groupImageView(msg: ChatMessage) -> some View {
+        let maxVisibleImages = 4
+        let imageCount = msg.imageURLs.count
+        let displayURLs = Array(msg.imageURLs.prefix(maxVisibleImages))
+        ZStack {
+            ForEach(Array(displayURLs.enumerated()), id: \.offset) { index, url in
+                WebImage(url: URL(string: url))
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width:160, alignment: .leadingFirstTextBaseline)
+                    .background(.tint)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .shadow(color: .black, radius: 0.5)
+                    .offset(x: CGFloat(index) * 10)
+                    .zIndex(Double(maxVisibleImages - index))
+                    .onTapGesture {
+                        let images = msg.imageURLs.map { GalleryImageItem(id: $0, url: $0)}
+                        if let index = msg.imageURLs.firstIndex(of: url) {
+                            onImageTap(images, index)
+                        }
+                    }
+            }
+            .padding(.trailing, CGFloat(10 * displayURLs.count))
+            HStack {
+                Spacer()
+                VStack {
+                    Text("\(imageCount)")
+                        .padding(10)
+                        .font(.system(size: 15, weight: .bold))
+                        .background(.tint)
+                        .foregroundStyle(Color.white)
+                        .clipShape(Circle())
+                    Spacer()
+                }
+            }
+            .zIndex(5)
+        }
+    }
 }
+

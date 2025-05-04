@@ -17,6 +17,7 @@ struct ChatMessage: Identifiable, Codable {
     var text: String = ""
     var timeStamp: Timestamp
     var readBy: [String]
+    var imageURLs: [String]
     
     //UI에서만 사용
     var isFirstInDayGroup: Bool = false
@@ -25,7 +26,7 @@ struct ChatMessage: Identifiable, Codable {
     var sendState: MessageSendState = .sent
     
     enum CodingKeys: String, CodingKey {
-        case messageId, type, senderId, receiverId, text, timeStamp, readBy
+        case messageId, type, senderId, receiverId, text, timeStamp, readBy, imageURLs
     }
 }
 
@@ -36,6 +37,7 @@ enum ChatMessageType: String, Codable, CaseIterable {
     case video = "video"
     case leave = "leave"
     case join = "join"
+    case images = "images"
 }
 			
 enum MessageSendState: Codable, CaseIterable {

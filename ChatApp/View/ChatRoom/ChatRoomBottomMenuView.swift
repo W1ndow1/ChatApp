@@ -11,8 +11,11 @@ import _PhotosUI_SwiftUI
 
 struct ChatRoomBottomMenuView: View {
     @ObservedObject var viewModel: ChatLogViewModel
-    @State var isPresentedImagePicker: Bool = false
-    @State var isPresentedCamera: Bool = false
+    @State private var isPresentedImagePicker: Bool = false
+    @State private var isPresentedCamera: Bool = false
+    @State private var selectedImages: [PhotosPickerItem] = []
+    @GestureState private var dragOffset: CGSize = .zero
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ScrollView {
@@ -21,7 +24,6 @@ struct ChatRoomBottomMenuView: View {
                     Button {
                         isPresentedImagePicker.toggle()
                     } label: {
-                        
                         VStack {
                             Image(systemName: "photo.on.rectangle")
                                 .font(.system(size: 30))
@@ -35,7 +37,7 @@ struct ChatRoomBottomMenuView: View {
                         }
                     }
                     .sheet(isPresented: $isPresentedImagePicker) {
-                        ChatRoomPhotosPicker(viewModel: viewModel)
+                        chatRoomPhotosPicker()
                             .presentationDetents([.height(300), .large])
                             .presentationDragIndicator(.visible)
                             .presentationBackgroundInteraction(.enabled)
@@ -59,7 +61,6 @@ struct ChatRoomBottomMenuView: View {
                     .fullScreenCover(isPresented: $isPresentedCamera) {
                         CameraView() { image in
                             viewModel.captureIamge = image
-                            //viewModel.dummySendMessage()
                             viewModel.sendImage()
                             
                         }
@@ -67,6 +68,25 @@ struct ChatRoomBottomMenuView: View {
                     Spacer()
                 }
                 .padding(10)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    func chatRoomPhotosPicker() -> some View {
+        PhotosPicker (
+            selection: $selectedImages,
+            selectionBehavior: .continuous,
+            matching: .images,
+            preferredItemEncoding: .current,
+            photoLibrary: .shared()
+        ) {
+        }
+        .photosPickerStyle(.inline)
+        .onChange(of: selectedImages) { _, newItems in
+            Task { @MainActor in
+                viewModel.selectedImage = newItems
+                
             }
         }
     }
@@ -89,19 +109,4 @@ struct ChatRoomBottomMenuView: View {
         lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")))
 }
 
-struct ChatRoomPhotosPicker: View {
-    @ObservedObject var viewModel: ChatLogViewModel
-    var body: some View {
-        PhotosPicker (
-            selection: $viewModel.selectedImage,
-            selectionBehavior: .continuous,
-            matching: .images,
-            preferredItemEncoding: .current,
-            photoLibrary: .shared()
-        ) {
-            
-        }
-        .photosPickerStyle(.inline)
-        .ignoresSafeArea()
-    }
-}
+

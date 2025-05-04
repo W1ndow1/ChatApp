@@ -71,4 +71,6 @@ class NewMessageViewModel: ObservableObject {
             print("Firebase Error: \(error.localizedDescription)")
         }
     }
+    
+   
 }

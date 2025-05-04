@@ -5,7 +5,7 @@ import SDWebImageSwiftUI
 struct ChatLogView: View {
     @Namespace private var imageNamespace
     @State private var isGalleryPresented = false
-    @State private var galleryImages: [ChatMessage] = []
+    @State private var galleryImages: [GalleryImageItem] = []
     @State private var galleryStartIndex: Int = 0
     @State private var showNaviBar = false
     
@@ -24,9 +24,7 @@ struct ChatLogView: View {
     @Binding var hideTabBar: Bool
     @FocusState private var isFocused: Bool
     
-    
     private var userData: Set<ChatUser>?
-    
     
     //새 채팅방 생성으로 들어온 경우
     init(_ userData: Set<ChatUser>?,
@@ -113,10 +111,10 @@ struct ChatLogView: View {
                             .clear
                             .preference(key: ScrollOffsetPreferenceKey.self,
                                         value: geo.frame(in: .named("scroll")).minY)}
-                    ForEach($viewModel.chatMessages) { $msg in
-                        Section(header: chatSection(msg: $msg)) {
+                    ForEach(viewModel.chatMessages) { msg in
+                        Section(header: chatSection(msg: msg)) {
                             HStack {
-                                messageContent($msg)
+                                messageContent(msg)
                             }
                         }
                         .id(msg.id)
@@ -163,10 +161,10 @@ struct ChatLogView: View {
         }
     }
     @ViewBuilder
-    private func messageContent(_ msg: Binding<ChatMessage>) -> some View {
+    private func messageContent(_ msg: ChatMessage) -> some View {
         HStack {
-            switch msg.wrappedValue.type {
-            case .text, .image:
+            switch msg.type {
+            case .text, .image, .images:
                 ChatRoomMessageView(
                     viewModel: viewModel,
                     msg: msg,
@@ -178,7 +176,7 @@ struct ChatLogView: View {
                         }
                     }
             case .leave, .join:
-                chatRoomMemberStateMessage(msg: msg.wrappedValue)
+                chatRoomMemberStateMessage(msg: msg)
             default:
                 EmptyView()
             }
@@ -200,10 +198,10 @@ struct ChatLogView: View {
         }
     }
     @ViewBuilder
-    private func chatSection(msg: Binding<ChatMessage>) -> some View {
-        if msg.wrappedValue.isFirstInDayGroup {
+    private func chatSection(msg: ChatMessage) -> some View {
+        if msg.isFirstInDayGroup {
             HStack {
-                Text(msg.wrappedValue.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일 (E)"))
+                Text(msg.timeStamp.dateValue().toString(dateFormat: "yyyy년 M월 d일 (E)"))
                     .padding(10)
                     .font(.system(size: 12, weight: .light))
                     .background(Color.gray.opacity(0.5))
@@ -254,11 +252,6 @@ struct ChatLogView: View {
                             viewModel.clearWritingMessages()
                         }
                     }
-                
-                        
-                    .onChange(of: viewModel.captureIamge) { _ , new  in
-                        
-                    }
                     .onChange(of: viewModel.chatText) { _, new in
                         enterButtonText = new.count > 0 ? "⇧" : "#"
                         isFocused = true
@@ -286,7 +279,10 @@ struct ChatLogView: View {
                         : viewModel.sendMessageBySelectedUser()
                         sendAction
                         isSendMessage.toggle()
+                    } else if !viewModel.selectedImage.isEmpty {
+                        viewModel.sendImages()
                     }
+
                 } label: {
                     ZStack {
                         RoundedRectangle(cornerRadius: 20)
@@ -295,6 +291,9 @@ struct ChatLogView: View {
                             .font(.system(size: 20, weight: .heavy))
                             .foregroundStyle(Color.white)
                     }
+                }
+                .onChange(of: viewModel.selectedImage.count) { _ , new  in
+                    enterButtonText = String(new)
                 }
             }
             .padding(.horizontal, 10)
