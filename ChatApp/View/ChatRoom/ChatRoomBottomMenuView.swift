@@ -33,7 +33,7 @@ struct ChatRoomBottomMenuView: View {
                                 .clipShape(.circle)
                             Text("앨범")
                                 .font(.system(size: 13, weight: .light))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(Color.buttonTitle)
                         }
                     }
                     .sheet(isPresented: $isPresentedImagePicker) {
@@ -55,7 +55,7 @@ struct ChatRoomBottomMenuView: View {
                                 .clipShape(.circle)
                             Text("카메라")
                                 .font(.system(size: 13, weight: .light))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(Color.buttonTitle)
                         }
                     }
                     .fullScreenCover(isPresented: $isPresentedCamera) {

@@ -113,9 +113,7 @@ struct ChatLogView: View {
                                         value: geo.frame(in: .named("scroll")).minY)}
                     ForEach(viewModel.chatMessages) { msg in
                         Section(header: chatSection(msg: msg)) {
-                            HStack {
-                                messageContent(msg)
-                            }
+                            messageContent(msg)
                         }
                         .id(msg.id)
                         .onAppear {
@@ -243,7 +241,6 @@ struct ChatLogView: View {
                     })
                     .onAppear {
                         viewModel.loadWritingMessages()
-                        
                     }
                     .onDisappear {
                         if viewModel.chatText.count > 0 {
@@ -279,7 +276,7 @@ struct ChatLogView: View {
                         : viewModel.sendMessageBySelectedUser()
                         sendAction
                         isSendMessage.toggle()
-                    } else if !viewModel.selectedImage.isEmpty {
+                    } else if viewModel.selectedImage.count > 0 {
                         viewModel.sendImages()
                     }
 

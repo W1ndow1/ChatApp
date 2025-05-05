@@ -155,7 +155,8 @@ class ChatLogViewModel: ObservableObject {
         guard let chatRoomId = chatRoom?.chatRoomId,
               let senderId = AuthManager.shared.id,
               let resizeImage = captureIamge?.resizeMaintainningRatio(toWidth: 1200),
-              let imageData = resizeImage.jpegData(compressionQuality: 0.4) else { return }
+              let imageData = resizeImage.jpegData(compressionQuality: 0.4)
+        else { return }
         
         let tempMessageId = UUID().uuidString
         var sendingMessage = ChatMessage(
@@ -203,11 +204,10 @@ class ChatLogViewModel: ObservableObject {
         guard let chatRoomId = chatRoom?.chatRoomId,
               let senderId = AuthManager.shared.id
               else { return }
-        
         let tempMessageId = UUID().uuidString
         var sendingMessage = ChatMessage(
             messageId: tempMessageId,
-            type: .images,
+            type: (resizeData.count > 1 ? .images : .image),
             senderId: senderId,
             text: "",
             timeStamp: Timestamp(date: Date()),
@@ -235,7 +235,8 @@ class ChatLogViewModel: ObservableObject {
                 await MainActor.run {
                     selectedImage = []
                 }
-                sendingMessage.imageURLs = uploadURLs
+                sendingMessage.text = uploadURLs.count == 1 ? uploadURLs[0] : ""
+                sendingMessage.imageURLs = uploadURLs.count > 1 ? uploadURLs : []
                 sendingMessage.sendState = .sent
                 
                 let ref = DatabaseManager.shared.db
@@ -272,19 +273,27 @@ class ChatLogViewModel: ObservableObject {
             } catch {
                 print("이미지 변환 실패 :\(error.localizedDescription)")
             }
+            self.resizeData = newData
         }
-        self.resizeData = newData
     }
     
     
-    //메시지 처리
-    func updateChatMessages() {
-        let merged = (serverMessages + localMessages)
-            .sorted(by: { $0.timeStamp.dateValue() < $1.timeStamp.dateValue() })
-        DispatchQueue.main.async {
-            self.chatMessages = self.addPropMessage(merged)
+    func chatRoomImageMerge() -> [GalleryImageItem] {
+        var allImages = [GalleryImageItem]()
+        for message in chatMessages {
+            if message.type == .image {
+                allImages.append(GalleryImageItem(id: message.id, url: message.text))
+            } else if message.type == .images {
+                for url in message.imageURLs {
+                    allImages.append(GalleryImageItem(id: message.id + url, url: url))
+                }
+            }
         }
+        return allImages
     }
+    
+    
+   
     
     //MARK: - 공용 메서드
     func fetchUsersInfoByRoom() {
@@ -384,6 +393,15 @@ class ChatLogViewModel: ObservableObject {
         return processedMessages
     }
     
+    //메시지 처리
+    func updateChatMessages() {
+        let merged = (serverMessages + localMessages)
+            .sorted(by: { $0.timeStamp.dateValue() < $1.timeStamp.dateValue() })
+        DispatchQueue.main.async {
+            self.chatMessages = self.addPropMessage(merged)
+        }
+    }
+    
     func stopListening() {
         listener?.remove()
         listener = nil
@@ -397,6 +415,7 @@ class ChatLogViewModel: ObservableObject {
         return "writingMessage"
     }
     
+    //채팅방 메시지 저장 및 로드
     func loadWritingMessages() {
         self.chatText = UserDefaults.standard.string(forKey: self.writingMessageKey()) ?? ""
     }

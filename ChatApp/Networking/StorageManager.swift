@@ -16,7 +16,7 @@ class StorageManager {
     
     func uploadProfilePhoto(uid: String, image: Data, metaData: StorageMetadata) -> Future<StorageMetadata, Error> {
         return Future<StorageMetadata, Error> { promise in
-            let ref = self.storage.reference(withPath: "images/\(uid).jpeg")
+            let ref = self.storage.reference(withPath: "images/users/\(uid).jpeg")
             ref.putData(image, metadata: metaData) { metaData, error in
                 if let error = error {
                     promise(.failure(error))
@@ -42,8 +42,9 @@ class StorageManager {
     
     func uploadProfileImage(userId: String, image: UIImage) -> AnyPublisher<String, Error> {
         Future { promise in
-            let storageRef = self.storage.reference().child("images/\(userId).jpeg")
-            guard let imageData = image.jpegData(compressionQuality: 0.2) else { return }
+            let storageRef = self.storage.reference().child("images/users/\(userId).jpeg")
+            let resizeImage = image.resizeMaintainningRatio(toWidth: 300)
+            guard let imageData = resizeImage.jpegData(compressionQuality: 0.5) else { return }
             let meta = StorageMetadata()
             meta.contentType = "image/jpeg"
             storageRef.putData(imageData, metadata: meta) { mataData, error in

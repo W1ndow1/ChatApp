@@ -44,7 +44,7 @@ struct FriendListView: View {
             selectedUser = user
         } label: {
             HStack {
-                WebImage(url: URL(string: user.profileImageURL))
+                WebImage(url: URL(string: user.profileImageURL), options: .scaleDownLargeImages)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 50, height: 50)

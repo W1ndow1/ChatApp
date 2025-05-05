@@ -118,7 +118,7 @@ struct MessageListView: View {
             HStack {
                 if room.chatRoomType != .group {
                     let opponentId = room.participants.first(where: {$0 != AuthManager.shared.id }) ?? room.participants[0]
-                    WebImage(url: URL(string: viewModel.usersIdInfo[opponentId]?.profileImageURL ?? ""))
+                    WebImage(url: URL(string: viewModel.usersIdInfo[opponentId]?.profileImageURL ?? ""), options: .scaleDownLargeImages)
                         .resizable()
                         .scaledToFill()
                         .frame(width: 51, height: 51)
@@ -184,7 +184,7 @@ struct MessageListView: View {
         let columns: [GridItem] = Array(repeating: .init(.flexible(minimum: 2, maximum: 4), spacing: 24), count: 2)
         LazyVGrid(columns: columns, alignment:.center, spacing: 2) {
             ForEach(user, id: \.self) { item in
-                WebImage(url: URL(string: viewModel.usersIdInfo[item]?.profileImageURL ?? ""))
+                WebImage(url: URL(string: viewModel.usersIdInfo[item]?.profileImageURL ?? ""), options: .scaleDownLargeImages)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 25, height: 25)
