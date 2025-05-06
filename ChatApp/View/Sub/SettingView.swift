@@ -12,11 +12,14 @@ struct SettingView: View {
     @EnvironmentObject var loginViewModel: LoginViewModel
     @StateObject var viewModel = SettingViewModel()
     @State private var showingAlert = false
+    @State private var showingClearCacheAlert = false
+    @State private var cacheSize: Double = 0.0
     
     var body: some View {
         List {
             userInfoSection()
             accountSection()
+            storageSection()
         }
         .onAppear(){
             viewModel.fetchCurrentUser()
@@ -79,11 +82,30 @@ struct SettingView: View {
                 Button("확인", role: .destructive) {
                     loginViewModel.logout()
                 }
-                Button("취소", role: .cancel) {
-                }
+                Button("취소", role: .cancel) { }
             } message: {
                 Text("로그아웃하시겠습니까?")
             }
+        }
+    }
+    @ViewBuilder
+    func storageSection() -> some View {
+        Section("저장공간") {
+            Button {
+                showingClearCacheAlert = true
+            }label: {
+                Text("현재 캐시크기: \(String(format: "%.2f MB", cacheSize))")
+            }
+            .confirmationDialog("캐시삭제", isPresented: $showingClearCacheAlert, titleVisibility: .visible) {
+                Button("확인", role: .destructive) {
+                    ImageCacheManager.shared.clearAllCache()
+                    cacheSize = Double(ImageCacheManager.shared.totalCacheSize()) / 1024 / 1024
+                }
+                Button("취소", role: .cancel) { }
+            }
+        }
+        .onAppear {
+            cacheSize = Double(ImageCacheManager.shared.totalCacheSize()) / 1024 / 1024
         }
     }
 }

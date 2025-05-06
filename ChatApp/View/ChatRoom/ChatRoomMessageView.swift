@@ -15,6 +15,8 @@ struct ChatRoomMessageView: View {
     var imageNameSpace: Namespace.ID
     var onImageTap: ([GalleryImageItem], Int) -> ()
     
+    @State private var image: UIImage?
+    
     var body: some View {
         if msg.senderId != AuthManager.shared.id {
             otherMessage(msg: msg)
@@ -108,6 +110,19 @@ struct ChatRoomMessageView: View {
                 .foregroundStyle(.tint)
         case .sent:
             if msg.type == .image {
+                
+                ResizedAsyncImage(url: URL(string: msg.text)!, targetSize: CGSize(width: 210, height: 210))
+                    .scaledToFit()
+                    .frame(width: 210)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .matchedGeometryEffect(id: msg.id, in: imageNameSpace)
+                    .onTapGesture {
+                        let allImages = viewModel.chatRoomImageMerge()
+                        if let index = allImages.firstIndex(where: { $0.url == msg.text}) {
+                            onImageTap(allImages, index)
+                        }
+                    }
+                /*
                 WebImage(url: URL(string: msg.text), options: [.scaleDownLargeImages, .progressiveLoad])
                     .resizable()
                     .scaledToFit()
@@ -123,6 +138,7 @@ struct ChatRoomMessageView: View {
                     .onLongPressGesture(perform: {
                         //이미지 저장
                     })
+                 */
             } else if msg.type == .images {
                 groupImageView2(msg: msg)
                     .frame(maxWidth:210, maxHeight: 210)
@@ -151,7 +167,7 @@ struct ChatRoomMessageView: View {
                     .resizable()
                     .interpolation(.low)
                     .scaledToFill()
-                    .frame(width:160, alignment: .leadingFirstTextBaseline)
+                    .frame(width:160)
                     .background(.tint)
                     .clipShape(RoundedRectangle(cornerRadius: 15))
                     .offset(x: CGFloat(index) * 10)
@@ -190,9 +206,7 @@ struct ChatRoomMessageView: View {
         
         LazyVGrid(columns: columns, spacing: 5) {
             ForEach(imageURLs, id: \.self) { url in
-                WebImage(url: URL(string: url), options: [.scaleDownLargeImages, .progressiveLoad])
-                    .resizable()
-                    .interpolation(.low)
+                ResizedAsyncImage(url: URL(string: url)!, targetSize: CGSize(width: 65, height: 65))
                     .scaledToFill()
                     .frame(width: 65, height: 65)
                     .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -207,4 +221,5 @@ struct ChatRoomMessageView: View {
         .padding(4)
     }
 }
+
 
