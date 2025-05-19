@@ -23,9 +23,6 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
- 
-
-        //migrationAllRoomMessageAddType3()
     }
     
 
@@ -79,22 +76,7 @@ class MessageListViewModel: ObservableObject {
     
     func editChatRoomsInfo(chatRooms: [ChatRoom]) {
         for chatRoom in chatRooms {
-            let opponentId = chatRoom.participants.first(where: {$0 != AuthManager.shared.id}) ?? chatRoom.participants[0]
-            let otherParticipants = chatRoom.participants.filter({$0 != AuthManager.shared.id})
-            let groupChatName = otherParticipants.compactMap({usersIdInfo[$0]?.displayName}).joined(separator: ",")
-            let newChatRoom = ChatRoom(chatRoomType: chatRoom.chatRoomType,
-                                       chatRoomId: chatRoom.chatRoomId,
-                                       chatRoomMakerId: chatRoom.chatRoomMakerId,
-                                       participants: chatRoom.participants,
-                                       participantsJoinDates: chatRoom.participantsJoinDates,
-                                       isCustomName: chatRoom.isCustomName,
-                                       chatName: chatRoom.chatRoomType == .group
-                                       ? chatRoom.isCustomName ? chatRoom.chatName : groupChatName
-                                       : (usersIdInfo[opponentId]?.displayName ?? ""),
-                                       lastMessage: chatRoom.lastMessage,
-                                       lastMessageTimeStamp: chatRoom.lastMessageTimeStamp,
-                                       lastMessageSenderId: chatRoom.lastMessageSenderId
-            )
+            let newChatRoom = editChatRoomInfo(chatRoom: chatRoom)
             self.chatRooms.append(newChatRoom)
             self.fetchFavoriteRooms(uid: AuthManager.shared.id ?? "")
         }
@@ -278,7 +260,8 @@ class MessageListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    func updateAllChatRoomsWithChatRoomType(completion: @escaping (Result<Void, Error>) -> Void) {
+    //MARK: Firebase Filed Update and Edit
+    private func updateAllChatRoomsWithChatRoomType(completion: @escaping (Result<Void, Error>) -> Void) {
         let db = DatabaseManager.shared.db
         let roomsCollection = db.collection("rooms")
         
@@ -317,7 +300,7 @@ class MessageListViewModel: ObservableObject {
         }
     }
     
-    func renameField(completion: @escaping (Result<Void, Error>) -> Void) {
+    private func renameField(completion: @escaping (Result<Void, Error>) -> Void) {
         let db = DatabaseManager.shared.db
         let roomsCollection = db.collection("rooms")
         
@@ -351,60 +334,6 @@ class MessageListViewModel: ObservableObject {
             }
         }
     }
-    
-    func migrationAllRoomMessageToAddType() {
-        let db = DatabaseManager.shared.db
-        let roomRef = db.collection("rooms")
-        
-        roomRef.getDocuments { snapshot, error in
-            if let error = error {
-                print("Firebase Error: \(error)")
-                return
-            }
-            guard let rooms = snapshot?.documents, !rooms.isEmpty else {
-                print("변환할 문서가 없습니다.")
-                return
-            }
-            for room in rooms {
-                let roomId = room.documentID
-                let messageRef = roomRef.document(roomId).collection("messages")
-                messageRef.getDocuments{ messagesSnapshot, error in
-                    if let error = error {
-                        print("Firebase Error: \(error)")
-                        return
-                    }
-                    guard let messages = messagesSnapshot?.documents, !messages.isEmpty else {
-                        print("변환할 문서가 없습니다.")
-                        return
-                    }
-                    for message in messages {
-                        let data = message.data()
-                        if data["type"] != nil {
-                            continue
-                        }
-                        
-                        let senderId = data["senderId"] as? String ?? ""
-                        var messageType = "text"
-                        
-                        if senderId == "leave" {
-                            messageType = "leave"
-                        } else if senderId == "join" {
-                            messageType = "join"
-                        }
-                        
-                        messageRef.document(message.documentID).updateData(["type": messageType]) { error in
-                            if let error = error {
-                                print("메시지 업데이트 실패: \(error)")
-                            } else {
-                                print("메시지\(message.documentID ) 타입 업데이트 성공")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
     
     private func migrationAllRoomMessageAddType2() {
         let db = DatabaseManager.shared.db

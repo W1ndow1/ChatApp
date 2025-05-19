@@ -23,6 +23,7 @@ struct ChatLogView: View {
     @State private var hasOpenedBottomMenuOnce = false
     @Binding var hideTabBar: Bool
     @FocusState private var isFocused: Bool
+    @State private var popupAlert = false
     
     private var userData: Set<ChatUser>?
     
@@ -83,7 +84,8 @@ struct ChatLogView: View {
                     hideKeyboard()
                     showSideMenu = true
                     Task {
-                        await viewModel.refreshChatRoom(chatRoom?.chatRoomId ?? "")
+                        guard let chatRoomId = viewModel.chatRoom?.chatRoomId else { return }
+                        await viewModel.refreshChatRoom(chatRoomId)
                     }
                 }label: {
                     Image(systemName: "sidebar.right")
@@ -277,6 +279,7 @@ struct ChatLogView: View {
                         sendAction
                         isSendMessage.toggle()
                     } else if viewModel.selectedImage.count > 0 {
+                        viewModel.selectedImage = []
                         viewModel.sendImages()
                     }
 

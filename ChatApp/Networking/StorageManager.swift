@@ -78,7 +78,6 @@ class StorageManager {
         metaData.contentType = "image/jpeg"
         _ = try await imageRef.putDataAsync(image, metadata: metaData)
         return try await imageRef.downloadURL()
-        
     }
 }
 

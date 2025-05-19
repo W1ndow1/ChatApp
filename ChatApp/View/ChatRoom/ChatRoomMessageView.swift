@@ -109,9 +109,8 @@ struct ChatRoomMessageView: View {
             ProgressView()
                 .foregroundStyle(.tint)
         case .sent:
-            if msg.type == .image {
-                
-                ResizedAsyncImage(url: URL(string: msg.text)!, targetSize: CGSize(width: 210, height: 210))
+            if msg.type == .image, let url = URL(string: msg.text), !msg.text.isEmpty {
+                ResizedAsyncImage(url: url, targetSize: CGSize(width: 210, height: 210))
                     .scaledToFit()
                     .frame(width: 210)
                     .clipShape(RoundedRectangle(cornerRadius: 15))

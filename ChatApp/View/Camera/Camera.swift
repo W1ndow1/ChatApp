@@ -9,6 +9,7 @@ import CoreImage
 import CoreLocation
 import SwiftUI
 
+
 class Camera: NSObject {
     private let captureSession = AVCaptureSession()     //카메라 세션
     private var isCaputreSessionConfigured = false      //세션 구성 여부

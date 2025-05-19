@@ -85,13 +85,25 @@ struct ProfileView: View {
         let chatName = user.displayName
 
         if let existChatRooms = viewModel.existChatRooms.first {
-            return existChatRooms
+            return ChatRoom(chatRoomType: existChatRooms.chatRoomType,
+                            chatRoomId: existChatRooms.chatRoomId,
+                            chatRoomMakerId: existChatRooms.chatRoomMakerId,
+                            participants: existChatRooms.participants,
+                            participantsJoinDates: existChatRooms.participantsJoinDates,
+                            isCustomName: existChatRooms.isCustomName,
+                            chatName: existChatRooms.chatName,
+                            lastMessage: existChatRooms.lastMessage,
+                            lastMessageTimeStamp: existChatRooms.lastMessageTimeStamp,
+                            lastMessageSenderId: existChatRooms.lastMessageSenderId,
+                            isNew: false
+            )
         } else {
-            return ChatRoom(chatRoomType: (fromId == user.id ? .selfChat : .direct),
+            return ChatRoom(chatRoomType: (fromId == user.uid ? .selfChat : .direct),
                             chatRoomId: UUID().uuidString,
                             chatRoomMakerId: fromId,
                             participants: participants.sorted(by: {$0 < $1}),
-                            chatName: chatName
+                            chatName: chatName,
+                            isNew: true
             )
         }
     }
@@ -103,10 +115,7 @@ struct ProfileView: View {
                    email:"Doserack10@gmail.com",
                    profileImageURL:
                     """
-                    https://firebasestorage.googleapis
-                    .com:443/v0/b/swiftui-firebase-chetapp
-                    .firebasestorage.app/o/images%2FUyZOQtY9occyvmxpP82jr7QdEP12
-                    .jpeg?alt=media&token=96f72d55-efb5-42d6-94d1-5c916e68227e
+                    https://firebasestorage.googleapis.com/v0/b/swiftui-firebase-chetapp.firebasestorage.app/o/images%2Fusers%2FyuW1WZKw1AdSxWJ3oEi66rgS9A82.jpeg?alt=media&token=fa51c783-e892-44a9-8c28-df555cc12951
                     """,
                    displayName: "홍길동"
                   ), startChatting: { _,_  in }

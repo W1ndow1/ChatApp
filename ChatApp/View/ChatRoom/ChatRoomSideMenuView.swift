@@ -45,14 +45,20 @@ struct ChatRoomSideMenuView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isShowSelectUserView)
-        .customAlert(title: viewModel.chatRoom?.chatName, message: "채팅방을 나가시겠습니까?", isPresented: $leaveAlert, actions: [
+        .customAlert(title: viewModel.chatRoom?.chatName,
+                     message: "채팅방을 나가시겠습니까?",
+                     isPresented: $leaveAlert, actions: [
             AlertAction(title: "취소", role: .destructive){},
             AlertAction(title: "확인", role: .none){
                 viewModel.leaveChatRoom()
                 dismiss()
             }
         ])
-        .customAlert(title: "추가실패", message: "이미 채팅방에 있는 인원입니다.", isPresented: $validateAlert, actions: [AlertAction(title: "확인", role: .none, action: {})])
+        .customAlert(title: "추가실패",
+                     message: "이미 채팅방에 있는 인원입니다.",
+                     isPresented: $validateAlert,
+                     actions: [
+                        AlertAction(title: "확인", role: .none, action: {})])
     }
     
     @ViewBuilder

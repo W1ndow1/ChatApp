@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import CryptoKit
 
 class ImageCacheManager {
     static let shared =  ImageCacheManager()
@@ -21,44 +22,48 @@ class ImageCacheManager {
     }
     
     func image(for url:URL) -> UIImage? {
-        //메모리 캐시 먼저 확인
-        if let image = memoryCache.object(forKey: url as NSURL) {
-            return image
-        }
         //디스크 캐시
         let fileURL = cacheDirectory.appendingPathComponent(cacheFileName(for: url))
-        if let data = try? Data(contentsOf: fileURL),
-           let image = UIImage(data: data) {
-            memoryCache.setObject(image, forKey: url as NSURL)
-            return image
+        do {
+            let data = try Data(contentsOf: fileURL)
+            if let image = UIImage(data: data) {
+                memoryCache.setObject(image, forKey: url as NSURL)
+                return image
+            } else {
+                print("이미지 객체 생성 실패: Data → UIImage 변환 실패")
+            }
+        } catch {
+            print("파일 읽기 실패: \(error.localizedDescription)")
         }
         return nil
     }
     
     func save(_ image: UIImage, for url: URL) {
-        //메모리 캐시
-        memoryCache.setObject(image, forKey: url as NSURL)
-        
         //디스크 캐시
         let fileURL = cacheDirectory.appendingPathComponent(cacheFileName(for: url))
+        print("이미지 저장 경로:", fileURL.path)
         if let data = image.jpegData(compressionQuality: 1.0) {
-            try? data.write(to: fileURL)
+            do {
+                try data.write(to: fileURL)
+                print("이미지 캐시 저장성공")
+            } catch {
+                print("이미지 캐시 저장실패:\(error.localizedDescription)")
+            }
         }
-        
         diskCacheLimit()
     }
     
-    
     private func cacheFileName(for url: URL) -> String {
-        return url.absoluteString.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? UUID().uuidString
+        let baseString = url.absoluteString
+        let digest = SHA256.hash(data: Data(baseString.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
     
     private func diskCacheLimit() {
         DispatchQueue.global(qos: .background).async {
             let files: [URL]
             do {
-                files = try self.fileManager.contentsOfDirectory(at: self.cacheDirectory,
-                                                                 includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey],
+                files = try self.fileManager.contentsOfDirectory(at: self.cacheDirectory, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey],
                                                                  options: .skipsHiddenFiles)
             } catch {
                 print("Error listing cache files:", error)
@@ -103,9 +108,6 @@ class ImageCacheManager {
     }
     
     func clearAllCache() {
-        //메모리캐시 비우기
-        memoryCache.removeAllObjects()
-        
         //디스크캐시 비우기
         do {
             let files = try fileManager.contentsOfDirectory(at: cacheDirectory,
@@ -123,8 +125,8 @@ class ImageCacheManager {
         var size: Int64 = 0
         
         if let enumerator = fileManager.enumerator(at: cacheDirectory,
-                                                        includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
-                                                        options: [.skipsHiddenFiles]) {
+                                                   includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+                                                   options: [.skipsHiddenFiles]) {
                 for case let fileURL as URL in enumerator {
                     do {
                         let resourceValues = try fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey])

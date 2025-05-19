@@ -8,7 +8,7 @@ struct FriendListView: View {
     @State private var selectedUser: ChatUser? = nil
     @State private var selectedUserData: Set<ChatUser>?
     @State private var chatRoom = ChatRoom()
-    @State private var navigationChatLogView = false
+    @State private var navigateChatRoom = false
     @State private var friendCount: Int = 0
     @FocusState private var isTextFieldFocused: Bool
     @Binding var hideTabBar: Bool
@@ -21,11 +21,14 @@ struct FriendListView: View {
                 }
                 friendList()
             }
-            .navigationDestination(isPresented: $navigationChatLogView) {
-                ChatLogView(selectedUserData, chatRoom)
-                    .onAppear {
-                        hideTabBar = true
-                    }
+            .navigationDestination(isPresented: $navigateChatRoom) {
+                if chatRoom.isNew {
+                    ChatLogView(selectedUserData, chatRoom)
+                        .onAppear { hideTabBar = true }
+                } else {
+                    ChatLogView(chatRoom: chatRoom)
+                        .onAppear { hideTabBar = true }
+                }
             }
             .toolbar {
                 navigationBarContent()
@@ -86,12 +89,13 @@ struct FriendListView: View {
         .onTapGesture { self.hideKeyboard() }
         .fullScreenCover(item: $selectedUser) { user in
             ProfileView(viewModel: viewModel, user: user) { user, chatRoom in
-                self.navigationChatLogView.toggle()
-                self.selectedUserData = user
-                self.chatRoom = chatRoom
+                    navigateChatRoom.toggle()
+                    selectedUserData = user
+                    self.chatRoom = chatRoom
             }
         }
     }
+    
     @ViewBuilder
     func sectionHeader() -> some View {
         HStack {

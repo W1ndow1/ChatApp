@@ -37,10 +37,30 @@ struct ChatRoomBottomMenuView: View {
                         }
                     }
                     .sheet(isPresented: $isPresentedImagePicker) {
-                        chatRoomPhotosPicker()
-                            .presentationDetents([.height(300), .large])
-                            .presentationDragIndicator(.visible)
-                            .presentationBackgroundInteraction(.enabled)
+                        ZStack
+                        {
+                            chatRoomPhotosPicker()
+                                .presentationDetents([.height(300), .large])
+                                .presentationDragIndicator(.visible)
+                                .presentationBackgroundInteraction(.enabled)
+                            
+                            if let error = viewModel.currentError {
+                                Text(error.message)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(Color.white)
+                                    .background(.tint.opacity(0.8))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                    .multilineTextAlignment(.center)
+                                    .onTapGesture {
+                                        withAnimation {
+                                            viewModel.clearError()
+                                        }
+                                    }
+                            }
+                        }
                     }
 
                     Button{
@@ -62,7 +82,6 @@ struct ChatRoomBottomMenuView: View {
                         CameraView() { image in
                             viewModel.captureIamge = image
                             viewModel.sendImage()
-                            
                         }
                     }
                     Spacer()
@@ -81,6 +100,7 @@ struct ChatRoomBottomMenuView: View {
             preferredItemEncoding: .current,
             photoLibrary: .shared()
         ) {
+            
         }
         .photosPickerStyle(.inline)
         .onChange(of: selectedImages) { _, newItems in

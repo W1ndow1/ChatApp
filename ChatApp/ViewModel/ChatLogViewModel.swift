@@ -14,6 +14,7 @@ class ChatLogViewModel: ObservableObject {
     @Published var captureIamge: UIImage?
     @Published var loadedIamge: UIImage? = nil
     @Published var resizeData = [Data]()
+    @Published var currentError: IdentifiableError? = nil
     @Published var selectedImage = [PhotosPickerItem]() {
         didSet {
             Task {
@@ -176,6 +177,10 @@ class ChatLogViewModel: ObservableObject {
         Task {
             do {
                 let imageURL = try await StorageManager.shared.uploadChatRoomImage(image: imageData , chatRoomId: chatRoomId)
+                await MainActor.run {
+                    resizeData = []
+                }
+                
                 //메시지 내용
                 sendingMessage.text = imageURL.absoluteString
                 sendingMessage.sendState = .sent
@@ -232,9 +237,12 @@ class ChatLogViewModel: ObservableObject {
                     }
                     return result
                 }
+                
                 await MainActor.run {
                     selectedImage = []
+                    resizeData = []
                 }
+                
                 sendingMessage.text = uploadURLs.count == 1 ? uploadURLs[0] : ""
                 sendingMessage.imageURLs = uploadURLs.count > 1 ? uploadURLs : []
                 sendingMessage.sendState = .sent
@@ -272,9 +280,14 @@ class ChatLogViewModel: ObservableObject {
                 }
             } catch {
                 print("이미지 변환 실패 :\(error.localizedDescription)")
+                currentError = IdentifiableError(message: """
+                                    이미지 변환에 실패했습니다.
+                                    공유된 이미지일 경우 카메라롤로 옮겨주세요.
+                                    \(error.localizedDescription)
+                                    """)
             }
-            self.resizeData = newData
         }
+        self.resizeData = newData
     }
     
     
@@ -426,6 +439,10 @@ class ChatLogViewModel: ObservableObject {
     
     func clearWritingMessages() {
         UserDefaults.standard.removeObject(forKey: writingMessageKey())
+    }
+    
+    func clearError() {
+        currentError = nil
     }
     
     //MARK: - 메시지 가져오기
@@ -643,9 +660,10 @@ class ChatLogViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+   
     func refreshChatRoom(_ chatRoomId: String) async {
         let docRef = DatabaseManager.shared.db.collection("rooms").document(chatRoomId)
-        let chatRoom = try? await docRef.getDocument().data(as: ChatRoom.self)
+        guard let chatRoom = try? await docRef.getDocument().data(as: ChatRoom.self) else { return }
         await MainActor.run {
             self.chatRoom = chatRoom
         }
