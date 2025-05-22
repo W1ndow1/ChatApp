@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		A806E5512DB7888C0043ED1B /* ChatRoomBottomMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A806E5502DB7888C0043ED1B /* ChatRoomBottomMenuView.swift */; };
+		A8070B7A2DDEC5D700D74850 /* AppErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8070B792DDEC5CF00D74850 /* AppErrorView.swift */; };
+		A8070B7C2DDF723400D74850 /* GalleryImageItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8070B7B2DDF722400D74850 /* GalleryImageItem.swift */; };
 		A80AA18C2D32740300402AE6 /* ChatAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80AA18B2D32740300402AE6 /* ChatAppApp.swift */; };
 		A80AA18E2D32740300402AE6 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80AA18D2D32740300402AE6 /* LoginView.swift */; };
 		A80AA1902D32740400402AE6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A80AA18F2D32740400402AE6 /* Assets.xcassets */; };
@@ -50,7 +52,8 @@
 		A870756D2DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075672DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg */; };
 		A870756F2DC7CA7B008FDA02 /* ChatApp07_ImageGroup.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A870756E2DC7CA7B008FDA02 /* ChatApp07_ImageGroup.jpeg */; };
 		A87075712DC9A82B008FDA02 /* ImageCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87075702DC9A82B008FDA02 /* ImageCacheManager.swift */; };
-		A8CA6CD82DDB18F500E8E9B5 /* IdentifiableError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CA6CD72DDB18E800E8E9B5 /* IdentifiableError.swift */; };
+		A8CA6CD82DDB18F500E8E9B5 /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CA6CD72DDB18E800E8E9B5 /* AppError.swift */; };
+		A8CA6CDB2DDD7B2200E8E9B5 /* GalleryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CA6CDA2DDD7B0C00E8E9B5 /* GalleryViewModel.swift */; };
 		A8CD43172D8F1E8E00035EC9 /* TextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD43162D8F1E8E00035EC9 /* TextField.swift */; };
 		A8CD43192D94E9AC00035EC9 /* ChatRoomSettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */; };
 		A8CD431B2D9CF43800035EC9 /* CustomAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */; };
@@ -75,6 +78,8 @@
 
 /* Begin PBXFileReference section */
 		A806E5502DB7888C0043ED1B /* ChatRoomBottomMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomBottomMenuView.swift; sourceTree = "<group>"; };
+		A8070B792DDEC5CF00D74850 /* AppErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrorView.swift; sourceTree = "<group>"; };
+		A8070B7B2DDF722400D74850 /* GalleryImageItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryImageItem.swift; sourceTree = "<group>"; };
 		A80AA1882D32740300402AE6 /* ChatApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChatApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A80AA18B2D32740300402AE6 /* ChatAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAppApp.swift; sourceTree = "<group>"; };
 		A80AA18D2D32740300402AE6 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -112,7 +117,8 @@
 		A87075672DC3A450008FDA02 /* ChatApp06_ProfileView.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp06_ProfileView.jpeg; sourceTree = "<group>"; };
 		A870756E2DC7CA7B008FDA02 /* ChatApp07_ImageGroup.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = ChatApp07_ImageGroup.jpeg; sourceTree = "<group>"; };
 		A87075702DC9A82B008FDA02 /* ImageCacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCacheManager.swift; sourceTree = "<group>"; };
-		A8CA6CD72DDB18E800E8E9B5 /* IdentifiableError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentifiableError.swift; sourceTree = "<group>"; };
+		A8CA6CD72DDB18E800E8E9B5 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
+		A8CA6CDA2DDD7B0C00E8E9B5 /* GalleryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryViewModel.swift; sourceTree = "<group>"; };
 		A8CD43162D8F1E8E00035EC9 /* TextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextField.swift; sourceTree = "<group>"; };
 		A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomSettingView.swift; sourceTree = "<group>"; };
 		A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAlert.swift; sourceTree = "<group>"; };
@@ -185,6 +191,7 @@
 		A80AA18A2D32740300402AE6 /* ChatApp */ = {
 			isa = PBXGroup;
 			children = (
+				A8CA6CD92DDB9D8900E8E9B5 /* Shared */,
 				A8670B5F2D833222007692FC /* Extension+Util */,
 				A80AA19D2D335F3500402AE6 /* Networking */,
 				A80AA19A2D32743500402AE6 /* Models */,
@@ -226,7 +233,7 @@
 				A83F6F5D2DB62DCB00FBE447 /* ChatRoom.swift */,
 				A8670B622D833253007692FC /* ChatMessage.swift */,
 				A80AA19B2D335F2B00402AE6 /* ChatUser.swift */,
-				A8CA6CD72DDB18E800E8E9B5 /* IdentifiableError.swift */,
+				A8070B7B2DDF722400D74850 /* GalleryImageItem.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -244,6 +251,7 @@
 		A80AA1A72D373DCF00402AE6 /* ViewModel */ = {
 			isa = PBXGroup;
 			children = (
+				A8CA6CDA2DDD7B0C00E8E9B5 /* GalleryViewModel.swift */,
 				A83355D32D8332D1000B1ECA /* FriendListViewModel.swift */,
 				A80AA1A82D37540800402AE6 /* LoginViewModel.swift */,
 				A80AA1C32D526A3F00402AE6 /* MessageListViewModel.swift */,
@@ -284,6 +292,7 @@
 		A867F39C2D6EBC7B0027D3AF /* Sub */ = {
 			isa = PBXGroup;
 			children = (
+				A8070B792DDEC5CF00D74850 /* AppErrorView.swift */,
 				A8670B662D83326C007692FC /* NewMessageView.swift */,
 				A8F550272D8CF684006B8644 /* GroupChatRoomInfoSettingView.swift */,
 				A8670B652D83326C007692FC /* ProfileView.swift */,
@@ -305,6 +314,14 @@
 				A870756E2DC7CA7B008FDA02 /* ChatApp07_ImageGroup.jpeg */,
 			);
 			path = Sceenshots;
+			sourceTree = "<group>";
+		};
+		A8CA6CD92DDB9D8900E8E9B5 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A8CA6CD72DDB18E800E8E9B5 /* AppError.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		A8E511D52DBB8EE6002C75EA /* Camera */ = {
@@ -360,7 +377,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1530;
-				LastUpgradeCheck = 1530;
+				LastUpgradeCheck = 1630;
 				TargetAttributes = {
 					A80AA1872D32740300402AE6 = {
 						CreatedOnToolsVersion = 15.3;
@@ -417,12 +434,13 @@
 			files = (
 				A8F550282D8CF685006B8644 /* GroupChatRoomInfoSettingView.swift in Sources */,
 				A87075712DC9A82B008FDA02 /* ImageCacheManager.swift in Sources */,
-				A8CA6CD82DDB18F500E8E9B5 /* IdentifiableError.swift in Sources */,
+				A8CA6CD82DDB18F500E8E9B5 /* AppError.swift in Sources */,
 				A80AA1C02D52318C00402AE6 /* HomeTabView.swift in Sources */,
 				A84A89CE2D72D4D300EA053F /* EditUserInfoView.swift in Sources */,
 				A8CD43172D8F1E8E00035EC9 /* TextField.swift in Sources */,
 				A8CD43192D94E9AC00035EC9 /* ChatRoomSettingView.swift in Sources */,
 				A8E511E32DBFEDFB002C75EA /* ChatRoomMessageView.swift in Sources */,
+				A8070B7C2DDF723400D74850 /* GalleryImageItem.swift in Sources */,
 				A870755D2DC1A726008FDA02 /* ImageEdit.swift in Sources */,
 				A80AA1B92D44B60000402AE6 /* DatabaseManager.swift in Sources */,
 				A80AA1AB2D3B657600402AE6 /* AuthManager.swift in Sources */,
@@ -446,12 +464,14 @@
 				A80AA1AD2D3E916900402AE6 /* StorageManager.swift in Sources */,
 				A8F550262D891631006B8644 /* ChatRoomSideMenuView.swift in Sources */,
 				A8670B682D83326C007692FC /* ProfileView.swift in Sources */,
+				A8070B7A2DDEC5D700D74850 /* AppErrorView.swift in Sources */,
 				A8E60A842D57B2230030A203 /* NewMessageViewModel.swift in Sources */,
 				A80AA1C22D5238AA00402AE6 /* FriendListView.swift in Sources */,
 				A80AA18C2D32740300402AE6 /* ChatAppApp.swift in Sources */,
 				A83355D42D8332D1000B1ECA /* FriendListViewModel.swift in Sources */,
 				A80AA1C42D526A3F00402AE6 /* MessageListViewModel.swift in Sources */,
 				A8E511D92DBBBD63002C75EA /* CameraView.swift in Sources */,
+				A8CA6CDB2DDD7B2200E8E9B5 /* GalleryViewModel.swift in Sources */,
 				A8CD431D2D9D6B5700035EC9 /* Popup.swift in Sources */,
 				A8670B602D833222007692FC /* DateFotmat.swift in Sources */,
 				A87075602DC33303008FDA02 /* ChatRoomGalleryView.swift in Sources */,
@@ -498,6 +518,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = AK7S865VNK;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -561,6 +582,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AK7S865VNK;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -590,7 +612,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"ChatApp/Preview Content\"";
-				DEVELOPMENT_TEAM = AK7S865VNK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;
@@ -622,7 +643,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"ChatApp/Preview Content\"";
-				DEVELOPMENT_TEAM = AK7S865VNK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;

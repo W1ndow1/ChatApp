@@ -133,6 +133,8 @@ struct MessageListView: View {
                 VStack(alignment:.leading) {
                     HStack {
                         Text(room.chatName)
+                            .font(.system(size: 15, weight: .light))
+                            .multilineTextAlignment(.leading)
                         if viewModel.isFavorite(room) {
                             Image(systemName: "bookmark.circle")
                                 .font(.system(size: 20))

@@ -50,16 +50,9 @@ struct ChatRoomMessageView: View {
                     //이미지
                     if msg.type == .image || msg.type == .images {
                         imageMessage(msg: msg)
-                        //텍스트
+                    //텍스트
                     } else {
-                        Text(msg.text)
-                            .padding(8)
-                            .background(Color.white)
-                            .foregroundStyle(.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .frame(minWidth: 30, alignment: .leading)
-                            .lineLimit(nil)
-                            .multilineTextAlignment(.leading)
+                        textMessage(msg: msg)
                     }
                     //전송시간
                     if (msg.isFirstInTimeGroup) || !(msg.isFromSameSender) {
@@ -90,18 +83,26 @@ struct ChatRoomMessageView: View {
             }
             //텍스트
             else {
-                Text(msg.text)
-                    .padding(8)
-                    .foregroundStyle(Color.white)
-                    .background(.tint)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .frame(minWidth: 30, alignment: .trailing)
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
+                textMessage(msg: msg)
             }
         }
         .padding(.leading, 30)
     }
+    
+    @ViewBuilder
+    private func textMessage(msg: ChatMessage) -> some View {
+        Text(msg.text)
+            .padding(8)
+            .background(Color.white)
+            .foregroundStyle(.black)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .frame(minWidth: 30, alignment: .leading)
+            .lineLimit(nil)
+            .multilineTextAlignment(.leading)
+            .textSelection(.enabled)
+    }
+    
+    
     @ViewBuilder
     private func imageMessage(msg: ChatMessage) -> some View {
         switch msg.sendState {
@@ -121,26 +122,9 @@ struct ChatRoomMessageView: View {
                             onImageTap(allImages, index)
                         }
                     }
-                /*
-                WebImage(url: URL(string: msg.text), options: [.scaleDownLargeImages, .progressiveLoad])
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 210)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .matchedGeometryEffect(id: msg.id, in: imageNameSpace)
-                    .onTapGesture {
-                        let allImages = viewModel.chatRoomImageMerge()
-                        if let index = allImages.firstIndex(where: { $0.url == msg.text}) {
-                            onImageTap(allImages, index)
-                        }
-                    }
-                    .onLongPressGesture(perform: {
-                        //이미지 저장
-                    })
-                 */
             } else if msg.type == .images {
                 groupImageView2(msg: msg)
-                    .frame(maxWidth:210, maxHeight: 210)
+                    .frame(minWidth: 70, maxWidth: 210, minHeight: 30, maxHeight: 300)
             }
         case .failed:
             Button {
@@ -172,7 +156,8 @@ struct ChatRoomMessageView: View {
                     .offset(x: CGFloat(index) * 10)
                     .zIndex(Double(maxVisibleImages - index))
                     .onTapGesture {
-                        let images = msg.imageURLs.map { GalleryImageItem(id: $0, url: $0)}
+                        let userName = viewModel.usersInfo?[msg.senderId]?.displayName ?? "알 수 없는 사용자"
+                        let images = msg.imageURLs.map { GalleryImageItem(id: $0, url: $0, userName: userName, sendDate: msg.timeStamp)}
                         if let index = msg.imageURLs.firstIndex(of: url) {
                             onImageTap(images, index)
                         }
@@ -201,16 +186,17 @@ struct ChatRoomMessageView: View {
     private func groupImageView2(msg: ChatMessage) -> some View {
         let maxImages = 9 // 3x3으로 제한 (10개는 넘기지 않도록)
         let imageURLs = Array(msg.imageURLs.prefix(maxImages))
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 3) , count: 3)
-        
-        LazyVGrid(columns: columns, spacing: 5) {
+        let imageCount = imageURLs.count
+        let value = setColumns(imageCount)
+        LazyVGrid(columns: value.columns, spacing: 5) {
             ForEach(imageURLs, id: \.self) { url in
-                ResizedAsyncImage(url: URL(string: url)!, targetSize: CGSize(width: 65, height: 65))
+                ResizedAsyncImage(url: URL(string: url)!, targetSize: value.size)
                     .scaledToFill()
-                    .frame(width: 65, height: 65)
+                    .frame(minWidth: 30, maxWidth: 210, minHeight: 30, maxHeight: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 5))
                     .onTapGesture {
-                        let images = msg.imageURLs.map { GalleryImageItem(id: $0, url: $0) }
+                        let userName = viewModel.usersInfo?[msg.senderId]?.displayName ?? "알 수 없는 사용자"
+                        let images = msg.imageURLs.map { GalleryImageItem(id: $0, url: $0, userName: userName, sendDate: msg.timeStamp)}
                         if let index = msg.imageURLs.firstIndex(of: url) {
                             onImageTap(images, index)
                         }
@@ -218,6 +204,28 @@ struct ChatRoomMessageView: View {
             }
         }
         .padding(4)
+    }
+    
+    private func setColumns(_ imageCount: Int) -> (columns: [GridItem], size: CGSize) {
+        var columns: [GridItem] = []
+        var size: CGSize = CGSize()
+        switch imageCount {
+        case 1:
+            columns = Array(repeating: GridItem(.flexible(), spacing: 0) , count: 1)
+            size.width = 210
+            size.height = 210
+        case 2:
+            columns = Array(repeating: GridItem(.flexible(), spacing: 3) , count: 2)
+            size.width = 105
+            size.height = 105
+        case 3...9:
+            columns = Array(repeating: GridItem(.flexible(), spacing: 3) , count: 3)
+            size.width = 70
+            size.height = 70
+        default: break
+        }
+        return (columns, size)
+        
     }
 }
 

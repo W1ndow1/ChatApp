@@ -109,7 +109,7 @@ struct NewMessageView: View {
                             VStack(alignment: .leading) {
                                 Text(room.chatName)
                                     .font(.system(size: 18, weight: .regular))
-                                    .foregroundStyle(Color.buttonTitle)
+                                    .foregroundStyle(Color.blackWhite)
                                 Text(room.lastMessage)
                                     .font(.system(size: 13, weight: .light))
                                     .foregroundStyle(.gray)

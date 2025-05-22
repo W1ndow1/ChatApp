@@ -14,7 +14,6 @@ class ChatLogViewModel: ObservableObject {
     @Published var captureIamge: UIImage?
     @Published var loadedIamge: UIImage? = nil
     @Published var resizeData = [Data]()
-    @Published var currentError: IdentifiableError? = nil
     @Published var selectedImage = [PhotosPickerItem]() {
         didSet {
             Task {
@@ -280,11 +279,13 @@ class ChatLogViewModel: ObservableObject {
                 }
             } catch {
                 print("이미지 변환 실패 :\(error.localizedDescription)")
-                currentError = IdentifiableError(message: """
-                                    이미지 변환에 실패했습니다.
-                                    공유된 이미지일 경우 카메라롤로 옮겨주세요.
-                                    \(error.localizedDescription)
-                                    """)
+                AppError.shared.show(
+                            """
+                            이미지 변환에 실패했습니다.
+                            공유된 이미지일 경우 카메라롤로 옮겨주세요.
+                            \(error.localizedDescription)
+                            """,
+                            type: .validation)
             }
         }
         self.resizeData = newData
@@ -293,12 +294,21 @@ class ChatLogViewModel: ObservableObject {
     
     func chatRoomImageMerge() -> [GalleryImageItem] {
         var allImages = [GalleryImageItem]()
-        for message in chatMessages {
-            if message.type == .image {
-                allImages.append(GalleryImageItem(id: message.id, url: message.text))
-            } else if message.type == .images {
-                for url in message.imageURLs {
-                    allImages.append(GalleryImageItem(id: message.id + url, url: url))
+        for msg in chatMessages {
+            let userName = usersInfo?[msg.senderId]?.displayName ?? "알 수 없는 사용자"
+            if msg.type == .image {
+                allImages.append(GalleryImageItem(
+                    id: msg.id,
+                    url: msg.text,
+                    userName: userName,
+                    sendDate: msg.timeStamp))
+            } else if msg.type == .images {
+                for url in msg.imageURLs {
+                    allImages.append(GalleryImageItem(
+                        id: UUID().uuidString,
+                        url: url,
+                        userName: userName,
+                        sendDate: msg.timeStamp))
                 }
             }
         }
@@ -439,10 +449,6 @@ class ChatLogViewModel: ObservableObject {
     
     func clearWritingMessages() {
         UserDefaults.standard.removeObject(forKey: writingMessageKey())
-    }
-    
-    func clearError() {
-        currentError = nil
     }
     
     //MARK: - 메시지 가져오기

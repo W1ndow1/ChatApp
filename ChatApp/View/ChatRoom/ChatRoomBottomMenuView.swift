@@ -33,7 +33,7 @@ struct ChatRoomBottomMenuView: View {
                                 .clipShape(.circle)
                             Text("앨범")
                                 .font(.system(size: 13, weight: .light))
-                                .foregroundStyle(Color.buttonTitle)
+                                .foregroundStyle(Color.blackWhite)
                         }
                     }
                     .sheet(isPresented: $isPresentedImagePicker) {
@@ -43,23 +43,7 @@ struct ChatRoomBottomMenuView: View {
                                 .presentationDetents([.height(300), .large])
                                 .presentationDragIndicator(.visible)
                                 .presentationBackgroundInteraction(.enabled)
-                            
-                            if let error = viewModel.currentError {
-                                Text(error.message)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(Color.white)
-                                    .background(.tint.opacity(0.8))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                                    .multilineTextAlignment(.center)
-                                    .onTapGesture {
-                                        withAnimation {
-                                            viewModel.clearError()
-                                        }
-                                    }
-                            }
+                                .overlay(AppErrorView())
                         }
                     }
 
@@ -75,7 +59,7 @@ struct ChatRoomBottomMenuView: View {
                                 .clipShape(.circle)
                             Text("카메라")
                                 .font(.system(size: 13, weight: .light))
-                                .foregroundStyle(Color.buttonTitle)
+                                .foregroundStyle(Color.blackWhite)
                         }
                     }
                     .fullScreenCover(isPresented: $isPresentedCamera) {

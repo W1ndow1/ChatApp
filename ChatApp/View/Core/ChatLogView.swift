@@ -4,9 +4,9 @@ import SDWebImageSwiftUI
 
 struct ChatLogView: View {
     @Namespace private var imageNamespace
-    @State private var isGalleryPresented = false
     @State private var galleryImages: [GalleryImageItem] = []
     @State private var galleryStartIndex: Int = 0
+    @State private var isGalleryPresented = false
     @State private var showNaviBar = false
     
     @StateObject var viewModel: ChatLogViewModel
@@ -16,7 +16,7 @@ struct ChatLogView: View {
     @State private var chatRoom: ChatRoom?
     @State private var isSendMessage = false
     @State private var isTop = false
-    @State private var fromMessageListView: Bool = false
+    @State private var fromMessageListView = false
     @State private var debounceTask: Task<Void, Never>?
     @State private var showSideMenu = false
     @State private var isBottomMenuVisible = false
@@ -62,22 +62,11 @@ struct ChatLogView: View {
                     namespace: imageNamespace,
                     isPresented: $isGalleryPresented
                 )
-                .transition(.opacity)
-                .onAppear {
-                    withAnimation {
-                        showNaviBar = true
-                    }
-                }
-                .onDisappear {
-                    withAnimation {
-                        showNaviBar = false
-                    }
-                }
             }
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(showSideMenu || showNaviBar ? .hidden : .visible, for: .navigationBar)
+        .toolbar(showSideMenu || isGalleryPresented ? .hidden : .visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -278,7 +267,7 @@ struct ChatLogView: View {
                         : viewModel.sendMessageBySelectedUser()
                         sendAction
                         isSendMessage.toggle()
-                    } else if viewModel.selectedImage.count > 0 {
+                    } else if viewModel.resizeData.count > 0 {
                         viewModel.selectedImage = []
                         viewModel.sendImages()
                     }
@@ -292,7 +281,8 @@ struct ChatLogView: View {
                             .foregroundStyle(Color.white)
                     }
                 }
-                .onChange(of: viewModel.selectedImage.count) { _ , new  in
+                .disabled(viewModel.chatText.isEmpty && viewModel.resizeData.count == 0)
+                .onChange(of: viewModel.resizeData.count) { _ , new  in
                     enterButtonText = String(new)
                 }
             }
