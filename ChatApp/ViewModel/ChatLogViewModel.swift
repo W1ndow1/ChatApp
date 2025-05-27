@@ -71,6 +71,7 @@ class ChatLogViewModel: ObservableObject {
                     chatRoomMakerId: chatRoom?.chatRoomMakerId ?? fromId,
                     participants: chatRoom?.participants ?? participants.sorted(by: {$0 < $1}),
                     participantsJoinDates: participants.reduce(into: [String:Timestamp]()) { $0[$1] = timestamp },
+                    isCustomName: true,
                     chatName: (chatRoom?.chatName ?? ""),
                     lastMessage: chatText,
                     lastMessageTimeStamp: timestamp,

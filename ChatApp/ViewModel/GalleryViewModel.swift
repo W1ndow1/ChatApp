@@ -8,10 +8,14 @@
 import Foundation
 import SDWebImage
 import Photos
+import SwiftUICore
 
 class GalleryViewModel: ObservableObject {
     @Published var images = [GalleryImageItem]()
     @Published var sharedImage = UIImage()
+    @Published var tapTimer: DispatchWorkItem?
+    @Published var showTopBottomView: Bool = true
+    @Published var scale: CGFloat = 1.0
     @Published var currentIndex: Int = 0 {
         didSet {
             fetchCurrentImage()
@@ -73,4 +77,6 @@ class GalleryViewModel: ObservableObject {
                 }
         }
     }
+    
+   
 }

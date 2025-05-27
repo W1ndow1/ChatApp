@@ -56,7 +56,7 @@ struct ChatLogView: View {
                 isShowSelectUserView: $showSideMenu
             )
             if isGalleryPresented {
-                ChatRoomGalleryView(
+                CustomGalleryView(
                     images: galleryImages,
                     startIndex: galleryStartIndex,
                     namespace: imageNamespace,

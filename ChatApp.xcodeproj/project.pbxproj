@@ -10,6 +10,7 @@
 		A806E5512DB7888C0043ED1B /* ChatRoomBottomMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A806E5502DB7888C0043ED1B /* ChatRoomBottomMenuView.swift */; };
 		A8070B7A2DDEC5D700D74850 /* AppErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8070B792DDEC5CF00D74850 /* AppErrorView.swift */; };
 		A8070B7C2DDF723400D74850 /* GalleryImageItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8070B7B2DDF722400D74850 /* GalleryImageItem.swift */; };
+		A8070B7F2DE0540700D74850 /* CustomGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8070B7E2DE0540700D74850 /* CustomGalleryView.swift */; };
 		A80AA18C2D32740300402AE6 /* ChatAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80AA18B2D32740300402AE6 /* ChatAppApp.swift */; };
 		A80AA18E2D32740300402AE6 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80AA18D2D32740300402AE6 /* LoginView.swift */; };
 		A80AA1902D32740400402AE6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A80AA18F2D32740400402AE6 /* Assets.xcassets */; };
@@ -80,6 +81,7 @@
 		A806E5502DB7888C0043ED1B /* ChatRoomBottomMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomBottomMenuView.swift; sourceTree = "<group>"; };
 		A8070B792DDEC5CF00D74850 /* AppErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrorView.swift; sourceTree = "<group>"; };
 		A8070B7B2DDF722400D74850 /* GalleryImageItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryImageItem.swift; sourceTree = "<group>"; };
+		A8070B7E2DE0540700D74850 /* CustomGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGalleryView.swift; sourceTree = "<group>"; };
 		A80AA1882D32740300402AE6 /* ChatApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChatApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A80AA18B2D32740300402AE6 /* ChatAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAppApp.swift; sourceTree = "<group>"; };
 		A80AA18D2D32740300402AE6 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 				A8F550252D891631006B8644 /* ChatRoomSideMenuView.swift */,
 				A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */,
 				A870755F2DC33303008FDA02 /* ChatRoomGalleryView.swift */,
+				A8070B7E2DE0540700D74850 /* CustomGalleryView.swift */,
 			);
 			path = ChatRoom;
 			sourceTree = "<group>";
@@ -440,6 +443,7 @@
 				A8CD43172D8F1E8E00035EC9 /* TextField.swift in Sources */,
 				A8CD43192D94E9AC00035EC9 /* ChatRoomSettingView.swift in Sources */,
 				A8E511E32DBFEDFB002C75EA /* ChatRoomMessageView.swift in Sources */,
+				A8070B7F2DE0540700D74850 /* CustomGalleryView.swift in Sources */,
 				A8070B7C2DDF723400D74850 /* GalleryImageItem.swift in Sources */,
 				A870755D2DC1A726008FDA02 /* ImageEdit.swift in Sources */,
 				A80AA1B92D44B60000402AE6 /* DatabaseManager.swift in Sources */,
