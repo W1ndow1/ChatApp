@@ -28,6 +28,7 @@ extension View {
                     if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
                         withAnimation {
                             keyboardHeight.wrappedValue = keyboardFrame.height
+                            print("키보드 높이 : \(keyboardFrame.height)")
                         }
                     }
                 }

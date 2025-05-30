@@ -11,40 +11,33 @@ import SDWebImageSwiftUI
 
 struct CustomGalleryView: View {
     var images: [GalleryImageItem]
-    var startIndex: Int
+    var startIndex: Int = 0
     var namespace: Namespace.ID
     @Binding var isPresented: Bool
     
     @StateObject var galleryVM = GalleryViewModel()
 
     //UI 상태 변수
-    @State private var scale: CGFloat = 1.0                 //현재 이미지 확대 배율
-    @State private var currentImageOffset: CGSize = .zero   //확대된 이미지의 pen 오프셋
-    @State private var dragOffset: CGSize = .zero    //갤러리 스크롤용 임시 드래그 오프셋
-    @State private var bounceOffset: CGFloat = 0            //양쪽 끝 바운스 효과
-    @State private var showSaveAlert: Bool = false          //저장 알람
+    @State private var showSaveAlert: Bool = false
 
     //핀치 줌/팬 상태 저장을 위한 변수
-    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var bounceOffset: CGFloat = 0
     @State private var tapPosition: CGPoint = .zero
-    
-    @State private var horizontalDrag: CGFloat = 0
-    @State private var verticalDrag: CGFloat = 0
-
     @State private var activeDragAxis: DragAxis = .unknown
-    @State private var isHorizontalDrag: Bool = false
     
     //핀치 줌 저장
-    
-    @GestureState private var magniftyBy = 1.0
     @State private var anchorPoint: UnitPoint = .center
-    
+    @GestureState private var magniftyBy = 1.0
+    @GestureState private var pinchLocation: CGPoint = .zero
     
     private var backgroundOpacity: Double {
         var result = 1.0
         if scale == 1.0 {
-            let offset = abs( currentImageOffset.height)
+            let offset = abs(offset.height)
             let maxOffset: CGFloat = 300
             let opacity = 1.0 - min(Double(offset / maxOffset), 1.0)
             result = opacity
@@ -56,18 +49,18 @@ struct CustomGalleryView: View {
     
     var body: some View {
         GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                let screenWidth = geo.size.width
-                let screenHeight = geo.size.height
-                let itemFullWidth = screenWidth + itemSpacing
-                Group {
-                    //배경
-                    Rectangle()
-                        .ignoresSafeArea()
-                        .foregroundStyle(galleryVM.showTopBottomView ? Color.whiteBlack : Color.black)
-                        .zIndex(1)
-                    //이미지
-                    ZStack {
+            if isPresented {
+                ZStack(alignment: .leading) {
+                    let screenWidth = geo.size.width
+                    let screenHeight = geo.size.height
+                    let itemFullWidth = screenWidth + itemSpacing
+                    Group {
+                        //배경
+                        Rectangle()
+                            .ignoresSafeArea()
+                            .foregroundStyle(galleryVM.showTopBottomView ? Color.whiteBlack : Color.black)
+                            .zIndex(1)
+                        //이미지
                         HStack(spacing: itemSpacing) {
                             ForEach(images.indices, id: \.self) { index in
                                 galleryImage(index, geo)
@@ -75,29 +68,32 @@ struct CustomGalleryView: View {
                                     .tag(index)
                             }
                         }
+                        .onAppear {
+                            galleryVM.setImages(images, startIndex)
+                        }
+                        .onDisappear {
+                            galleryVM.currentIndex = 0
+                        }
+                        .frame(height: screenHeight)
+                        .zIndex(2)
+                        .offset(x: -CGFloat(galleryVM.currentIndex) * itemFullWidth
+                                + (scale == 1.0 ? offset.width + bounceOffset : 0))
+                        .offset(y: scale == 1.0 ? offset.height : 0)
+                        .gesture(TapGesture(count: 2).onEnded{ handleDoubleTap(geo) }).simultaneousGesture(recordTapPosition())
+                        .gesture(magnificationGesture2(geo)).simultaneousGesture(dragGesture(geo))
                     }
-                    .frame(height: screenHeight)
-                    .zIndex(2)
-                    .offset(x: -CGFloat(galleryVM.currentIndex) * itemFullWidth
-                            + (scale == 1.0 ? currentImageOffset.width + bounceOffset : 0))
-                    .offset(y: scale == 1.0 ? currentImageOffset.height : 0)
-                    .gesture(TapGesture(count: 2).onEnded{ handleDoubleTap(geo) }).simultaneousGesture(recordTapPosition())
-                    .onAppear {
-                        galleryVM.setImages(images, startIndex)
-                    }
+                    .gesture(dragGesture(geo))
+                    .gesture(TapGesture().onEnded { _ in galleryVM.showTopBottomView.toggle() })
+                    .gesture(TapGesture(count: 2).onEnded { _ in } )
+                    
+                    //상,하단 프레임
+                    topBottomView(geo)
+                        .zIndex(3)
+                        .frame(maxWidth: geo.size.width, maxHeight: geo.size.height, alignment: .bottomLeading )
+                        .animation(.easeInOut(duration: 0.2), value: galleryVM.showTopBottomView)
                 }
-                .gesture(dragGesture(geo))
-                .gesture(magnificationGesture2(geo))
-                .gesture(TapGesture().onEnded { _ in galleryVM.showTopBottomView.toggle() })
-                .gesture(TapGesture(count: 2).onEnded { _ in } )
-                
-                //상,하단 프레임
-                topBottomView(geo)
-                    .zIndex(3)
-                    .frame(maxWidth: geo.size.width, maxHeight: geo.size.height, alignment: .bottomLeading )
-                    .animation(.easeInOut(duration: 0.2), value: galleryVM.showTopBottomView)
+                .opacity(backgroundOpacity)
             }
-            .opacity(backgroundOpacity)
         }
     }
     
@@ -125,7 +121,6 @@ struct CustomGalleryView: View {
                             .font(.system(size: 12, weight: .light))
                     }
                     .animation(nil, value: galleryVM.currentIndex)
-                    
                     Spacer()
                     
                     Button {
@@ -139,7 +134,7 @@ struct CustomGalleryView: View {
                 }
                 .padding(.vertical, 10)
                 .background(Color.whiteBlack)
-                .transition(.move(edge: .top)) // 상단은 위에서 등장
+                .transition(.move(edge: .top))
             }
             
             Spacer()
@@ -159,10 +154,8 @@ struct CustomGalleryView: View {
                         Button {
                             //삭제
                         } label: {
-
                             Image(systemName: "trash")
                                 .foregroundStyle(.tint)
-                            
                         }
                     }
                     .padding(10)
@@ -173,7 +166,7 @@ struct CustomGalleryView: View {
                 .frame(width: geo.size.width)
                 .padding(.vertical, 10)
                 .background(Color.whiteBlack)
-                .transition(.move(edge: .bottom)) // 상단은 위에서 등장
+                .transition(.move(edge: .bottom))
             }
         }
     }
@@ -207,60 +200,35 @@ struct CustomGalleryView: View {
             .resizable()
             .scaledToFit()
             .frame(width: geo.size.width)
-            //.matchedGeometryEffect(id: images[index].id, in: namespace, properties: .frame)
-            .scaleEffect(galleryVM.currentIndex == index ?  scale * magniftyBy : 1.0, anchor: anchorPoint)
-            .offset(galleryVM.currentIndex == index ? currentImageOffset : .zero)
+            .matchedGeometryEffect(id: images[index].id, in: namespace, properties: .frame)
+            //.scaleEffect(galleryVM.currentIndex == index ?  scale * magniftyBy : 1.0, anchor: anchorPoint)
+            .scaleEffect(galleryVM.currentIndex == index ?  scale : 1.0, anchor: anchorPoint)
+            .offset(galleryVM.currentIndex == index ? offset : .zero)
     }
     
     private func magnificationGesture2(_ geo: GeometryProxy) -> some Gesture  {
         MagnificationGesture()
-            .updating($magniftyBy) { value, state, _ in
-                state = value
-                let unitX = tapPosition.x / imageSizeInContainer(containerSize: geo.size).width
-                let unitY = tapPosition.y / imageSizeInContainer(containerSize: geo.size).height
+            .onChanged { value in
+                scale = min(lastScale * value, 12.0)
+                let unitX = tapPosition.x / geo.size.width
+                let unitY = tapPosition.y / geo.size.height
                 anchorPoint = UnitPoint(x: unitX, y: unitY)
             }
-            .onChanged { value in
-                let newScale = lastScale * value
-                scale = min(newScale, 6.0)
-            }
             .onEnded { value in
-                if value.magnitude < 1.0 {
-                    scale = 1.0
-                    lastScale = 1.0
-                    currentImageOffset = .zero
-                    lastOffset = .zero
-                } else {
-                    lastScale = min(lastScale * value, 6.0)
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    if scale < 1.0 {
+                        scale = 1.0
+                        lastScale = 1.0
+                        offset = .zero
+                        lastOffset = .zero
+                    } else if scale > 8.0 {
+                        scale = 8.0
+                        lastScale = 8.0
+                    } else {
+                        lastScale = scale
+                    }
                 }
             }
-    }
-    
-    private func computeOffset(
-        tap: CGPoint,
-        containerSize: CGSize,
-        oldScale: CGFloat,
-        newScale: CGFloat
-    ) -> CGSize {
-        let relativeX = tap.x / containerSize.width
-        let relativeY = tap.y / containerSize.height
-        
-        let scaleDelta = newScale - oldScale
-        
-        var offsetX = (0.5 - relativeX) * containerSize.width * scaleDelta
-        var offsetY = (0.5 - relativeY) * containerSize.height * scaleDelta
-        
-        let scaledWidth = containerSize.width * newScale
-        let scaledHeight = containerSize.height * newScale
-        
-        let maxOffsetX = (scaledWidth - containerSize.width) / 2
-        let maxOffsetY = (scaledHeight - containerSize.height) / 2
-        
-        offsetX = min(max(offsetX, -maxOffsetX), maxOffsetX)
-        offsetY = min(max(offsetY, -maxOffsetY), maxOffsetY)
-        
-        print("computOffset: x:\(offsetX), y:\(offsetY)")
-        return CGSize(width: offsetX, height: offsetY)
     }
     
     private func magnificationGesture(_ geo: GeometryProxy) -> some Gesture {
@@ -273,28 +241,32 @@ struct CustomGalleryView: View {
                 anchorPoint = UnitPoint(x: unitX, y: unitY)
             }
             .onEnded { value in
-                if value.magnification < 1.0 {
+                if scale < 1.0 {
                     withAnimation {
                         scale = 1.0
-                        anchorPoint = .center
-                        currentImageOffset = .zero
+                        lastScale = 1.0
+                        offset = .zero
+                        lastOffset = .zero
                     }
                 } else {
-                    let newScale = scale * value.magnification
-                    scale = min(newScale, 6.0)
+                    let finalMagnification = value.magnification
+                    let newScale = lastScale * finalMagnification
+                    scale = min(max(newScale, 1.0), 8.0)
+                    lastScale = scale
                 }
             }
     }
     
+    
     //더블 탭으로 2배 확대, 터치한 곳을 기준으로 이동
     private func handleDoubleTap(_ geo: GeometryProxy) {
-        let imageSize = geo.size
-        let newScale: CGFloat = scale == 1.0 ? 2.0 : 1.0
+        let imageSize = imageSizeInContainer(containerSize: geo.size)
+        let newScale: CGFloat = scale == 1.0 ? 3.0 : 1.0
         if scale == 1.0 {
             
             // 현재 탭한 위치 기준 비율
-            let relativeX = tapPosition.x / imageSize.width
-            let relativeY = tapPosition.y / imageSize.height
+            let relativeX = tapPosition.x / geo.size.width
+            let relativeY = tapPosition.y / geo.size.height
             
             // 스케일 변화량
             let scaleDelta = newScale - 1.0
@@ -316,19 +288,24 @@ struct CustomGalleryView: View {
             newOffsetY = min(max(newOffsetY, -maxOffsetY), maxOffsetY)
             
             withAnimation(.easeInOut(duration: 0.25)) {
-                currentImageOffset = CGSize(width: newOffsetX , height: newOffsetY)
-                lastOffset = currentImageOffset
+                offset = CGSize(width: newOffsetX , height: newOffsetY)
+                lastOffset = offset
                 scale = newScale
+                lastScale = scale
             }
             
         } else {
             withAnimation(.easeInOut(duration: 0.25)) {
-                currentImageOffset = .zero
+                offset = .zero
                 lastOffset = .zero
                 scale = 1.0
+                lastScale = 1.0
+                anchorPoint = .center
             }
         }
     }
+    
+    
     
     private func recordTapPosition() -> some Gesture {
         DragGesture(minimumDistance: 0)
@@ -378,15 +355,15 @@ struct CustomGalleryView: View {
     private func dragGesture(_ geo: GeometryProxy) -> some Gesture {
         DragGesture()
             .onChanged { value in
+                let currentImageSize = imageSizeInContainer(containerSize: geo.size)
                 //배율이 있을때
                 if scale > 1.0 {
-                    
                     let proposedOffset = CGSize(
                         width: lastOffset.width + value.translation.width,
                         height: lastOffset.height + value.translation.height
                     )
-                    let currentImageSize = imageSizeInContainer(containerSize: geo.size)
-                    currentImageOffset = clampedOffset(proposedOffset: proposedOffset, image: currentImageSize)
+                    offset = clampedOffset(proposedOffset: proposedOffset, image: currentImageSize)
+                    anchorPoint = .center
                 //배율이 없을때
                 } else {
                     if activeDragAxis == .unknown {
@@ -398,19 +375,18 @@ struct CustomGalleryView: View {
                     }
                     switch activeDragAxis {
                     case .horizontal:
-                        currentImageOffset = CGSize(width: value.translation.width / 4, height: 0)
+                        offset = CGSize(width: value.translation.width / 4, height: 0)
                     case .vertical:
-                        currentImageOffset = CGSize(width: 0, height: value.translation.height / 3)
+                        offset = CGSize(width: 0, height: value.translation.height / 3)
                         
                     case .unknown:
                         break
                     }
                 }
-                
             }
             .onEnded { value in
                 if scale > 1.0 {
-                    lastOffset = currentImageOffset
+                    lastOffset = offset
                     return
                 } else {
                     switch activeDragAxis {
@@ -445,23 +421,24 @@ struct CustomGalleryView: View {
                         let threshhold: CGFloat = 100
                         //아래로 스와이프(사진이동방향⬇︎)       //위로 스와이프(사진이동방향⬆︎)
                         if dragDistance > threshhold || dragDistance < -threshhold{
+                            resetImageState()
                             isPresented = false
+                            return
                         }
-                        
-                        currentImageOffset.height = 0
                     case .unknown:
                         break
                     }
                 }
                 resetImageState()
+                
             }
     }
     //양쪽끝에 도착하면 튕겨지는 효과
     private func bounce(direction: BounceDirection) {
         let bounceAmount: CGFloat = 20 // 튕겨 나가는 거리 (조절 가능)
         
-        withAnimation(.easeOut(duration: 0.1)) { // 빠르게 튕겨 나가는 애니메이션
-            // dragOffset이 @GestureState이므로 여기서 바로 사용 가능
+        //  튕겨 나가는 애니메이션
+        withAnimation(.easeOut(duration: 0.1)) {
             bounceOffset = (direction == .right ? -bounceAmount : bounceAmount)
         }
         
@@ -474,17 +451,15 @@ struct CustomGalleryView: View {
     }
     //뷰 상태 초기화 (예: 기기 회전 시)
     private func resetImageState() {
-        withAnimation(.easeInOut(duration: 0.65)) {
-            currentImageOffset = .zero
-            activeDragAxis = .unknown
+        withAnimation(.easeInOut) {
+            offset = .zero
+            lastOffset = .zero
             scale = 1.0
             lastScale = 1.0
-            lastOffset = .zero
-            bounceOffset = 0
+            activeDragAxis = .unknown
             anchorPoint = .center
         }
     }
-    
 }
 
 //드래그 방향

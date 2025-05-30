@@ -6,7 +6,7 @@ struct ChatLogView: View {
     @Namespace private var imageNamespace
     @State private var galleryImages: [GalleryImageItem] = []
     @State private var galleryStartIndex: Int = 0
-    @State private var isGalleryPresented = false
+    @State private var showGalleryView = false
     @State private var showNaviBar = false
     
     @StateObject var viewModel: ChatLogViewModel
@@ -24,6 +24,7 @@ struct ChatLogView: View {
     @Binding var hideTabBar: Bool
     @FocusState private var isFocused: Bool
     @State private var popupAlert = false
+    @State private var keyboardHeight: CGFloat = 0
     
     private var userData: Set<ChatUser>?
     
@@ -51,22 +52,20 @@ struct ChatLogView: View {
     var body: some View {
         ZStack {
             chatBubbleRow()
+            
             ChatRoomSideMenuView(
                 viewModel: viewModel,
-                isShowSelectUserView: $showSideMenu
-            )
-            if isGalleryPresented {
-                CustomGalleryView(
-                    images: galleryImages,
-                    startIndex: galleryStartIndex,
-                    namespace: imageNamespace,
-                    isPresented: $isGalleryPresented
-                )
-            }
+                isPresented: $showSideMenu)
+            
+            CustomGalleryView(
+                images: galleryImages,
+                startIndex: galleryStartIndex,
+                namespace: imageNamespace,
+                isPresented: $showGalleryView)
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(showSideMenu || isGalleryPresented ? .hidden : .visible, for: .navigationBar)
+        .toolbar(showSideMenu || showGalleryView ? .hidden : .visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -91,6 +90,7 @@ struct ChatLogView: View {
         }
     }
     
+   
     
     @ViewBuilder
     private func chatBubbleRow() -> some View {
@@ -123,8 +123,8 @@ struct ChatLogView: View {
                 if isBottomMenuVisible {
                     isBottomMenuVisible = false
                 }
-                hasOpenedBottomMenuOnce = false
                 hideKeyboard()
+                hasOpenedBottomMenuOnce = false
             }
             .rotationEffect(.degrees(180))
             .scaleEffect(x: -1)
@@ -160,9 +160,7 @@ struct ChatLogView: View {
                     imageNameSpace: imageNamespace) { images, startIndex in
                         galleryImages = images
                         galleryStartIndex = startIndex
-                        withAnimation(.spring) {
-                            isGalleryPresented = true
-                        }
+                        showGalleryView = true
                     }
             case .leave, .join:
                 chatRoomMemberStateMessage(msg: msg)
@@ -205,21 +203,27 @@ struct ChatLogView: View {
     @ViewBuilder
     private func bottomInputView() -> some View {
         VStack {
-            HStack {
-                Button {
-                    //메뉴를 활성화 하는 버튼
-                    if !hasOpenedBottomMenuOnce {
-                        hideKeyboard()
-                        isBottomMenuVisible = true
-                        hasOpenedBottomMenuOnce = true
-                    } else {
-                        isFocused.toggle()
+            HStack(alignment: .bottom) {
+                VStack {
+                    Button {
+                        //메뉴를 활성화 하는 버튼
+                        if !hasOpenedBottomMenuOnce {
+                            withAnimation(nil) {
+                                isBottomMenuVisible = true
+                                hasOpenedBottomMenuOnce = true
+                            }
+                            hideKeyboard()
+                        } else {
+                            isFocused.toggle()
+                        }
+                        
+                    } label: {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .foregroundStyle(Color.primary)
+                            .font(.system(size: 20))
                     }
-                    
-                } label: {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .foregroundStyle(Color.primary)
                 }
+                .frame(height: 40)
                 
                 TextField("메시지", text: $viewModel.chatText, axis: .vertical)
                     .focused($isFocused)
@@ -260,6 +264,9 @@ struct ChatLogView: View {
                             isFocused = true
                         }
                     }
+                    .observeKeyboard($keyboardHeight)
+                
+                
                 Button {
                     if !viewModel.chatText.isEmpty {
                         let sendAction: () = fromMessageListView
@@ -287,17 +294,25 @@ struct ChatLogView: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.top, 3)
-            .padding(.bottom, 5)
+            .padding(.bottom,5)
             .background(Color(.systemBackground))
             
             if isBottomMenuVisible {
                 ChatRoomBottomMenuView(viewModel: viewModel)
-                    .frame(height: 300)
-                    .transition(.move(edge: .bottom))
+                    .frame(height: keyboardHeight > 336 ? 345 : 300)
             }
-            
         }
+        .gesture(dragVGesture())
+    }
+    
+    private func dragVGesture() -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if value.translation.height > 50 {
+                    isBottomMenuVisible = false
+                    hideKeyboard()
+                }
+            }
     }
 }
 
@@ -319,6 +334,7 @@ struct ChatLogView: View {
         lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")
     )
 }
+
 
 extension ChatLogView {
     

@@ -11,22 +11,22 @@ import SDWebImageSwiftUI
 
 struct ChatRoomSideMenuView: View {
     @ObservedObject var viewModel: ChatLogViewModel
+    @Binding var isPresented: Bool
+
     @Environment(\.dismiss) private var dismiss
     @State private var showNewMessageView = false
     @State private var leaveAlert = false
     @State private var validateAlert = false
     @State private var isShowSettingView = false
-    @Binding var isShowSelectUserView: Bool
-    
     
     var body: some View {
         ZStack {
-            if isShowSelectUserView {
+            if isPresented {
                 Rectangle()
                     .opacity(0.3)
                     .ignoresSafeArea()
                     .onTapGesture {
-                        isShowSelectUserView.toggle()
+                        isPresented.toggle()
                     }
                 HStack {
                     Spacer()
@@ -44,7 +44,7 @@ struct ChatRoomSideMenuView: View {
                 .transition(.move(edge: .trailing))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: isShowSelectUserView)
+        .animation(.easeInOut(duration: 0.3), value: isPresented)
         .customAlert(title: viewModel.chatRoom?.chatName,
                      message: "채팅방을 나가시겠습니까?",
                      isPresented: $leaveAlert, actions: [
@@ -143,7 +143,7 @@ struct ChatRoomSideMenuView: View {
                     let addUsers = viewModel.validateChatRoomMembers(users: users)
                     if addUsers.count > 0 {
                         viewModel.joinChatRoom(users: addUsers)
-                        isShowSelectUserView = false
+                        isPresented = false
                     } else {
                         validateAlert.toggle()
                     }
@@ -189,5 +189,5 @@ struct ChatRoomSideMenuView: View {
         chatName: "점심모임🍎🍙🥟🥗🥪",
         lastMessage: "Last test message",
         lastMessageTimeStamp: Timestamp(date: Date()),
-        lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")), isShowSelectUserView: .constant(true))
+        lastMessageSenderId: "Wv5HZZ3NMOQysA9VqEUdgdGQs713")), isPresented: .constant(true))
 }

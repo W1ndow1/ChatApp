@@ -52,7 +52,7 @@ struct ChatRoomMessageView: View {
                         imageMessage(msg: msg)
                     //텍스트
                     } else {
-                        textMessage(msg: msg)
+                        textMessage(msg: msg, isMy: false)
                     }
                     //전송시간
                     if (msg.isFirstInTimeGroup) || !(msg.isFromSameSender) {
@@ -89,18 +89,24 @@ struct ChatRoomMessageView: View {
         .padding(.leading, 30)
     }
     
+    
+    
     @ViewBuilder
-    private func textMessage(msg: ChatMessage) -> some View {
+    private func textMessage(msg: ChatMessage, isMy: Bool = true) -> some View {
         Text(msg.text)
+            .font(.system(size: 15, weight: .light))
             .padding(8)
-            .background(Color.white)
-            .foregroundStyle(.black)
+            .background(isMy ? Color.accentColor : Color.white)
+            .foregroundStyle(isMy ? Color.white : Color.black)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .frame(minWidth: 30, alignment: .leading)
             .lineLimit(nil)
             .multilineTextAlignment(.leading)
             .textSelection(.enabled)
+        
+        //CustomTextView(text: msg.text, isMy: isMy) => 많아지면 스크롤 속도가 너무 느려짐
     }
+    
     
     
     @ViewBuilder
@@ -228,5 +234,3 @@ struct ChatRoomMessageView: View {
         
     }
 }
-
-

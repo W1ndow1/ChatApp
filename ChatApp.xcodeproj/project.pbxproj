@@ -59,14 +59,13 @@
 		A8CD43192D94E9AC00035EC9 /* ChatRoomSettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */; };
 		A8CD431B2D9CF43800035EC9 /* CustomAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */; };
 		A8CD431D2D9D6B5700035EC9 /* Popup.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CD431C2D9D6B5700035EC9 /* Popup.swift */; };
+		A8D6CFED2DE709B700A5FC30 /* CustomTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D6CFEC2DE709B700A5FC30 /* CustomTextView.swift */; };
 		A8E511D92DBBBD63002C75EA /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511D82DBBBD50002C75EA /* CameraView.swift */; };
 		A8E511DB2DBBDDCF002C75EA /* CameraViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511DA2DBBDDCF002C75EA /* CameraViewModel.swift */; };
 		A8E511DD2DBCD05D002C75EA /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511DC2DBCD05D002C75EA /* Camera.swift */; };
 		A8E511E12DBDD52B002C75EA /* EditPhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511E02DBDD52B002C75EA /* EditPhotoView.swift */; };
 		A8E511E32DBFEDFB002C75EA /* ChatRoomMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E511E22DBFEDFB002C75EA /* ChatRoomMessageView.swift */; };
 		A8E60A842D57B2230030A203 /* NewMessageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A832D57B2230030A203 /* NewMessageViewModel.swift */; };
-		A8E60A872D58F42A0030A203 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A862D58F42A0030A203 /* SDWebImage */; };
-		A8E60A892D58F42A0030A203 /* SDWebImageMapKit in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A882D58F42A0030A203 /* SDWebImageMapKit */; };
 		A8E60A8B2D5900640030A203 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A8A2D5900640030A203 /* RegistrationView.swift */; };
 		A8E60A8E2D5B9B380030A203 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = A8E60A8D2D5B9B380030A203 /* SDWebImageSwiftUI */; };
 		A8E60A902D5BCC0B0030A203 /* ChatLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E60A8F2D5BCC0B0030A203 /* ChatLogView.swift */; };
@@ -125,6 +124,7 @@
 		A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomSettingView.swift; sourceTree = "<group>"; };
 		A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomAlert.swift; sourceTree = "<group>"; };
 		A8CD431C2D9D6B5700035EC9 /* Popup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Popup.swift; sourceTree = "<group>"; };
+		A8D6CFEC2DE709B700A5FC30 /* CustomTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextView.swift; sourceTree = "<group>"; };
 		A8E511D82DBBBD50002C75EA /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		A8E511DA2DBBDDCF002C75EA /* CameraViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraViewModel.swift; sourceTree = "<group>"; };
 		A8E511DC2DBCD05D002C75EA /* Camera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
@@ -145,9 +145,7 @@
 			files = (
 				A8E60A8E2D5B9B380030A203 /* SDWebImageSwiftUI in Frameworks */,
 				A80AA1A22D36540F00402AE6 /* FirebaseCore in Frameworks */,
-				A8E60A892D58F42A0030A203 /* SDWebImageMapKit in Frameworks */,
 				A80AA1B72D43F62F00402AE6 /* FirebaseStorageCombine-Community in Frameworks */,
-				A8E60A872D58F42A0030A203 /* SDWebImage in Frameworks */,
 				A80AA1A02D36540F00402AE6 /* FirebaseAuth in Frameworks */,
 				A80AA1A42D36540F00402AE6 /* FirebaseStorage in Frameworks */,
 				A80AA1B52D43F62F00402AE6 /* FirebaseFirestoreCombine-Community in Frameworks */,
@@ -285,8 +283,9 @@
 				A87075702DC9A82B008FDA02 /* ImageCacheManager.swift */,
 				A8CD43162D8F1E8E00035EC9 /* TextField.swift */,
 				A83355D52D85B5DE000B1ECA /* SwipeAction.swift */,
-				A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */,
 				A8CD431C2D9D6B5700035EC9 /* Popup.swift */,
+				A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */,
+				A8D6CFEC2DE709B700A5FC30 /* CustomTextView.swift */,
 			);
 			name = "Extension+Util";
 			path = "ChatApp/Extension+Util";
@@ -362,8 +361,6 @@
 				A80AA1B22D43F62F00402AE6 /* FirebaseFirestore */,
 				A80AA1B42D43F62F00402AE6 /* FirebaseFirestoreCombine-Community */,
 				A80AA1B62D43F62F00402AE6 /* FirebaseStorageCombine-Community */,
-				A8E60A862D58F42A0030A203 /* SDWebImage */,
-				A8E60A882D58F42A0030A203 /* SDWebImageMapKit */,
 				A8E60A8D2D5B9B380030A203 /* SDWebImageSwiftUI */,
 				A8E60A962D651E260030A203 /* FirebaseFunctions */,
 				A8E60A982D651E260030A203 /* FirebaseFunctionsCombine-Community */,
@@ -389,16 +386,16 @@
 			};
 			buildConfigurationList = A80AA1832D32740300402AE6 /* Build configuration list for PBXProject "ChatApp" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
+			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ko,
 			);
 			mainGroup = A80AA17F2D32740300402AE6;
 			packageReferences = (
 				A80AA19E2D36540F00402AE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				A8E60A852D58F42A0030A203 /* XCRemoteSwiftPackageReference "SDWebImage" */,
 				A8E60A8C2D5B9B380030A203 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */,
 			);
 			productRefGroup = A80AA1892D32740300402AE6 /* Products */;
@@ -465,6 +462,7 @@
 				A8E60A902D5BCC0B0030A203 /* ChatLogView.swift in Sources */,
 				A83F6F5E2DB62DCC00FBE447 /* ChatRoom.swift in Sources */,
 				A80AA1BB2D50F6EC00402AE6 /* MessageListView.swift in Sources */,
+				A8D6CFED2DE709B700A5FC30 /* CustomTextView.swift in Sources */,
 				A80AA1AD2D3E916900402AE6 /* StorageManager.swift in Sources */,
 				A8F550262D891631006B8644 /* ChatRoomSideMenuView.swift in Sources */,
 				A8670B682D83326C007692FC /* ProfileView.swift in Sources */,
@@ -619,6 +617,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "촬영을 위해 권한 승인이 필요합니다.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "사진을 찾기 위해 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -650,6 +649,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "촬영을 위해 권한 승인이 필요합니다.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "사진을 찾기 위해 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -702,14 +702,6 @@
 				minimumVersion = 11.7.0;
 			};
 		};
-		A8E60A852D58F42A0030A203 /* XCRemoteSwiftPackageReference "SDWebImage" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SDWebImage/SDWebImage.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.20.0;
-			};
-		};
 		A8E60A8C2D5B9B380030A203 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SDWebImage/SDWebImageSwiftUI";
@@ -755,16 +747,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A80AA19E2D36540F00402AE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = "FirebaseStorageCombine-Community";
-		};
-		A8E60A862D58F42A0030A203 /* SDWebImage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A8E60A852D58F42A0030A203 /* XCRemoteSwiftPackageReference "SDWebImage" */;
-			productName = SDWebImage;
-		};
-		A8E60A882D58F42A0030A203 /* SDWebImageMapKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A8E60A852D58F42A0030A203 /* XCRemoteSwiftPackageReference "SDWebImage" */;
-			productName = SDWebImageMapKit;
 		};
 		A8E60A8D2D5B9B380030A203 /* SDWebImageSwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;

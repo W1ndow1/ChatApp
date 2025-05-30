@@ -24,31 +24,36 @@ struct ChatRoomGalleryView: View {
     
     var body: some View {
         GeometryReader { geo in
-            ZStack {
-                Rectangle()
-                    .foregroundStyle(showTopBottomView ? Color.whiteBlack : Color.black)
-                    .ignoresSafeArea()
-                    .zIndex(1)
-                TabView(selection: $galleryVM.currentIndex) {
-                    ForEach(images.indices, id: \.self) { index in
-                        galleryImage(for: index)
-                            .ignoresSafeArea()
-                            .tag(index)
-                    }
+            if isPresented {
+                ZStack {
+                    Rectangle()
+                        .foregroundStyle(showTopBottomView ? Color.whiteBlack : Color.black)
+                        .ignoresSafeArea()
+                        .zIndex(1)
+                    TabView(selection: $galleryVM.currentIndex) {
+                        ForEach(images.indices, id: \.self) { index in
+                            galleryImage(for: index)
+                                .ignoresSafeArea()
+                                .tag(index)
+                        }
                         
+                    }
+                    .ignoresSafeArea()
+                    .zIndex(2)
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    .gesture(verticalDragGesture().simultaneously(with: zoomedDragGesture(geo)))
+                    .simultaneousGesture(magnificationGesture())
+                    .simultaneousGesture(tapGesture(geo: geo).simultaneously(with: recordTapPosition()))
+                    .onAppear {
+                        galleryVM.setImages(images, startIndex)
+                    }
+                    .onDisappear {
+                        galleryVM.currentIndex = 0
+                    }
+                    topBottomView()
+                        .zIndex(3)
+                        .animation(.easeInOut(duration: 0.2), value: showTopBottomView)
                 }
-                .ignoresSafeArea()
-                .zIndex(2)
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                .gesture(verticalDragGesture().simultaneously(with: zoomedDragGesture(geo)))
-                .simultaneousGesture(magnificationGesture())
-                .simultaneousGesture(tapGesture(geo: geo).simultaneously(with: recordTapPosition()))
-                .onAppear {
-                    galleryVM.setImages(images, startIndex)
-                }
-                topBottomView()
-                    .zIndex(3)
-                    .animation(.easeInOut(duration: 0.2), value: showTopBottomView)
             }
         }
     }
