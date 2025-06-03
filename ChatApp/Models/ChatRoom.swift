@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import FirebaseCore
 
 struct ChatRoom: Identifiable, Codable, Hashable {
@@ -6,6 +7,7 @@ struct ChatRoom: Identifiable, Codable, Hashable {
     var chatRoomType: ChatRoomType?
     var chatRoomId: String = ""
     var chatRoomMakerId: String = ""
+    var chatRoomImageUrl: String = ""
     var participants: [String] = []
     var participantsJoinDates: [String : Timestamp]?
     var isCustomName: Bool = false
@@ -22,6 +24,7 @@ struct ChatRoom: Identifiable, Codable, Hashable {
         case chatRoomType
         case chatRoomId
         case chatRoomMakerId
+        case chatRoomImageUrl
         case participants
         case participantsJoinDates
         case isCustomName

@@ -62,7 +62,7 @@ struct ResizedAsyncImage: View {
     
     private func loadImage() async {
         //캐쉬 확인
-        if let cachedImage = ImageCacheManager.shared.image(for: url) {
+        if let cachedImage = ImageCache.shared.image(for: url) {
             self.image = cachedImage
             return
         }
@@ -72,7 +72,7 @@ struct ResizedAsyncImage: View {
             if let originalImage = UIImage(data: data) {
                 let resized = resizeMaintainningRatio(originalImage, toWidth: targetSize.width)
                 self.image = resized
-                ImageCacheManager.shared.save(resized, for: url)
+                ImageCache.shared.save(resized, for: url)
                 
             }
         } catch {

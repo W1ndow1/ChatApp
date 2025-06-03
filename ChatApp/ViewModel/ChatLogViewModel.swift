@@ -69,7 +69,9 @@ class ChatLogViewModel: ObservableObject {
                     chatRoomType:(participants.count > 2 ? .group : .direct) ,
                     chatRoomId: chatRoom?.chatRoomId ?? UUID().uuidString,
                     chatRoomMakerId: chatRoom?.chatRoomMakerId ?? fromId,
+                    chatRoomImageUrl: chatRoom?.chatRoomImageUrl ?? "",
                     participants: chatRoom?.participants ?? participants.sorted(by: {$0 < $1}),
+                    
                     participantsJoinDates: participants.reduce(into: [String:Timestamp]()) { $0[$1] = timestamp },
                     isCustomName: true,
                     chatName: (chatRoom?.chatName ?? ""),

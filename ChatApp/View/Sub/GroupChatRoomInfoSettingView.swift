@@ -7,23 +7,24 @@
 
 import SwiftUI
 import FirebaseCore
+import PhotosUI
 
 struct GroupChatRoomInfoSettingView: View {
     @Environment(\.dismiss) var dismiss
-    @State private var chatRoomName = ""
-    @State private var placeholder = ""
-    
+    @ObservedObject var viewModel: NewMessageViewModel
     let selectedItems: Set<ChatUser>
     var onComplete: (Set<ChatUser>, ChatRoom) -> ()
+    
+    @State private var chatRoomName = ""
+    @State private var chatRoomId = ""
+    @State private var placeholder = ""
+    @State private var selectedPickerItem: PhotosPickerItem?
     
     var body: some View {
         ScrollView {
             VStack(spacing: 40) {
-                Image(systemName: "globe")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 120, height: 120)
-                    .clipShape(Circle())
+                profileImageView()
+                    .padding(.top, 20)
                 VStack {
                     HStack {
                         TextField(placeholder, text: $chatRoomName)
@@ -75,6 +76,40 @@ struct GroupChatRoomInfoSettingView: View {
                 }
             }
         }
+        
+    }
+    
+    @ViewBuilder
+    func profileImageView() -> some View {
+        PhotosPicker(
+            selection: $selectedPickerItem,
+            matching: .images,
+            photoLibrary: .shared()) {
+                VStack {
+                    if let image = viewModel.profileImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 140)
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "globe")
+                            .font(.system(size: 70))
+                            .padding()
+                    }
+                }
+                .overlay(Circle().stroke(.tint, lineWidth: 4))
+            }
+            .onChange(of: selectedPickerItem) { _, newItem in
+                guard let newItem = newItem else { return }
+                Task {
+                    if let image = try? await newItem.loadTransferable(type: Data.self) {
+                        viewModel.profileImage = UIImage(data: image)
+                        chatRoomId = UUID().uuidString
+                        viewModel.uploadChatRoomProfileImage(chatRoomId: chatRoomId)
+                    }
+                }
+            }
     }
     
     func makeChatRoomInfo() -> ChatRoom {
@@ -82,8 +117,9 @@ struct GroupChatRoomInfoSettingView: View {
         let participants = selectedItems.map({$0.uid}) + [fromId]
         
         return ChatRoom(chatRoomType: .group,
-                        chatRoomId: UUID().uuidString,
+                        chatRoomId: self.chatRoomId,
                         chatRoomMakerId: AuthManager.shared.id ?? "",
+                        chatRoomImageUrl: viewModel.profileImageURL,
                         participants: participants.sorted(by: {$0 < $1}),
                         isCustomName: true,
                         chatName: chatRoomName.count == 0
@@ -94,5 +130,8 @@ struct GroupChatRoomInfoSettingView: View {
 }
 
 #Preview {
-    GroupChatRoomInfoSettingView(selectedItems: .init(), onComplete: { _,_ in})
+    GroupChatRoomInfoSettingView(
+        viewModel: .init(),
+        selectedItems: .init(),
+        onComplete: { _,_ in})
 }

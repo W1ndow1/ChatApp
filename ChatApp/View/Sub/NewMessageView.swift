@@ -85,7 +85,7 @@ struct NewMessageView: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToSettingView) {
-                GroupChatRoomInfoSettingView(selectedItems: selectedItems) { selectedItems, chatRoom in
+                GroupChatRoomInfoSettingView(viewModel: viewModel, selectedItems: selectedItems) { selectedItems, chatRoom in
                     chatRoomInfo(selectedItems, chatRoom)
                     dismiss()
                 }

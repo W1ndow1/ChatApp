@@ -23,6 +23,7 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
+        //migrationAllRoomMessageAddType4()
     }
     
 
@@ -89,6 +90,7 @@ class MessageListViewModel: ObservableObject {
         let newChatRoom = ChatRoom(chatRoomType: chatRoom.chatRoomType,
                                    chatRoomId: chatRoom.chatRoomId,
                                    chatRoomMakerId: chatRoom.chatRoomMakerId,
+                                   chatRoomImageUrl: chatRoom.chatRoomImageUrl,
                                    participants: chatRoom.participants,
                                    participantsJoinDates: chatRoom.participantsJoinDates,
                                    isCustomName: chatRoom.isCustomName,
@@ -260,7 +262,7 @@ class MessageListViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    //MARK: Firebase Filed Update and Edit
+    //MARK: - Firebase Filed Update and Edit
     private func updateAllChatRoomsWithChatRoomType(completion: @escaping (Result<Void, Error>) -> Void) {
         let db = DatabaseManager.shared.db
         let roomsCollection = db.collection("rooms")
@@ -436,6 +438,53 @@ class MessageListViewModel: ObservableObject {
                     }
                 }
             }
+        }
+    }
+    
+    private func migrationAllRoomMessageAddType4() {
+        let db = DatabaseManager.shared.db
+        let roomRef = db.collection("rooms")
+        
+        roomRef.getDocuments { snapshot, error in
+            if let error = error {
+                print("Error getting rooms: \(error)")
+                return
+            }
+            
+            guard let rooms = snapshot?.documents, !rooms.isEmpty else {
+                print("변환할 room 문서가 없습니다.")
+                return
+            }
+            var batch = db.batch()
+            var operationCount = 0
+            var batches: [WriteBatch] = []
+            for room in rooms {
+                if room.data()["chatRoomImageUrl"] != nil {
+                    continue
+                }
+                batch.updateData(["chatRoomImageUrl" : ""], forDocument: room.reference)
+                operationCount += 1
+                
+                if operationCount == 500 {
+                    batches.append(batch)
+                    batch = db.batch()
+                    operationCount = 0
+                }
+            }
+            if operationCount > 0 {
+                batches.append(batch)
+            }
+            for(index, batch) in batches.enumerated() {
+                batch.commit { error in
+                    if let error = error {
+                        print("Batch \(index) commit 에러 : \(error)")
+                    } else {
+                        print("Batch \(index) commit 성공")
+                    }
+                    
+                }
+            }
+            
         }
     }
 }

@@ -9,8 +9,8 @@ import Foundation
 import UIKit
 import CryptoKit
 
-class ImageCacheManager {
-    static let shared =  ImageCacheManager()
+class ImageCache {
+    static let shared =  ImageCache()
     
     private let memoryCache = NSCache<NSURL, UIImage>()
     private let fileManager = FileManager.default

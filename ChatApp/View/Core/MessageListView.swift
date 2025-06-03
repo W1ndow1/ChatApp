@@ -125,9 +125,18 @@ struct MessageListView: View {
                         .clipShape(Circle())
                         .overlay(RoundedRectangle(cornerRadius: 51).stroke(.opacity(0.3), lineWidth: 1))
                 } else {
-                    if let uid = AuthManager.shared.id {
-                        let user = Array(room.participants.filter({$0 != uid }).prefix(4))
-                        groupChatRoomImage(user: user)
+                    if room.chatRoomImageUrl.isEmpty {
+                        if let uid = AuthManager.shared.id {
+                            let user = Array(room.participants.filter({$0 != uid }).prefix(4))
+                            groupChatRoomImage(user: user)
+                        }
+                    } else {
+                        WebImage(url: URL(string: room.chatRoomImageUrl), options: .scaleDownLargeImages)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 51, height: 51)
+                            .clipShape(Circle())
+                            .overlay(RoundedRectangle(cornerRadius: 51).stroke(.opacity(0.3), lineWidth: 1))
                     }
                 }
                 VStack(alignment:.leading) {

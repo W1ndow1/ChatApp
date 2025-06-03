@@ -257,7 +257,6 @@ struct CustomGalleryView: View {
             }
     }
     
-    
     //더블 탭으로 2배 확대, 터치한 곳을 기준으로 이동
     private func handleDoubleTap(_ geo: GeometryProxy) {
         let imageSize = imageSizeInContainer(containerSize: geo.size)
@@ -305,15 +304,12 @@ struct CustomGalleryView: View {
         }
     }
     
-    
-    
     private func recordTapPosition() -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 tapPosition = value.location
             }
     }
-    
     
     private func imageSizeInContainer(containerSize: CGSize) -> CGSize {
         let imageAspect: CGFloat = galleryVM.sharedImage.size.width / galleryVM.sharedImage.size.height
@@ -330,7 +326,7 @@ struct CustomGalleryView: View {
         }
     }
     
-    func clampedOffset(proposedOffset: CGSize, image: CGSize) -> CGSize {
+    private func clampedOffset(proposedOffset: CGSize, image: CGSize) -> CGSize {
         // 확대된 이미지의 가상 너비/높이
         let zoomedImageWidth = image.width * scale
         let zoomedImageHeight = image.height * scale
@@ -449,7 +445,7 @@ struct CustomGalleryView: View {
             }
         }
     }
-    //뷰 상태 초기화 (예: 기기 회전 시)
+    //뷰 상태 초기화
     private func resetImageState() {
         withAnimation(.easeInOut) {
             offset = .zero

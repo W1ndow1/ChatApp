@@ -98,14 +98,14 @@ struct SettingView: View {
             }
             .confirmationDialog("캐시삭제", isPresented: $showingClearCacheAlert, titleVisibility: .visible) {
                 Button("확인", role: .destructive) {
-                    ImageCacheManager.shared.clearAllCache()
-                    cacheSize = Double(ImageCacheManager.shared.totalCacheSize()) / 1024 / 1024
+                    ImageCache.shared.clearAllCache()
+                    cacheSize = Double(ImageCache.shared.totalCacheSize()) / 1024 / 1024
                 }
                 Button("취소", role: .cancel) { }
             }
         }
         .onAppear {
-            cacheSize = Double(ImageCacheManager.shared.totalCacheSize()) / 1024 / 1024
+            cacheSize = Double(ImageCache.shared.totalCacheSize()) / 1024 / 1024
         }
     }
 }

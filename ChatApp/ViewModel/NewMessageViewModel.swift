@@ -12,8 +12,10 @@ import UIKit
 class NewMessageViewModel: ObservableObject {
     @Published var users = [ChatUser]()
     @Published var errerMessage = ""
-    @Published var profileImage: UIImage?
     @Published var existChatRooms: [ChatRoom]?
+    
+    @Published var profileImage: UIImage?
+    @Published var profileImageURL: String = ""
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -40,7 +42,7 @@ class NewMessageViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    private func fetchImage(url: URL) async {
+    func fetchImage(url: URL) async {
         do {
             let request = URLRequest(url: url)
             let (data, _) = try await URLSession.shared.data(for: request)
@@ -72,5 +74,14 @@ class NewMessageViewModel: ObservableObject {
         }
     }
     
-   
+    func uploadChatRoomProfileImage(chatRoomId: String) {
+        guard let resizeImage = profileImage?.resizeMaintainningRatio(toWidth: 400),
+              let imageData = resizeImage.jpegData(compressionQuality: 0.4) else { return }
+        Task {
+            let imageURL = try await StorageManager.shared.uploadChatRoomImage(image: imageData, chatRoomId: chatRoomId)
+            await MainActor.run(body: {
+                profileImageURL = imageURL.absoluteString
+            })
+        }
+    }
 }
