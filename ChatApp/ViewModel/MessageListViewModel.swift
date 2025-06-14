@@ -23,7 +23,6 @@ class MessageListViewModel: ObservableObject {
     init() {
         guard let uid = AuthManager.shared.id else { return }
         fetchCurrentUser(uid: uid)
-        //migrationAllRoomMessageAddType4()
     }
     
 

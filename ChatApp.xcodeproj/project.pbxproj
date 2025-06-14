@@ -43,6 +43,8 @@
 		A8670B672D83326C007692FC /* SettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B642D83326C007692FC /* SettingView.swift */; };
 		A8670B682D83326C007692FC /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B652D83326C007692FC /* ProfileView.swift */; };
 		A8670B692D83326C007692FC /* NewMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8670B662D83326C007692FC /* NewMessageView.swift */; };
+		A867E4DE2DF2E0AA0084EF97 /* ChatRoomSettingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A867E4DD2DF2E0AA0084EF97 /* ChatRoomSettingViewModel.swift */; };
+		A867E4E02DF415600084EF97 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = A867E4DF2DF415600084EF97 /* Color.swift */; };
 		A870755D2DC1A726008FDA02 /* ImageEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = A870755C2DC1A726008FDA02 /* ImageEdit.swift */; };
 		A87075602DC33303008FDA02 /* ChatRoomGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A870755F2DC33303008FDA02 /* ChatRoomGalleryView.swift */; };
 		A87075682DC3A450008FDA02 /* ChatApp04_ChatRoomGallery.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = A87075652DC3A450008FDA02 /* ChatApp04_ChatRoomGallery.jpeg */; };
@@ -107,6 +109,8 @@
 		A8670B642D83326C007692FC /* SettingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingView.swift; sourceTree = "<group>"; };
 		A8670B652D83326C007692FC /* ProfileView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		A8670B662D83326C007692FC /* NewMessageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NewMessageView.swift; sourceTree = "<group>"; };
+		A867E4DD2DF2E0AA0084EF97 /* ChatRoomSettingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomSettingViewModel.swift; sourceTree = "<group>"; };
+		A867E4DF2DF415600084EF97 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
 		A870755C2DC1A726008FDA02 /* ImageEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEdit.swift; sourceTree = "<group>"; };
 		A870755F2DC33303008FDA02 /* ChatRoomGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoomGalleryView.swift; sourceTree = "<group>"; };
 		A87075612DC36E8F008FDA02 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -262,6 +266,7 @@
 				A8E60A832D57B2230030A203 /* NewMessageViewModel.swift */,
 				A8E511DA2DBBDDCF002C75EA /* CameraViewModel.swift */,
 				A8CA6CDA2DDD7B0C00E8E9B5 /* GalleryViewModel.swift */,
+				A867E4DD2DF2E0AA0084EF97 /* ChatRoomSettingViewModel.swift */,
 			);
 			path = ViewModel;
 			sourceTree = "<group>";
@@ -288,6 +293,7 @@
 				A8CD431C2D9D6B5700035EC9 /* Popup.swift */,
 				A8CD431A2D9CF43700035EC9 /* CustomAlert.swift */,
 				A8D6CFEC2DE709B700A5FC30 /* CustomTextView.swift */,
+				A867E4DF2DF415600084EF97 /* Color.swift */,
 			);
 			name = "Extension+Util";
 			path = "ChatApp/Extension+Util";
@@ -448,12 +454,14 @@
 				A806E5512DB7888C0043ED1B /* ChatRoomBottomMenuView.swift in Sources */,
 				A8E511DD2DBCD05D002C75EA /* Camera.swift in Sources */,
 				A8670B672D83326C007692FC /* SettingView.swift in Sources */,
+				A867E4DE2DF2E0AA0084EF97 /* ChatRoomSettingViewModel.swift in Sources */,
 				A82755752D54611F00D9E8A8 /* SettingViewModel.swift in Sources */,
 				A8CD431B2D9CF43800035EC9 /* CustomAlert.swift in Sources */,
 				A80AA1A92D37540800402AE6 /* LoginViewModel.swift in Sources */,
 				A8E60A922D5FA0CA0030A203 /* ChatLogViewModel.swift in Sources */,
 				A8670B632D833253007692FC /* ChatMessage.swift in Sources */,
 				A8670B692D83326C007692FC /* NewMessageView.swift in Sources */,
+				A867E4E02DF415600084EF97 /* Color.swift in Sources */,
 				A8E511E12DBDD52B002C75EA /* EditPhotoView.swift in Sources */,
 				A80AA18E2D32740300402AE6 /* LoginView.swift in Sources */,
 				A8E60A8B2D5900640030A203 /* RegistrationView.swift in Sources */,

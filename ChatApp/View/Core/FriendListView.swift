@@ -3,13 +3,14 @@ import SDWebImageSwiftUI
 
 struct FriendListView: View {
     @StateObject private var viewModel = FriendListViewModel()
+    @StateObject private var swipe = SwipeState()
     @State private var searchText = ""
     @State private var showSearchbar = false
     @State private var selectedUser: ChatUser? = nil
     @State private var selectedUserData: Set<ChatUser>?
     @State private var chatRoom = ChatRoom()
     @State private var navigateChatRoom = false
-    @State private var friendCount: Int = 0
+
     @FocusState private var isTextFieldFocused: Bool
     @Binding var hideTabBar: Bool
     
@@ -20,6 +21,7 @@ struct FriendListView: View {
                     searchBar()
                 }
                 friendList()
+                    .environmentObject(swipe)
             }
             .navigationDestination(isPresented: $navigateChatRoom) {
                 if chatRoom.isNew {
@@ -36,9 +38,6 @@ struct FriendListView: View {
             .onAppear {
                 hideTabBar = false
             }
-            .onReceive(viewModel.$users) { users in
-                self.friendCount = users.filter { $0.uid != AuthManager.shared.id}.count
-            }
         }
     }
     @ViewBuilder
@@ -46,60 +45,106 @@ struct FriendListView: View {
         Button {
             selectedUser = user
         } label: {
-            HStack {
-                WebImage(url: URL(string: user.profileImageURL), options: .scaleDownLargeImages)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 50, height: 50)
-                    .clipShape(Circle())
-                
-                VStack(alignment: .leading) {
-                    Text(user.displayName)
-                    Text(user.email)
-                        .font(.system(size: 13, weight: .light))
+            SwipeAction {
+                userRowBody(user: user)
+            } actions: {
+                Action(tint:.yellow,
+                       icon: "flag",
+                       title: "즐겨찾기",
+                       titleFont: .system(size: 10)) {
+                    //선택시 이벤트
+                    viewModel.toggleFavorite(for: user)
                 }
-                Spacer()
             }
-            .padding(.horizontal, 15)
         }
         .tint(.primary)
     }
     
     @ViewBuilder
+    func userRowBody(user: ChatUser) -> some View {
+        HStack {
+            WebImage(url: URL(string: user.profileImageURL), options: .scaleDownLargeImages)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 50, height: 50)
+                .clipShape(Circle())
+            
+            VStack(alignment: .leading) {
+                HStack {
+                    Text(user.displayName)
+                    if viewModel.isFavorite(user) {
+                        Image(systemName: "bookmark.cicle")
+                            .font(.system(size: 20))
+                            .foregroundColor(Color.mint)
+                    }
+                }
+                Text(user.email)
+                    .font(.system(size: 13, weight: .light))
+            }
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 15)
+    }
+    
+    
+    @ViewBuilder
     func friendList() -> some View {
         ScrollView {
-            //CurrentUser Section
-            if let currentUser = viewModel.users.first(where: { $0.uid == AuthManager.shared.id }) {
-                userRow(user: currentUser)
-                Divider()
-            }
-            //OtherUser
-            Section(header: sectionHeader()) {
-                let users = viewModel.users.filter({$0.uid != AuthManager.shared.id})
+            LazyVStack(spacing: 0) {
+                //1.CurrentUser Section (현재유저) 상시고정
+                if let currentUser = viewModel.users.first(where: { $0.uid == viewModel.currentUserId }) {
+                    userRow(user: currentUser)
+                    Divider()
+                }
                 
-                ForEach(users.filter { user in
-                    searchText.isEmpty ||
-                    user.displayName.contains(searchText) ||
-                    user.email.contains(searchText) }) { user in
-                        userRow(user: user)
-                        Divider()
+                //2.favoriteUser (즐겨찾기 유저)
+                let favoriteUserIds = viewModel.users.filter {
+                    viewModel.isFavorite($0) }
+                if !favoriteUserIds.isEmpty {
+                    Section {
+                        ForEach(favoriteUserIds.filter { user in
+                            searchText.isEmpty || user.displayName.contains(searchText) }) { user in
+                                userRow(user: user)
+                            }
+                    } header: {
+                        if !isTextFieldFocused {
+                            sectionHeader(title: "즐겨찾기", count: viewModel.favoritesUsersCount)
+                        }
                     }
+                }
+                //3.OtherUser
+                Section(header: sectionHeader(title: "친구", count: viewModel.otherUsersCount)) {
+                    let currentUserId = AuthManager.shared.id
+                    let favoriteUserIds = Set(viewModel.users.filter { viewModel.isFavorite($0) }.map { $0.uid })
+                    
+                    let otherUsers = viewModel.users.filter {
+                        $0.uid != currentUserId && !favoriteUserIds.contains($0.uid)
+                    }
+                    
+                    ForEach(otherUsers.filter {
+                        searchText.isEmpty ||
+                        $0.displayName.contains(searchText) ||
+                        $0.email.contains(searchText) }) { user in
+                            userRow(user: user)
+                        }
+                }
             }
-        }
-        .onTapGesture { self.hideKeyboard() }
-        .fullScreenCover(item: $selectedUser) { user in
-            ProfileView(viewModel: viewModel, user: user) { user, chatRoom in
+            .onTapGesture { self.hideKeyboard() }
+            .fullScreenCover(item: $selectedUser) { user in
+                ProfileView(viewModel: viewModel, user: user) { user, chatRoom in
                     navigateChatRoom.toggle()
                     selectedUserData = user
                     self.chatRoom = chatRoom
+                }
             }
         }
     }
     
     @ViewBuilder
-    func sectionHeader() -> some View {
+    func sectionHeader(title: String, count: Int = 0) -> some View {
         HStack {
-            Text("친구 \(friendCount)")
+            Text("\(title) \(count)")
                 .font(.system(size: 13))
             Spacer()
         }

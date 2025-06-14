@@ -16,42 +16,59 @@ struct ProfileView: View {
     let user: ChatUser
     var startChatting: (Set<ChatUser>, ChatRoom) -> ()?
     
+    @GestureState private var dragOffset: CGSize = .zero
+    
     var body: some View {
         NavigationStack {
-            VStack {
-                Spacer()
-                WebImage(url: URL(string: user.profileImageURL))
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 140)
-                    .clipShape(Circle())
-                    .overlay { Circle().stroke(.tint, lineWidth: 4) }
-                Text(user.displayName)
-                    .font(.title)
-                    .bold()
-                
-                Text(user.email)
-                    .foregroundStyle(.secondary)
-                HStack {
-                    Button {
-                        startChatting(makeUserArray(user: user), makeChatRoomInfo())
-                        dismiss()
-                    } label: {
-                        Text(AuthManager.shared.id == user.uid ? "나와 채팅하기" : "채팅하기" )
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(.tint)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .padding(10)
-                }
+            ZStack {
                 Color.clear
-                    .frame(height: 50)
-            }
-            .toolbar {
-                navigationBarContent()
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture()
+                            .updating($dragOffset) { value, state, _ in
+                                state = value.translation
+                            }
+                            .onEnded { value in
+                                if value.translation.height > 50 {
+                                    dismiss()
+                                }
+                            }
+                    )
+                VStack {
+                    Spacer()
+                    WebImage(url: URL(string: user.profileImageURL))
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 140)
+                        .clipShape(Circle())
+                        .overlay { Circle().stroke(.tint, lineWidth: 4) }
+                    Text(user.displayName)
+                        .font(.title)
+                        .bold()
+                    
+                    Text(user.email)
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        Button {
+                            startChatting(makeUserArray(user: user), makeChatRoomInfo())
+                            dismiss()
+                        } label: {
+                            Text(AuthManager.shared.id == user.uid ? "나와 채팅하기" : "채팅하기" )
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(.tint)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .padding(10)
+                    }
+                    Color.clear
+                        .frame(height: 50)
+                }
+                .toolbar {
+                    navigationBarContent()
+                }
             }
         }
         .onAppear() {

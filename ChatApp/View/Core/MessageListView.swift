@@ -52,7 +52,7 @@ struct MessageListView: View {
     func chatRoomList() -> some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                //First section: Favorite chatRooms
+                //1.First section : Favorite chatRooms
                 let favoriteChatRooms = viewModel.chatRooms.filter { viewModel.isFavorite($0) }
                 if !favoriteChatRooms.isEmpty {
                     Section {
@@ -68,7 +68,7 @@ struct MessageListView: View {
                         }
                     }
                 }
-                //Normal chatRooms
+                //2.Second section : Normal chatRooms
                 ForEach(viewModel.chatRooms.filter { room in
                     !viewModel.isFavorite(room) &&
                     (searchText.isEmpty ||
@@ -148,7 +148,6 @@ struct MessageListView: View {
                             Image(systemName: "bookmark.circle")
                                 .font(.system(size: 20))
                                 .foregroundColor(Color.mint)
-                            
                         }
                     }
                     let msg = room.lastMessage.count > 20

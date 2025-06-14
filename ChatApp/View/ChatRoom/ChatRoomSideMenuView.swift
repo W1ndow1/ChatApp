@@ -83,7 +83,7 @@ struct ChatRoomSideMenuView: View {
                     Image(systemName: "gearshape")
                 }
                 .fullScreenCover(isPresented: $isShowSettingView) {
-                    ChatRoomSettingView()
+                    ChatRoomSettingView(viewModel: viewModel)
                 }
             }
             .font(.system(size: 18, weight: .bold))
@@ -91,7 +91,6 @@ struct ChatRoomSideMenuView: View {
         .padding(.vertical, 15)
         .padding(.leading, 10)
         .padding(.trailing, 20)
-        .padding(.top, 10)
         .background(Color.gray.opacity(0.1))
     }
     

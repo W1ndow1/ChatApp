@@ -167,7 +167,7 @@ class DatabaseManager: NSObject {
     func updateFavoriteIds(userId: String, favoriteIds: Set<String>) -> AnyPublisher<Bool, Error> {
         let favoriteRef = db.collection(self.favoritesPath).document(userId)
         return Future { promise in
-            favoriteRef.setData(["favoriteIds": Array(favoriteIds)]) { error in
+            favoriteRef.setData(["favoriteIds": Array(favoriteIds)], merge: true) { error in
                 if let error = error {
                     promise(.failure(error))
                 } else {
@@ -181,7 +181,7 @@ class DatabaseManager: NSObject {
     func updateFavoriteChatRooms(userId: String, chatRoomIds: Set<String>) -> AnyPublisher<Bool, Error> {
         let favoriteRef = db.collection(self.favoritesPath).document(userId)
         return Future { promise in
-            favoriteRef.setData(["favoriteChatRooms": Array(chatRoomIds)]) { error in
+            favoriteRef.setData(["favoriteChatRooms": Array(chatRoomIds)], merge: true) { error in
                 if let error = error {
                     promise(.failure(error))
                 } else {
@@ -236,6 +236,7 @@ class DatabaseManager: NSObject {
         }
         .eraseToAnyPublisher()
     }
+    
     
     func updateChatRoomParticipantsJoinDates(userIds: [String], chatRoomId: String) -> AnyPublisher<Bool, Error> {
         let docRef = db.collection(self.chatRoomPath).document(chatRoomId)
@@ -305,8 +306,11 @@ class DatabaseManager: NSObject {
                         promise(.failure(error))
                         return
                     }
-                    let favoriteIds = snapshot?.data()?["favoriteIds"] as? Set<String> ?? []
-                    promise(.success(favoriteIds))
+                    if let favoriteIds = snapshot?.data()?["favoriteIds"] as? [String] {
+                        promise(.success(Set(favoriteIds)))
+                    } else {
+                        promise(.success(Set()))
+                    }
                 }
         }
         .eraseToAnyPublisher()

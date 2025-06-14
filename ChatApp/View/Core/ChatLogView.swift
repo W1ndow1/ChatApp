@@ -3,6 +3,7 @@ import _PhotosUI_SwiftUI
 import SDWebImageSwiftUI
 
 struct ChatLogView: View {
+    //겔러리 뷰 관련 속성
     @Namespace private var imageNamespace
     @State private var galleryImages: [GalleryImageItem] = []
     @State private var galleryStartIndex: Int = 0
@@ -119,6 +120,7 @@ struct ChatLogView: View {
             }
             .defaultScrollAnchor(.top)
             .background(Color(white: 0.3, opacity: 0.1))
+            //.background(Color.accentColor)
             .onTapGesture {
                 if isBottomMenuVisible {
                     isBottomMenuVisible = false

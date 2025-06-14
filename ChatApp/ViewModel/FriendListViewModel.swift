@@ -13,12 +13,26 @@ class FriendListViewModel: ObservableObject {
     @Published var users = [ChatUser]()
     @Published var favoriteUserIds = Set<String>()
     @Published var existChatRooms = [ChatRoom]()
+
+    
+    var currentUserId: String {
+        AuthManager.shared.id ?? ""
+    }
+    
+    var favoritesUsersCount: Int {
+        users.filter { isFavorite($0) }.count
+    }
+    
+    var otherUsersCount: Int {
+        users.filter {
+            $0.uid != currentUserId && !isFavorite($0)
+        }.count
+    }
     
     private var cancellables = Set<AnyCancellable>()
     
     init() {
         fetchAllUsers()
-        //fetchFavorites()
     }
     
     private func fetchAllUsers() {
@@ -28,6 +42,7 @@ class FriendListViewModel: ObservableObject {
                 case .failure(let error):
                     print("Error fetching users: \(error.localizedDescription)")
                 case .finished:
+                    self.fetchFavorites()
                     break;
                 }
             }, receiveValue: { users in
@@ -48,19 +63,18 @@ class FriendListViewModel: ObservableObject {
                     return
                 }
             }, receiveValue: { favoriteIds in
-                self.favoriteUserIds = favoriteIds
+                DispatchQueue.main.async {
+                    self.favoriteUserIds = favoriteIds
+                }
             })
             .store(in: &cancellables)
     }
     
     func toggleFavorite(for user: ChatUser) {
-        guard let currentId = AuthManager.shared.id else { return }
-        if favoriteUserIds.contains(user.uid) {
-            favoriteUserIds.remove(user.uid)
-        } else {
-            favoriteUserIds.insert(user.uid)
-        }
-        DatabaseManager.shared.updateFavoriteIds(userId: currentId, favoriteIds: favoriteUserIds)
+        let updateFavorites = favoriteUserIds.contains(user.uid)
+        ? favoriteUserIds.subtracting([user.uid])
+        : favoriteUserIds.union([user.uid])
+        DatabaseManager.shared.updateFavoriteIds(userId: currentUserId, favoriteIds: updateFavorites)
             .sink(receiveCompletion: { completion in
                 if case .failure(let failure) = completion {
                     print("Firebase Error: \(failure)")
@@ -70,7 +84,8 @@ class FriendListViewModel: ObservableObject {
                     print("success favorite")
                     return
                 }
-            }, receiveValue: { _ in
+            }, receiveValue: { result in
+                self.fetchFavorites()
                 
             })
             .store(in: &cancellables)
