@@ -84,7 +84,7 @@ struct CustomGalleryView: View {
                     }
                     .gesture(dragGesture(geo))
                     .gesture(TapGesture().onEnded { _ in galleryVM.showTopBottomView.toggle() })
-                    .gesture(TapGesture(count: 2).onEnded { _ in } )
+                    //.gesture(TapGesture(count: 2).onEnded { _ in } )
                     
                     //상,하단 프레임
                     topBottomView(geo)

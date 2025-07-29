@@ -57,12 +57,18 @@ struct ChatLogView: View {
             ChatRoomSideMenuView(
                 viewModel: viewModel,
                 isPresented: $showSideMenu)
-            
+            /*
             CustomGalleryView(
                 images: galleryImages,
                 startIndex: galleryStartIndex,
                 namespace: imageNamespace,
                 isPresented: $showGalleryView)
+             */
+            CustomGalleryViewEx(
+                images: galleryImages,
+                startIndex: galleryStartIndex,
+                isPresented: $showGalleryView
+            )
         }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)

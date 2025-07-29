@@ -33,6 +33,9 @@
 		A80AA1C22D5238AA00402AE6 /* FriendListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80AA1C12D5238AA00402AE6 /* FriendListView.swift */; };
 		A80AA1C42D526A3F00402AE6 /* MessageListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A80AA1C32D526A3F00402AE6 /* MessageListViewModel.swift */; };
 		A82755752D54611F00D9E8A8 /* SettingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82755742D54611F00D9E8A8 /* SettingViewModel.swift */; };
+		A8291FF62E1CE52900359628 /* CustomGalleryViewEx.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8291FF52E1CE52900359628 /* CustomGalleryViewEx.swift */; };
+		A8291FFD2E2F2BD400359628 /* GalleryPageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8291FFC2E2F2BD400359628 /* GalleryPageViewController.swift */; };
+		A8291FFF2E2FA40E00359628 /* GalleryImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8291FFE2E2FA3DD00359628 /* GalleryImageViewController.swift */; };
 		A83355D42D8332D1000B1ECA /* FriendListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83355D32D8332D1000B1ECA /* FriendListViewModel.swift */; };
 		A83355D62D85B5DE000B1ECA /* SwipeAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83355D52D85B5DE000B1ECA /* SwipeAction.swift */; };
 		A83F6F5E2DB62DCC00FBE447 /* ChatRoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83F6F5D2DB62DCB00FBE447 /* ChatRoom.swift */; };
@@ -99,6 +102,9 @@
 		A80AA1C12D5238AA00402AE6 /* FriendListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendListView.swift; sourceTree = "<group>"; };
 		A80AA1C32D526A3F00402AE6 /* MessageListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageListViewModel.swift; sourceTree = "<group>"; };
 		A82755742D54611F00D9E8A8 /* SettingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingViewModel.swift; sourceTree = "<group>"; };
+		A8291FF52E1CE52900359628 /* CustomGalleryViewEx.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGalleryViewEx.swift; sourceTree = "<group>"; };
+		A8291FFC2E2F2BD400359628 /* GalleryPageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryPageViewController.swift; sourceTree = "<group>"; };
+		A8291FFE2E2FA3DD00359628 /* GalleryImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryImageViewController.swift; sourceTree = "<group>"; };
 		A83355D32D8332D1000B1ECA /* FriendListViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FriendListViewModel.swift; sourceTree = "<group>"; };
 		A83355D52D85B5DE000B1ECA /* SwipeAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeAction.swift; sourceTree = "<group>"; };
 		A83F6F5D2DB62DCB00FBE447 /* ChatRoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRoom.swift; sourceTree = "<group>"; };
@@ -172,6 +178,7 @@
 				A8CD43182D94E9AC00035EC9 /* ChatRoomSettingView.swift */,
 				A870755F2DC33303008FDA02 /* ChatRoomGalleryView.swift */,
 				A8070B7E2DE0540700D74850 /* CustomGalleryView.swift */,
+				A8291FFB2E2F2B9200359628 /* CustomGalleryEx */,
 			);
 			path = ChatRoom;
 			sourceTree = "<group>";
@@ -280,6 +287,16 @@
 				A80AA1C12D5238AA00402AE6 /* FriendListView.swift */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		A8291FFB2E2F2B9200359628 /* CustomGalleryEx */ = {
+			isa = PBXGroup;
+			children = (
+				A8291FF52E1CE52900359628 /* CustomGalleryViewEx.swift */,
+				A8291FFC2E2F2BD400359628 /* GalleryPageViewController.swift */,
+				A8291FFE2E2FA3DD00359628 /* GalleryImageViewController.swift */,
+			);
+			path = CustomGalleryEx;
 			sourceTree = "<group>";
 		};
 		A8670B5F2D833222007692FC /* Extension+Util */ = {
@@ -451,6 +468,7 @@
 				A870755D2DC1A726008FDA02 /* ImageEdit.swift in Sources */,
 				A80AA1B92D44B60000402AE6 /* DatabaseManager.swift in Sources */,
 				A80AA1AB2D3B657600402AE6 /* AuthManager.swift in Sources */,
+				A8291FF62E1CE52900359628 /* CustomGalleryViewEx.swift in Sources */,
 				A806E5512DB7888C0043ED1B /* ChatRoomBottomMenuView.swift in Sources */,
 				A8E511DD2DBCD05D002C75EA /* Camera.swift in Sources */,
 				A8670B672D83326C007692FC /* SettingView.swift in Sources */,
@@ -459,6 +477,7 @@
 				A8CD431B2D9CF43800035EC9 /* CustomAlert.swift in Sources */,
 				A80AA1A92D37540800402AE6 /* LoginViewModel.swift in Sources */,
 				A8E60A922D5FA0CA0030A203 /* ChatLogViewModel.swift in Sources */,
+				A8291FFF2E2FA40E00359628 /* GalleryImageViewController.swift in Sources */,
 				A8670B632D833253007692FC /* ChatMessage.swift in Sources */,
 				A8670B692D83326C007692FC /* NewMessageView.swift in Sources */,
 				A867E4E02DF415600084EF97 /* Color.swift in Sources */,
@@ -478,6 +497,7 @@
 				A8E60A842D57B2230030A203 /* NewMessageViewModel.swift in Sources */,
 				A80AA1C22D5238AA00402AE6 /* FriendListView.swift in Sources */,
 				A80AA18C2D32740300402AE6 /* ChatAppApp.swift in Sources */,
+				A8291FFD2E2F2BD400359628 /* GalleryPageViewController.swift in Sources */,
 				A83355D42D8332D1000B1ECA /* FriendListViewModel.swift in Sources */,
 				A80AA1C42D526A3F00402AE6 /* MessageListViewModel.swift in Sources */,
 				A8E511D92DBBBD63002C75EA /* CameraView.swift in Sources */,
@@ -622,6 +642,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"ChatApp/Preview Content\"";
+				DEVELOPMENT_TEAM = AK7S865VNK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;
@@ -654,6 +675,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"ChatApp/Preview Content\"";
+				DEVELOPMENT_TEAM = AK7S865VNK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ChatApp/Info.plist;

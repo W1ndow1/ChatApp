@@ -87,7 +87,8 @@ struct ResizedAsyncImage: View {
               
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: size))
+            //image.draw(in: CGRect(origin: .zero, size: size))
+            image.draw(in: .init(origin: .zero, size: size))
         }
     }
 }

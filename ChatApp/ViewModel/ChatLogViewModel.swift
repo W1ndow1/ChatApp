@@ -40,6 +40,7 @@ class ChatLogViewModel: ObservableObject {
         self.chatRoom = chatRoom
         fetchUsersInfoByRoom()
     }
+    
 
     //채팅방 목록으로 들어온 경우
     init(chatRoom room: ChatRoom) {
